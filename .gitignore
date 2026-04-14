@@ -1,0 +1,19 @@
+# Dependency directories
+node_modules/
+
+# npm cache
+.npm
+
+# Debug logs
+npm-debug.log*
+
+# Environment variables
+.env
+
+# Editor folders
+.vscode/
+.idea/
+
+# OS metadata
+.DS_Store
+Thumbs.db
