@@ -6,7 +6,7 @@
 
 ## 👥 Group Members
 * Ngcweti Mjiyako
-* Name 
+* Ofentse Tembe 
 * Name 
 * Name 
 
