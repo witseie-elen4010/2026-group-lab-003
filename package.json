@@ -1,0 +1,32 @@
+{
+  "name": "2026-group-lab-003",
+  "version": "1.0.0",
+  "description": "[![Project Status: Initializing](https://img.shields.io/badge/Project%20Status-Sprint%201%20-green)](https://github.com/)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/witseie-elen4010/2026-group-lab-003.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/witseie-elen4010/2026-group-lab-003/issues"
+  },
+  "homepage": "https://github.com/witseie-elen4010/2026-group-lab-003#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mssql": "^12.3.1"
+  },
+  "devDependencies": {
+    "jest": "^30.3.0",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
+  }
+}
