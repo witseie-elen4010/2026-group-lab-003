@@ -10,7 +10,7 @@ The project requires a web application for facilitating group consultations. We 
 1. **Runtime**: Node.js
 2. **Framework**: Express.js
 3. **Frontend**: Bootstrap 
-4. **Database**: [Choice: MongoDB or SQL Server]
+4. **Database**: MongoDB
 5. **Hosting**: Render 
 
 ## Benfits
