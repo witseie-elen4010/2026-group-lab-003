@@ -15,7 +15,8 @@ We have decided to use **MongoDB** as our primary database.
 
 ## Justification
 * **MongoDB:** MongoDB's flexible schema is ideal for the Activity Log, allowing us to store diverse action types without complex migrations. Its JSON-like structure aligns perfectly with our Node.js/Express stack, speeding up development in our 1-week sprint cycles.
-***Hosting** Render offers a streamlined, developer-friendly CI/CD pipeline that integrates directly with our GitHub repository. This allows us to satisfy the Sprint 1 deployment requirement with lower configuration overhead compared to Azure.
+  
+* **Hosting** Render offers a streamlined, developer-friendly CI/CD pipeline that integrates directly with our GitHub repository. This allows us to satisfy the Sprint 1 deployment requirement with lower configuration overhead compared to Azure.
 
 ## Consequences
 * **Development:** The team will implement a centralized db-connection.js utility using the Mongoose ODM to manage connections and enforce schema validation.
