@@ -4,7 +4,9 @@
   "description": "[![Project Status: Initializing](https://img.shields.io/badge/Project%20Status-Sprint%201%20-green)](https://github.com/)",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "test": "jest",
+    "dev": "nodemon server.js"
   },
   "repository": {
     "type": "git",
