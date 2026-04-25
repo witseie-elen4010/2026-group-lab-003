@@ -8,6 +8,8 @@ const users = []
 
 app.use(express.json()) // Essential for reading JSON in Login/Registration
 
+app.use(express.static('public'))
+
 // For registration
 app.post('/register', async (req, res) => {
   try {
