@@ -1,178 +1,70 @@
+/* login-page.css */
 body {
-    background-image: url('../images/login-background.png'); 
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+                url('../images/login-background.png');
     background-size: cover;
     background-position: center;
-    background-repeat: no-repeat;
     background-attachment: fixed;
-    display: grid; 
-    place-items: center; 
-    min-height: 100vh; 
-    margin: 0; 
 }
 
-.login_button{
-    background: #FFC107;
-    color: black;
-    border-width: 0px;
-    border-radius: 50px;
-    align-items: center;
-    width: 80vw;
-    height: 80px;
-    font-size: 35px;
-    font-weight: bolder;
-    margin-top: 20px;
-}
-
-.login_button:active {
-    background: #FFC107;
-    opacity: 0.6;
-}
-
-.text_entry_field{
-    flex: 1;                 
-    border: none;            
-    background: transparent; 
-    outline: none;           
-    font-size: 35px;         
-    padding: 0;              
-    color: #333;            
-    height: 80px;
-}
-
-.auth-options {
-    display: flex;
-    align-items: center;         
-    justify-content: space-between; 
-    margin: 20px 1vw 30px 1vw; 
-}
-
-.remember-group {
+/* Add this to style the Material Icons within the new Bootstrap input-groups */
+.material-symbols-outlined {
+    font-size: 24px;
     display: flex;
     align-items: center;
+    opacity: 0.7;
 }
 
-.checkbox_button {
-    width: 30px;  
-    height: 30px;
-    cursor: pointer;
+/* Navigation Styling */
+.navbar {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
 }
 
-.remember_me {
-    color: white;
-    font-size: 30px;
-    padding-left: 10px;
+.nav-link {
+    font-size: 1.1rem;
+    margin: 0 10px;
+    transition: color 0.3s ease;
 }
 
-.forgot_password_text {
-    font-size: 30px;
-    color: #FFC107;
-    text-decoration: none;
+.nav-link:hover {
+    color: #FFC107 !important;
 }
 
-.forgot_password_text:hover {
-    color: #007BFF;
-    text-decoration: underline; 
-    cursor: pointer;
+/* Hero Section Enhancements */
+h1 {
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
 }
 
-.new_account_text {
-    font-size: 28px;
-    color: #FFC107;
-    text-decoration: none;
+.lead {
+    font-size: 1.25rem;
+    opacity: 0.9;
 }
 
-.new_account_text:hover{
-    color: #007BFF;
-    text-decoration: underline; 
-    cursor: pointer;
+/* Mobile adjustments for the landing page */
+@media (max-width: 991px) {
+    .navbar-collapse {
+        background: rgba(0, 0, 0, 0.9);
+        padding: 20px;
+        border-radius: 15px;
+        margin-top: 10px;
+    }
 }
 
-.new_account_placeholder{
-    margin-top: 15px;
+/* Styling for the Login button to ensure consistency */
+.btn-warning {
+    background-color: #FFC107;
+    border: none;
+    transition: all 0.3s ease;
 }
 
-.new_account_text-2{
-    font-size: 28px;
-    color: white;
-    text-decoration: none;
+.btn-warning:hover {
+    background-color: #e5ae06;
+    transform: translateY(-2px); /* Subtle lift effect */
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
 }
 
-.logo{
-    text-align: center;
-    height: auto;
-    margin-bottom: 0px;
-}
-
-.logo_image {
-    max-width: 500px;
-    height: auto; 
-    display: block;
-    margin: 0 auto; 
-}
-
-.login_text{
-    font-size: 50px;
-    text-align: center;
-    color: white;
-}
-
-.designer_info{
-    font-size: 25px;
-    text-align: center;
-    padding-top: 200px;
-    color: white;
-}
-
-.welcome_text{
-    color: white;
-    font-size: 30px;
-    margin-top: 0px;
-}
-
-.login_background{
-    background-color: rgba(255, 255, 255, 0.25);
-    padding-right: 40px;
-    padding-left: 40px;
-    padding-top: 40px;
-    padding-bottom: 40px;
-    border-radius: 50px;
-}
-
-.input_container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border: 1px solid #ccc;     
-    border-radius: 25px;         
-    padding: 10px 15px;          
-    background-color: #ffffff;   
-    transition: border-color 0.2s ease; 
-}
-
-.input_container:focus-within .input_icon {
-    color: #58A6FF; 
-}
-
-.toggle_link {
-    cursor: pointer;
-    color: black; 
-    user-select: none;
-    font-size: 40px; 
-}
-
-.inline_error {
-    color: red;
-    font-size: 30px; 
-    display: block;  
-    margin-left: 5px; 
-    min-height: 25px;
-    margin-bottom: 10px;
-    margin-top: 10px;
-}
-
-.input_icon {
-    font-size: 50px; 
-    color: #888888;  
-    user-select: none; 
-    transition: color 0.2s ease;
+/* Ensure the nav-link doesn't overwrite button text color */
+.navbar-nav .btn-warning {
+    color: #000 !important;
 }
