@@ -2,14 +2,11 @@ const express = require('express')
 const app = express()
 const bcrypt = require('bcrypt')
 const saltRounds = 10 // This determines how strong the hash is
-const path = require('path')
 
 // Temporary in-memory user store
 const users = []
 
 app.use(express.json()) // Essential for reading JSON in Login/Registration
-
-app.use(express.static('public'))
 
 // For registration
 app.post('/register', async (req, res) => {
@@ -57,7 +54,7 @@ app.post('/login', async (req, res) => {
 })
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login-page.html'))
+  res.send('Consultation Scheduler API is running...')
 })
 
 module.exports = app
