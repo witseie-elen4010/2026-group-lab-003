@@ -2,7 +2,7 @@
   "name": "2026-group-lab-003",
   "version": "1.0.0",
   "description": "[![Project Status: Initializing](https://img.shields.io/badge/Project%20Status-Sprint%201%20-green)](https://github.com/)",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "test": "jest",

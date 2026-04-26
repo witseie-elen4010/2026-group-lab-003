@@ -2,6 +2,7 @@ const express = require('express')
 const app = express()
 const bcrypt = require('bcrypt')
 const saltRounds = 10 // This determines how strong the hash is
+const path = require('path')
 
 // Temporary in-memory user store
 const users = []
@@ -56,7 +57,7 @@ app.post('/login', async (req, res) => {
 })
 
 app.get('/', (req, res) => {
-  res.send('Consultation Scheduler API is running...')
+  res.sendFile(path.join(__dirname, 'public', 'login-page.html'))
 })
 
 module.exports = app
