@@ -1,6 +1,11 @@
+require('dotenv').config();
+
+const path = require('path');
+// This finds the .env file in the parent directory of 'src'
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+
 const app = require('./app');
 const connectDB = require('./config/db'); // 1. Import your database connection
-require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
 

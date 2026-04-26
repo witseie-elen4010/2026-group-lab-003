@@ -1,26 +1,48 @@
 body {
-    background-image: url('../images/login-background.png'); 
+    background-image: url('../images/login-background.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     background-attachment: fixed;
-    display: grid; 
-    place-items: center; 
-    min-height: 100vh; 
-    margin: 0; 
+    margin: 0;
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
 }
 
-.login_button{
+.auth-wrapper {
+    width: 100%;
+    max-width: 420px;         
+    display: flex;
+    flex-direction: column;
+    align-items: center;      
+    padding: 20px;
+}
+
+.login_background {
+    background-color: rgba(255, 255, 255, 0.25);
+    padding: 25px;            
+    border-radius: 25px;      
+    width: 100%;          
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;                
+}
+
+.login_button {
     background: #FFC107;
     color: black;
-    border-width: 0px;
-    border-radius: 50px;
-    align-items: center;
-    width: 80vw;
-    height: 80px;
-    font-size: 35px;
+    border: none;
+    border-radius: 25px; 
+    width: 100%;         
+    height: 35px;        
+    font-size: 14px;     
     font-weight: bolder;
-    margin-top: 20px;
+    margin-top: 10px;
+    cursor: pointer;
 }
 
 .login_button:active {
@@ -28,22 +50,87 @@ body {
     opacity: 0.6;
 }
 
-.text_entry_field{
+.input_container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #ccc;     
+    border-radius: 15px;         
+    padding: 10px 15px;          
+    background-color: #ffffff;   
+    transition: border-color 0.2s ease; 
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.input_container:focus-within .input_icon {
+    color: #58A6FF; 
+}
+
+.text_entry_field {
     flex: 1;                 
     border: none;            
     background: transparent; 
     outline: none;           
-    font-size: 35px;         
-    padding: 0;              
+    font-size: 14px;         
     color: #333;            
-    height: 80px;
+    height: 20px;            
+    width: 100%;
+}
+
+.input_icon {
+    font-size: 18px;         
+    color: #888888;
+}
+
+.toggle_link {
+    cursor: pointer;
+    color: black; 
+    user-select: none;
+    font-size: 18px;         
+}
+
+.inline_error {
+    color: #ff4d4d;        
+    font-size: 10px;         
+    display: block;  
+    margin-left: 5px; 
+    margin-top: -10px;       
+    min-height: 15px;
+    margin-bottom: -10px;
+}
+
+.logo {
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.logo_image {
+    max-width: 200px;        
+    height: auto; 
+    display: block;
+    margin: 0 auto; 
+}
+
+.login_text {
+    font-size: 24px;
+    text-align: center;
+    color: white;
+    margin: 0 0 10px 0;
+}
+
+.welcome_text {
+    color: white;
+    font-size: 14px;
+    margin-top: 0px;
+    text-align: center;
 }
 
 .auth-options {
     display: flex;
     align-items: center;         
     justify-content: space-between; 
-    margin: 20px 1vw 30px 1vw; 
+    margin: 5px 0 15px 0; 
 }
 
 .remember-group {
@@ -52,19 +139,19 @@ body {
 }
 
 .checkbox_button {
-    width: 30px;  
-    height: 30px;
+    width: 14px;  
+    height: 14px;
     cursor: pointer;
 }
 
 .remember_me {
     color: white;
-    font-size: 30px;
-    padding-left: 10px;
+    font-size: 12px;
+    padding-left: 5px;
 }
 
 .forgot_password_text {
-    font-size: 30px;
+    font-size: 12px;
     color: #FFC107;
     text-decoration: none;
 }
@@ -72,107 +159,33 @@ body {
 .forgot_password_text:hover {
     color: #007BFF;
     text-decoration: underline; 
-    cursor: pointer;
+}
+
+.new_account_placeholder {
+    margin-top: 0px;
+    text-align: center;
+}
+
+.new_account_text-2 {
+    font-size: 11px;
+    color: white;
+    text-decoration: none;
 }
 
 .new_account_text {
-    font-size: 28px;
+    font-size: 11px;
     color: #FFC107;
     text-decoration: none;
 }
 
-.new_account_text:hover{
+.new_account_text:hover {
     color: #007BFF;
     text-decoration: underline; 
-    cursor: pointer;
 }
 
-.new_account_placeholder{
-    margin-top: 15px;
-}
-
-.new_account_text-2{
-    font-size: 28px;
-    color: white;
-    text-decoration: none;
-}
-
-.logo{
+.designer_info {
+    font-size: 11px;
     text-align: center;
-    height: auto;
-    margin-bottom: 0px;
-}
-
-.logo_image {
-    max-width: 500px;
-    height: auto; 
-    display: block;
-    margin: 0 auto; 
-}
-
-.login_text{
-    font-size: 50px;
-    text-align: center;
-    color: white;
-}
-
-.designer_info{
-    font-size: 25px;
-    text-align: center;
-    padding-top: 200px;
-    color: white;
-}
-
-.welcome_text{
-    color: white;
-    font-size: 30px;
-    margin-top: 0px;
-}
-
-.login_background{
-    background-color: rgba(255, 255, 255, 0.25);
-    padding-right: 40px;
-    padding-left: 40px;
-    padding-top: 40px;
-    padding-bottom: 40px;
-    border-radius: 50px;
-}
-
-.input_container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border: 1px solid #ccc;     
-    border-radius: 25px;         
-    padding: 10px 15px;          
-    background-color: #ffffff;   
-    transition: border-color 0.2s ease; 
-}
-
-.input_container:focus-within .input_icon {
-    color: #58A6FF; 
-}
-
-.toggle_link {
-    cursor: pointer;
-    color: black; 
-    user-select: none;
-    font-size: 40px; 
-}
-
-.inline_error {
-    color: red;
-    font-size: 30px; 
-    display: block;  
-    margin-left: 5px; 
-    min-height: 25px;
-    margin-bottom: 10px;
-    margin-top: 10px;
-}
-
-.input_icon {
-    font-size: 50px; 
-    color: #888888;  
-    user-select: none; 
-    transition: color 0.2s ease;
+    padding-top: 30px;
+    color: rgba(255, 255, 255, 0.7);
 }

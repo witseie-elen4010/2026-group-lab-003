@@ -9,7 +9,7 @@ const users = []
 
 app.use(express.json()) // Essential for reading JSON in Login/Registration
 
-app.use(express.static('public'))
+app.use(express.static('../public'))
 
 // For registration
 app.post('/register', async (req, res) => {
@@ -57,7 +57,7 @@ app.post('/login', async (req, res) => {
 })
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login-page.html'))
+  res.sendFile(path.join(__dirname, '../public/login-page.html'))
 })
 
 module.exports = app

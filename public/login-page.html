@@ -1,31 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Consultation Scheduler</title>
+    
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="css/login-page.css">
 </head>
 <body>
-    <div>
-        <h2 class="logo">
-            <img src="images/synchro-logo.png" alt="Synchro Logo" class="logo_image">
-        </h2>
-        <p class="welcome_text" >Welcome back! Please login to your account</p>
-    </div>
-    <form id="loginForm" novalidate>
-        <div class="login_background">
-            <h2 class="login_text" >USER LOGIN</h2>
+    <div class="auth-wrapper">
+        
+        <div>
+            <h2 class="logo">
+                <img src="images/synchro-logo.png" alt="Synchro Logo" class="logo_image">
+            </h2>
+            <p class="welcome_text">Welcome back! Please login to your account</p>
+        </div>
+        
+        <form id="loginForm" novalidate>
+            <div class="login_background">
+                <h2 class="login_text">USER LOGIN</h2>
 
-            <div class="input_container">
-                <span class="material-symbols-outlined input_icon">mail</span>
-                <input class="text_entry_field" type="text" id="username" placeholder="Email Address" required>
-                <i class="fa-solid fa-user"></i>
-            </div>
-            <span id="emailError" class="inline_error"></span>
+                <div class="input_container">
+                    <span class="material-symbols-outlined input_icon">mail</span>
+                    <input class="text_entry_field" type="text" id="username" placeholder="Email Address" required>
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <span id="emailError" class="inline_error"></span>
 
-
-            <div>
+            
                 <div class="input_container">
                     <span class="material-symbols-outlined input_icon">lock</span>
                     <input class="text_entry_field" type="password" id="password" placeholder="Password" required>
@@ -34,31 +38,34 @@
                     </span>
                 </div>
                 <span id="passwordError" class="inline_error"></span>
-            </div>
-        
-
-            <div class="auth-options">
-                <div class="remember-group">
-                    <input class="checkbox_button" type="checkbox" id="remember" name="remember">
-                    <label class="remember_me" for="remember">Remember me</label>
+            
+                <div class="auth-options">
+                    <div class="remember-group">
+                        <input class="checkbox_button" type="checkbox" id="remember" name="remember">
+                        <label class="remember_me" for="remember">Remember me</label>
+                    </div>
+                    <a class="forgot_password_text" href="https://www.google.com">Forgot password?</a>
                 </div>
-                <a class="forgot_password_text" href="https://www.google.com">Forgot password?</a>
+            
+                <div>
+                    <button class="login_button" type="submit">Login</button>
+                </div>
+                
+                <div class="new_account_placeholder">
+                    <p class="new_account_text-2">
+                        Don't have an account? <a class="new_account_text" href="register-page.html">Create a new account.</a>
+                    </p>
+                </div>
             </div>
+
+            <div class="designer_info">
+                <a>Designed by students at the University of the Witwatersrand</a>
+            </div>
+        </form>
         
-            <div>
-                <button class="login_button" type="submit">Login</button>
-            </div>
-            <div class="new_account_placeholder">
-                <p class="new_account_text-2" >Don't have an account? <a class="new_account_text" href="register-page.html"> Create a new account. </a> </p>
-            </div>
-        </div>
+        <p id="message"></p>
+        <script src="js/login-page.js"></script>
 
-        <div class="designer_info" >
-            <a> Designed by students at the University of the Witwatersrand </a>
-        </div>
-    </form>
-    <p id="message"></p>
-
-    <script src="js/login-page.js"></script>
+    </div>
 </body>
 </html>
