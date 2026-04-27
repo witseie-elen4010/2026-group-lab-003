@@ -1,0 +1,114 @@
+body {
+    background-image: url('../images/login-background.png') !important; 
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-attachment: fixed !important;
+    display: grid; 
+    place-items: center; 
+    min-height: 100vh; 
+    margin: 0; 
+    font-family: 'Inter', sans-serif;
+}
+
+.registration_fields {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; 
+}
+
+.text_entry_field{
+    flex: 1;                 
+    border: none;            
+    background: transparent; 
+    outline: none;           
+    font-size: 14px;         
+    padding: 0;              
+    color: #333;            
+    height: 20px;
+    width: 75vw;
+    box-sizing: border-box;
+    
+}
+
+.text_entry_field:focus::placeholder {
+    color: #58A6FF;
+    opacity: 1; 
+    transition: color 0.2s ease;
+}
+
+.input_container {
+    display: flex;
+    border: 1px solid #ccc;     
+    border-radius: 15px;         
+    padding: 10px 15px;          
+    background-color: #ffffff;
+    max-width: 420px;
+}
+
+ion-segment {
+    --background: rgba(255, 255, 255, 0.5);
+    border-radius: 50px;
+    --border-radius: 50px !important;
+    height: 40px;
+    margin-top: -5px;
+    max-width: 420px;
+}
+
+ion-segment-button {
+    --color-checked: #007BFF;
+    --indicator-color: #FFC107;
+    --border-radius: 50px !important;
+}
+
+.already_have_text {
+    color: white;
+    font-size: 11px;
+}
+
+.login_here_text {
+    color: #FFC107;
+    font-size: 11px;
+    text-decoration: none;
+}
+
+.login_here_text:hover {
+    color: #007BFF;
+    text-decoration: underline; 
+    cursor: pointer;
+}
+
+.register_button {
+    background: #FFC107;
+    color: black;
+    border-width: 0px;
+    border-radius: 25px;
+    align-items: center;
+    width: 88vw;
+    height: 35px;
+    font-size: 14px;
+    font-weight: bolder;
+    max-width: 420px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.register_button:active {
+    background: #FFC107;
+    opacity: 0.6;
+}
+
+.toggle_link {
+    cursor: pointer;
+    color: black; 
+    user-select: none;
+    font-size: 18px; 
+}
+
+.inline_error {
+    color: red;
+    font-size: 10px; 
+    display: block;  
+    margin-left: 5px; 
+    margin-top: -10px;
+}
