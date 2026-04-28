@@ -139,8 +139,6 @@ registrationForm.addEventListener('submit', async (event) => {
     return
   }
 
-  console.log('Passwords match! Sending data...', formData)
-
   // Send to your /register route (using Fetch)
   try {
     const response = await fetch('/register', {
