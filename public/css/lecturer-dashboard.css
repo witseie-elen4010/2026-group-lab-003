@@ -1,0 +1,152 @@
+body {
+    background-image: url('../images/login-background.png'); /* using login background picture*/
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    padding: 30px 0;
+}
+
+.schedule-container {
+    width: 100%;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 0 20px;
+}
+
+/* Header */
+.schedule-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.header-left h1 {
+    font-size: 28px;
+    color: white;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.header-left h1 i {
+    color: #FFC107;
+    font-size: 26px;
+}
+
+.header-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    margin: 5px 0 0 0;
+}
+
+/* Date Banner */
+.date-banner {
+    background-color: rgba(255, 255, 255, 0.15);
+    padding: 15px 25px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    font-size: 18px;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.date-banner i {
+    color: #FFC107;
+    font-size: 22px;
+}
+
+/* Buttons */
+.btn {
+    background: #FFC107;
+    color: black;
+    border: none;
+    border-radius: 25px;
+    height: 35px;
+    font-size: 14px;
+    font-weight: bolder;
+    cursor: pointer;
+    padding: 0 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: opacity 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn:active {
+    opacity: 0.6;
+}
+
+.btn-outline {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-outline:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.btn-sm {
+    height: 30px;
+    font-size: 12px;
+    padding: 0 15px;
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn-danger {
+    background: #ff4d4d;
+    color: white;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+}
+
+.stat-card {
+    background-color: rgba(255, 255, 255, 0.15);
+    padding: 20px 25px;
+    border-radius: 25px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: #FFC107;
+    line-height: 1.2;
+}
+
+.stat-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 5px;
+}
