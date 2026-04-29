@@ -237,5 +237,190 @@ describe('Lecturer Dashboard', () => {
     });
 
 
-    
+    describe('Filtering', () => {
+        const testSessions = [
+            { id: '1', courseCode: 'ELEN4010', date: '2026-04-28', time: '09:00', status: 'upcoming', studentName: 'Alice', topic: 'Arrays', lecturerName: 'Dr. Smith' },
+            { id: '2', courseCode: 'ELEN4006', date: '2026-04-28', time: '10:00', status: 'completed', studentName: 'Bob', topic: 'Sorting', lecturerName: 'Dr. Smith' },
+            { id: '3', courseCode: 'ELEN4010', date: '2026-04-29', time: '11:00', status: 'canceled', studentName: 'Carol', topic: 'Loops', lecturerName: 'Dr. Smith' }
+        ];
+
+        beforeEach(() => {
+            global.localStorage.setItem('sychro_consultations', JSON.stringify(testSessions));
+            global.sessionStorage.setItem('sychro_current_user', JSON.stringify({ fullName: 'Dr. Smith' }));
+        });
+
+        test('should filter by status', () => {
+            const manager = new LecturerScheduleManager();
+            document.getElementById('status-filter').value = 'completed';
+            manager.applyFilters();
+            expect(manager.filteredSessions.length).toBe(1);
+            expect(manager.filteredSessions[0].id).toBe('2');
+        });
+
+        test('should filter by course code', () => {
+            const manager = new LecturerScheduleManager();
+            document.getElementById('course-filter').value = 'ELEN4010';
+            manager.applyFilters();
+            expect(manager.filteredSessions.length).toBe(2);
+        });
+
+        test('should filter by search term', () => {
+            const manager = new LecturerScheduleManager();
+            document.getElementById('search-input').value = 'Alice';
+            manager.applyFilters();
+            expect(manager.filteredSessions.length).toBe(1);
+            expect(manager.filteredSessions[0].studentName).toBe('Alice');
+        });
+
+        test('should show all when filters cleared', () => {
+            const manager = new LecturerScheduleManager();
+            manager.applyFilters();
+            expect(manager.filteredSessions.length).toBe(3);
+        });
+
+        test('should sort by date and time ascending', () => {
+            const manager = new LecturerScheduleManager();
+            manager.applyFilters();
+            expect(manager.filteredSessions[0].time).toBe('09:00');
+            expect(manager.filteredSessions[1].time).toBe('10:00');
+            expect(manager.filteredSessions[2].time).toBe('11:00');
+        });
+    });
+
+    describe('Session Actions', () => {
+        const testSessions = [
+            { id: '1', courseCode: 'ELEN4010', date: '2026-04-28', time: '09:00', status: 'upcoming', studentName: 'Alice', joinedStudents: [], lecturerName: 'Dr. Smith' },
+            { id: '2', courseCode: 'ELEN4006', date: '2026-04-28', time: '10:00', status: 'ongoing', studentName: 'Bob', joinedStudents: ['Bob'], lecturerName: 'Dr. Smith' }
+        ];
+
+        beforeEach(() => {
+            global.localStorage.setItem('sychro_consultations', JSON.stringify(testSessions));
+            global.sessionStorage.setItem('sychro_current_user', JSON.stringify({ fullName: 'Dr. Smith' }));
+            global.confirm = () => true;
+        });
+
+        test('should cancel upcoming session', () => {
+            const manager = new LecturerScheduleManager();
+            manager.cancelSession('1');
+            const session = manager.sessions.find(s => s.id === '1');
+            expect(session.status).toBe('canceled');
+        });
+
+        test('should complete ongoing session', () => {
+            const manager = new LecturerScheduleManager();
+            manager.completeSession('2');
+            const session = manager.sessions.find(s => s.id === '2');
+            expect(session.status).toBe('completed');
+        });
+
+        test('should not cancel when confirm is false', () => {
+            global.confirm = () => false;
+            const manager = new LecturerScheduleManager();
+            manager.cancelSession('1');
+            const session = manager.sessions.find(s => s.id === '1');
+            expect(session.status).toBe('upcoming');
+        });
+    });
+
+    describe('Rendering', () => {
+        test('should show empty state when no sessions', () => {
+            const manager = new LecturerScheduleManager();
+            manager.render();
+            expect(document.getElementById('empty-state').classList.contains('hidden')).toBe(false);
+            expect(document.getElementById('schedule-list').innerHTML).toBe('');
+        });
+
+        test('should display current date', () => {
+            const manager = new LecturerScheduleManager();
+            const dateEl = document.getElementById('current-date');
+            expect(dateEl.textContent).not.toBe('');
+        });
+    });
+
+    describe('Helper Functions', () => {
+        let manager;
+        beforeEach(() => {
+            manager = new LecturerScheduleManager();
+        });
+
+        test('formatTime should format correctly', () => {
+            expect(manager.formatTime('09:00')).toBe('9:00 AM');
+            expect(manager.formatTime('14:30')).toBe('2:30 PM');
+        });
+
+        test('formatTime should handle null', () => {
+            expect(manager.formatTime(null)).toBe('--:--');
+        });
+
+        test('escape should prevent XSS', () => {
+            expect(manager.escape('<script>alert("xss")</script>'))
+                .toBe('&lt;script&gt;alert("xss")&lt;/script&gt;');
+        });
+
+        test('escape should handle empty', () => {
+            expect(manager.escape('')).toBe('');
+        });
+
+        test('getTomorrow returns next day', () => {
+            const today = new Date();
+            const expected = new Date(today);
+            expected.setDate(expected.getDate() + 1);
+            expect(manager.getTomorrow()).toBe(expected.toISOString().split('T')[0]);
+        });
+
+        test('isThisWeek returns true for today', () => {
+            const today = new Date().toISOString().split('T')[0];
+            expect(manager.isThisWeek(today)).toBe(true);
+        });
+
+        test('isThisWeek handles null', () => {
+            expect(manager.isThisWeek(null)).toBe(false);
+        });
+    });
+
+    describe('Modal', () => {
+        const testSessions = [
+            { id: '1', courseCode: 'ELEN4010', date: '2026-04-28', time: '09:00', status: 'upcoming', studentName: 'Alice', topic: 'Test', duration: 30, joinedStudents: ['Alice'], location: 'Room 1', lecturerName: 'Dr. Smith' }
+        ];
+
+        beforeEach(() => {
+            global.localStorage.setItem('sychro_consultations', JSON.stringify(testSessions));
+            global.sessionStorage.setItem('sychro_current_user', JSON.stringify({ fullName: 'Dr. Smith' }));
+        });
+
+        test('should open modal with session details', () => {
+            const manager = new LecturerScheduleManager();
+            manager.showDetail('1');
+            expect(document.getElementById('session-modal').classList.contains('hidden')).toBe(false);
+            expect(document.getElementById('session-detail-content').innerHTML).toContain('ELEN4010');
+        });
+
+        test('should close modal', () => {
+            const manager = new LecturerScheduleManager();
+            manager.closeModal();
+            expect(document.getElementById('session-modal').classList.contains('hidden')).toBe(true);
+        });
+    });
+
+    describe('Filter Options', () => {
+        test('should populate course filter with unique courses', () => {
+            const testSessions = [
+                { id: '1', courseCode: 'ELEN4010', status: 'upcoming', lecturerName: 'Dr. Smith' },
+                { id: '2', courseCode: 'ELEN4006', status: 'completed', lecturerName: 'Dr. Smith' },
+                { id: '3', courseCode: 'ELEN4010', status: 'canceled', lecturerName: 'Dr. Smith' }
+            ];
+            global.localStorage.setItem('sychro_consultations', JSON.stringify(testSessions));
+            global.sessionStorage.setItem('sychro_current_user', JSON.stringify({ fullName: 'Dr. Smith' }));
+
+            const manager = new LecturerScheduleManager();
+            const options = document.getElementById('course-filter').querySelectorAll('option');
+            const values = Array.from(options).map(o => o.value);
+
+            expect(values).toContain('all');
+            expect(values).toContain('ELEN4010');
+            expect(values).toContain('ELEN4006');
+            expect(options.length).toBe(3);
+        });
+    });
+
 });
