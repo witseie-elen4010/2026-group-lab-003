@@ -311,3 +311,64 @@ class LecturerScheduleManager {
             this.applyFilters();
         }
     }
+
+       // HELPERS
+
+    formatTime(time) {
+        if (!time) return '--:--';
+        const [hours, minutes] = time.split(':');
+        const h = parseInt(hours);
+        const period = h >= 12 ? 'PM' : 'AM';
+        const displayHour = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+        return `${displayHour}:${minutes} ${period}`;
+    }
+
+    getTomorrow() {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.toISOString().split('T')[0];
+    }
+
+    isThisWeek(dateStr) {
+        if (!dateStr) return false;
+        const date = new Date(dateStr);
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+        return date >= startOfWeek && date <= endOfWeek;
+    }
+
+    isNextWeek(dateStr) {
+        if (!dateStr) return false;
+        const date = new Date(dateStr);
+        const today = new Date();
+        const startOfNextWeek = new Date(today);
+        startOfNextWeek.setDate(today.getDate() - today.getDay() + 7);
+        const endOfNextWeek = new Date(startOfNextWeek);
+        endOfNextWeek.setDate(startOfNextWeek.getDate() + 6);
+        endOfNextWeek.setHours(23, 59, 59, 999);
+        return date >= startOfNextWeek && date <= endOfNextWeek;
+    }
+
+    escape(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    debounce(fn, delay) {
+        let timer;
+        return (...args) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
+}
+
+// INITIALIZE
+const scheduleManager = new LecturerScheduleManager();
+window.scheduleManager = scheduleManager;
