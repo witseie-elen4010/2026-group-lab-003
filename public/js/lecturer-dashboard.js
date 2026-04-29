@@ -108,4 +108,67 @@ class LecturerScheduleManager {
 
         localStorage.setItem(this.storageKey, JSON.stringify(allSessions));
     }
-    
+
+    // FILTERING
+
+    applyFilters() {
+        const status = this.statusFilter.value;
+        const course = this.courseFilter.value;
+        const date = this.dateFilter.value;
+        const searchTerm = this.searchInput.value.toLowerCase().trim();
+
+        this.filteredSessions = this.sessions.filter(session => {
+            if (status !== 'all' && session.status !== status) return false;
+            if (course !== 'all' && session.courseCode !== course) return false;
+
+            if (date !== 'all') {
+                const sessionDate = session.date;
+                const today = new Date().toISOString().split('T')[0];
+                const tomorrow = this.getTomorrow();
+
+                if (date === 'today' && sessionDate !== today) return false;
+                if (date === 'tomorrow' && sessionDate !== tomorrow) return false;
+                if (date === 'this-week' && !this.isThisWeek(sessionDate)) return false;
+                if (date === 'next-week' && !this.isNextWeek(sessionDate)) return false;
+            }
+
+            if (searchTerm) {
+                const searchStr = `${session.studentName || ''} ${session.courseCode || ''} ${session.topic || ''}`.toLowerCase();
+                if (!searchStr.includes(searchTerm)) return false;
+            }
+
+            return true;
+        });
+
+        this.filteredSessions.sort((a, b) => {
+            const dateA = new Date(`${a.date}T${a.time}`);
+            const dateB = new Date(`${b.date}T${b.time}`);
+            return dateA - dateB;
+        });
+
+        this.render();
+    }
+
+    updateFilterOptions() {
+        const courses = [...new Set(this.sessions.map(s => s.courseCode).filter(Boolean))].sort();
+        this.courseFilter.innerHTML = '<option value="all">All Courses</option>';
+        courses.forEach(course => {
+            const option = document.createElement('option');
+            option.value = course;
+            option.textContent = course;
+            this.courseFilter.appendChild(option);
+        });
+    }
+
+    // STATISTICS
+
+    updateStats() {
+        const today = new Date().toISOString().split('T')[0];
+        const todaySessions = this.sessions.filter(s => s.date === today);
+
+        this.totalSessionsEl.textContent = todaySessions.length;
+        this.totalJoinedEl.textContent = todaySessions.reduce((sum, s) => sum + (s.joinedStudents ? s.joinedStudents.length : 0), 0);
+        this.upcomingCountEl.textContent = this.sessions.filter(s => (s.status === 'upcoming' || s.status === 'ongoing') && this.isThisWeek(s.date)).length;
+        this.completedTodayEl.textContent = todaySessions.filter(s => s.status === 'completed').length;
+    }
+
