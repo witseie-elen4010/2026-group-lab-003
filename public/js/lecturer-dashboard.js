@@ -172,3 +172,142 @@ class LecturerScheduleManager {
         this.completedTodayEl.textContent = todaySessions.filter(s => s.status === 'completed').length;
     }
 
+        // RENDERING
+
+    displayCurrentDate() {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        this.currentDateEl.textContent = new Date().toLocaleDateString('en-US', options);
+    }
+
+    render() {
+        if (this.filteredSessions.length === 0) {
+            this.scheduleList.innerHTML = '';
+            this.emptyState.classList.remove('hidden');
+        } else {
+            this.emptyState.classList.add('hidden');
+            this.scheduleList.innerHTML = this.filteredSessions.map(s => this.renderSessionCard(s)).join('');
+        }
+    }
+
+    renderSessionCard(session) {
+        const timeDisplay = this.formatTime(session.time);
+        const statusClass = `status-${session.status}`;
+        const joinedStudents = session.joinedStudents || [];
+        const location = session.location || 'Not specified';
+
+        return `
+            <div class="session-card">
+                <div class="session-time">
+                    <div class="time">${timeDisplay}</div>
+                    <div class="duration">${session.duration || 0}min</div>
+                </div>
+                <div class="session-info">
+                    <div class="session-course">${this.escape(session.courseCode || '')} ${session.courseName ? '- ' + this.escape(session.courseName) : ''}</div>
+                    <div class="session-title">${this.escape(session.topic || 'No topic specified')}</div>
+                    <div class="session-meta">
+                        <span><i class="fas fa-user"></i> ${this.escape(session.studentName || 'Unknown')}</span>
+                        <span><i class="fas fa-map-marker-alt"></i> ${this.escape(location)}</span>
+                    </div>
+                    ${joinedStudents.length > 0 ? `
+                        <div class="joined-students">
+                            ${joinedStudents.map(s =>
+                                `<div class="student-avatar" title="${this.escape(s)}">${s.split(' ').map(n => n[0]).join('')}</div>`
+                            ).join('')}
+                            <span class="student-count">${joinedStudents.length} joined</span>
+                        </div>
+                    ` : ''}
+                </div>
+                <span class="session-status ${statusClass}">${session.status || 'unknown'}</span>
+                <div class="session-actions">
+                    <button class="btn btn-sm btn-outline" onclick="scheduleManager.showDetail('${session.id}')">
+                        <i class="fas fa-info-circle"></i> Details
+                    </button>
+                    ${session.status === 'upcoming' ? `
+                        <button class="btn btn-sm btn-danger" onclick="scheduleManager.cancelSession('${session.id}')">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    ` : ''}
+                    ${session.status === 'ongoing' ? `
+                        <button class="btn btn-sm btn-success" onclick="scheduleManager.completeSession('${session.id}')">
+                            <i class="fas fa-check"></i> Complete
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    showDetail(id) {
+        const session = this.sessions.find(s => s.id === id);
+        if (!session) return;
+
+        const date = new Date(`${session.date}T${session.time}`).toLocaleDateString('en-US', {
+            weekday: 'long', month: 'long', day: 'numeric'
+        });
+
+        const joinedStudents = session.joinedStudents || [];
+        const location = session.location || 'Not specified';
+
+        this.sessionDetailContent.innerHTML = `
+            <div class="detail-row">
+                <span class="detail-label">Course</span>
+                <span class="detail-value">${this.escape(session.courseCode || '')} ${session.courseName ? '- ' + this.escape(session.courseName) : ''}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Date & Time</span>
+                <span class="detail-value">${date} at ${this.formatTime(session.time)}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Duration</span>
+                <span class="detail-value">${session.duration || 0} minutes</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Status</span>
+                <span class="detail-value">${(session.status || 'unknown').toUpperCase()}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Location</span>
+                <span class="detail-value">${this.escape(location)}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Topic</span>
+                <span class="detail-value">${this.escape(session.topic || 'No topic specified')}</span>
+            </div>
+            <div class="detail-students">
+                <h4>Students Joined (${joinedStudents.length})</h4>
+                ${joinedStudents.length > 0 ? `
+                    <ul class="student-list">
+                        ${joinedStudents.map(s => `<li><i class="fas fa-user-circle"></i> ${this.escape(s)}</li>`).join('')}
+                    </ul>
+                ` : '<p style="color: #888; font-size: 13px;">No students have joined yet.</p>'}
+            </div>
+        `;
+
+        this.sessionModal.classList.remove('hidden');
+    }
+
+    closeModal() {
+        this.sessionModal.classList.add('hidden');
+    }
+
+    cancelSession(id) {
+        if (confirm('Cancel this session?')) {
+            const session = this.sessions.find(s => s.id === id);
+            if (session) {
+                session.status = 'canceled';
+                this.saveSessions();
+                this.updateStats();
+                this.applyFilters();
+            }
+        }
+    }
+
+    completeSession(id) {
+        const session = this.sessions.find(s => s.id === id);
+        if (session) {
+            session.status = 'completed';
+            this.saveSessions();
+            this.updateStats();
+            this.applyFilters();
+        }
+    }
