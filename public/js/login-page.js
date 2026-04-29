@@ -9,7 +9,7 @@ togglePassword.addEventListener('click', function () {
 })
 
 // Text Entry password and email Logic
-const emailInput = document.getElementById('username')
+const emailInput = document.getElementById('email')
 const emailError = document.getElementById('emailError')
 const passwordInput = document.getElementById('password')
 const passwordError = document.getElementById('passwordError')
@@ -38,11 +38,11 @@ passwordInput.addEventListener('input', () => {
 })
 
 // FORM LOGIC: Submit & Fetch (Runs on click)
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault() // Stop page from refreshing
+document.getElementById('loginForm').addEventListener('submit', async (event) => {
+  event.preventDefault() // Stop page from refreshing
 
   // Grab the actual text VALUES right when they hit submit
-  const username = document.getElementById('username').value
+  const email = document.getElementById('email').value
   const emailError = document.getElementById('emailError')
   const passwordValue = document.getElementById('password').value
   const passwordError = document.getElementById('passwordError')
@@ -81,24 +81,41 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   }
 
   try {
-    const response = await fetch('/login', {
+    const response = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Send username and the passwordValue we just grabbed
-      body: JSON.stringify({ username, password: passwordValue })
+      // Send email and the passwordValue we just grabbed
+      body: JSON.stringify({ email, passwordValue })
     })
 
     const data = await response.json()
+    const rememberMe = document.getElementById('remember').checked
 
-    if (response.ok) {
-      messageElement.style.color = 'green'
-      messageElement.innerText = 'Login Successful! Redirecting...'
+    if (data.success) {
+      // If they checked "Remember Me", use localStorage (persists after closing browser)
+      // If NOT, you could use sessionStorage (clears when tab closes)
+      if (rememberMe) {
+        localStorage.setItem('userEmail', email) // To pre-fill the box next time
+        localStorage.setItem('isLoggedIn', 'true')
+      }
+
+      // Store user info in the browser so the app "remembers" them
+      localStorage.setItem('userName', data.user.name)
+      localStorage.setItem('userRole', data.user.role)
+
+      alert('Login Successful!')
+
+      // Redirect based on role (Requirement for Epic #2)
+      if (data.user.role === 'lecturer') {
+        window.location.href = '/lecturer-dashboard.html'
+      } else {
+        window.location.href = '/student-dashboard.html'
+      }
     } else {
-      messageElement.style.color = 'red'
-      messageElement.innerText = data.error || 'Login failed'
+      alert('Login failed: ' + data.message)
     }
   } catch (error) {
-    messageElement.style.color = 'red'
-    messageElement.innerText = 'Error connecting to server.'
+    console.error('Error during login:', error)
+    alert('An error occurred. Please try again.')
   }
 })
