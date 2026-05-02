@@ -1,25 +1,26 @@
-// src/middleware/bookingValidator.js
-
 const validateLecturerHours = async (req, res, next) => {
     try {
-        // 1. Get the requested times from the frontend request
-        // (Adjust these variable names if your frontend sends them differently)
         const { startTime, endTime, lecturerId } = req.body;
 
-        // 2. Fetch the specific lecturer's working hours from your Database
-        // Note: You will need to import your User/Lecturer model at the top of this file
-        // const lecturer = await User.findById(lecturerId);
-        // const lecturerStart = lecturer.availableStartTime; 
-        // const lecturerEnd = lecturer.availableEndTime;
+        if (!startTime || !endTime || !lecturerId) {
+            return res.status(400).json({
+                success: false,
+                message: "Validation failed: Missing required fields. Please provide lecturerId, startTime, and endTime."
+            });
+        }
 
-        /* --- MOCK DATA FOR TESTING --- */
-        /* Remove this mock data once you connect your actual Database model above */
+        const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+        
+        if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
+            return res.status(400).json({
+                success: false,
+                message: "Validation failed: Invalid time format. Please use standard HH:MM format (e.g., 14:30)."
+            });
+        }
+
         const lecturerStart = "09:00"; 
         const lecturerEnd = "16:00";
-        /* ----------------------------- */
-
-        // 3. The Validation Logic: Compare the times
-        // (Standard HH:MM string comparison works perfectly in JavaScript)
+        
         if (startTime < lecturerStart || endTime > lecturerEnd) {
             return res.status(400).json({
                 success: false,
@@ -27,13 +28,21 @@ const validateLecturerHours = async (req, res, next) => {
             });
         }
 
-        // 4. If the time is VALID, call next()! 
-        // This tells Express: "Validation passed, send it to the next function."
+        if (endTime <= startTime) {
+            return res.status(400).json({
+                success: false,
+                message: "Validation failed: The end time must be after the start time."
+            });
+        }
+
         next();
 
     } catch (error) {
         console.error("Validation Error:", error);
-        res.status(500).json({ success: false, message: "Server error during validation." });
+        res.status(500).json({ 
+            success: false, 
+            message: "Server error during validation." 
+        });
     }
 };
 
