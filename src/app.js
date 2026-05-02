@@ -25,10 +25,16 @@ app.post('/api/register', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Missing required fields' })
     }
 
+    // Check for duplicates
+    const existingUser = await User.findOne({ email })
+    if (existingUser) {
+      return res.status(400).json({ success: false, error: 'Email is already registered' })
+    }
+
     // Hash the password before saving
     const hashedPassword = await bcrypt.hash(password, saltRounds)
 
-    const user = await User.create({
+    const user = new User({
       name,
       surname,
       idNumber,
