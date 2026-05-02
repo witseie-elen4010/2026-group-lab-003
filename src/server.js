@@ -4,18 +4,9 @@ const path = require('path')
 // Specific path for .env if needed
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
 
-<<<<<<< Updated upstream
-const app = require('./app')
-<<<<<<< Updated upstream
-const connectDB = require('./config/db')
-=======
-const connectDB = require('../config/db')
-=======
 // Import the pre-configured Express app
 const app = require('./app') 
 const connectDB = require('./config/db')
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 
 const PORT = process.env.PORT || 3000
 
