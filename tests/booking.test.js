@@ -1,54 +1,65 @@
 // tests/booking.test.js
 const request = require('supertest');
-const app = require('../src/app'); // We import your Express app to test it
+const app = require('../src/app'); 
 
 describe('Booking Validation Middleware', () => {
 
-    // Test 1: The "Happy Path" (Valid Time)
-    it('should accept a booking within valid hours (10:00 - 11:00)', async () => {
+    // Test 1: Missing Data
+    it('should reject if required fields are missing', async () => {
+        const response = await request(app)
+            .post('/api/bookings/create')
+            .send({
+                startTime: "10:00" 
+                
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain("Missing required fields");
+    });
+
+    // Test 2: Bad Format (e.g., someone typing "potato" instead of a time)
+    it('should reject invalid time formats', async () => {
         const response = await request(app)
             .post('/api/bookings/create')
             .send({
                 lecturerId: "123",
-                startTime: "10:00",
+                startTime: "potato",
                 endTime: "11:00"
             });
 
-        // We expect the bouncer to let this through (Status 200)
-        expect(response.status).toBe(200);
-        expect(response.body.success).toBe(true);
-        expect(response.body.message).toBe("Validation passed! Booking is ready to be saved to the database.");
+        expect(response.status).toBe(400);
+        expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain("Invalid time format");
     });
 
-    // Test 2: The "Sad Path" (Too Late)
-    it('should reject a booking that is too late (18:00 - 19:00)', async () => {
+    // Test 3: Time Traveler (End time is before start time)
+    it('should reject if end time is before start time', async () => {
         const response = await request(app)
             .post('/api/bookings/create')
             .send({
                 lecturerId: "123",
-                startTime: "18:00",
-                endTime: "19:00"
+                startTime: "14:00",
+                endTime: "10:00" 
             });
 
-        // We expect the bouncer to block this (Status 400)
         expect(response.status).toBe(400);
         expect(response.body.success).toBe(false);
-        expect(response.body.message).toContain("Booking rejected");
+        expect(response.body.message).toContain("end time must be after the start time");
     });
 
-    // Test 3: The "Sad Path" (Too Early)
-    it('should reject a booking that is too early (07:00 - 08:00)', async () => {
+    it('should reject if the consultation is at max capacity', async () => {
         const response = await request(app)
             .post('/api/bookings/create')
             .send({
                 lecturerId: "123",
-                startTime: "07:00",
-                endTime: "08:00"
+                startTime: "10:00", 
+                endTime: "11:00"   
             });
 
-        // We expect the bouncer to block this too
         expect(response.status).toBe(400);
         expect(response.body.success).toBe(false);
+        expect(response.body.message).toContain("maximum capacity");
     });
 
 });

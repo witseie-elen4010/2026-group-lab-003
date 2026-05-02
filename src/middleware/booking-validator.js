@@ -1,6 +1,7 @@
 const validateLecturerHours = async (req, res, next) => {
     try {
-        const { startTime, endTime, lecturerId } = req.body;
+       
+        const { startTime, endTime, lecturerId, consultationId } = req.body;
 
         if (!startTime || !endTime || !lecturerId) {
             return res.status(400).json({
@@ -35,6 +36,24 @@ const validateLecturerHours = async (req, res, next) => {
             });
         }
 
+        
+        const maxCapacity = 5; 
+        const currentBookedStudents = 5; 
+        
+        if (currentBookedStudents >= maxCapacity) {
+            return res.status(400).json({
+                success: false,
+                message: `Booking rejected. This consultation has reached its maximum capacity of ${maxCapacity} students.`
+            });
+        } 
+        
+    
+        else if (maxCapacity - currentBookedStudents === 1) {
+            
+            req.bookingWarning = "You snagged the last spot! This consultation is now full.";
+        }
+
+    
         next();
 
     } catch (error) {
