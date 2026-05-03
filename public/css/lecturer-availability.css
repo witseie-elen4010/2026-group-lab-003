@@ -79,3 +79,39 @@ body {
   color: white;
   font-size: 14px;
 }
+
+/* Workload Section Styling */
+.limit-card {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+}
+
+.custom-input {
+  background: white;
+  border-radius: 12px;
+  border: none;
+  padding: 10px 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.custom-input:focus {
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.3);
+  border: 1px solid #FFC107;
+}
+
+/* Additional spacing for workload labels */
+.workload-section label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.workload-section small {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.6);
+}

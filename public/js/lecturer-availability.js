@@ -14,6 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('resetBtn').onclick = resetForm;
   document.getElementById('availabilityForm').onsubmit = saveAvailability;
   
+  //Attach live preview updates for workload inputs
+  document.getElementById('slotCapacity').onchange = updatePreview;
+  document.getElementById('dailySessionLimit').onchange = updatePreview;
+
   // Load AFTER initial slot
   loadAvailability();
 });
@@ -93,9 +97,15 @@ async function saveAvailability(e) {
       });
     }
   });
+
+  const slotCapacity = parseInt(document.getElementById('slotCapacity').value) || 1;
+  const dailySessionLimit = parseInt(document.getElementById('dailySessionLimit').value) || 10;
+  
   
   const data = {
     defaultDuration: parseInt(document.getElementById('defaultDuration').value) || 30,
+    slotCapacity: slotCapacity,
+    dailySessionLimit: dailySessionLimit,
     weeklySchedule: transformedSchedule
   };
   
@@ -116,6 +126,8 @@ async function saveAvailability(e) {
       setTimeout(() => {
         document.querySelector('.btn-primary-custom').innerHTML = '<i class="bi bi-save2-fill"></i> Save Changes';
       }, 2000);
+    } else {
+      console.error('❌ Save failed:', res.status);
     }
   } catch (err) {
     console.error('❌ Save error:', err);
@@ -155,8 +167,11 @@ async function loadAvailability() {
     }
     
     if (!document.querySelector('.slot-row')) addSlot(); // Ensure at least 1
+        updatePreview();
   } catch (err) {
     console.log('No saved data, using empty form');
+        updatePreview();
+
   }
 }
 
@@ -164,6 +179,8 @@ function resetForm() {
   if (confirm('Reset all slots to default?')) {
     document.getElementById('slotsContainer').innerHTML = '';
     document.getElementById('defaultDuration').value = 30;
+    document.getElementById('slotCapacity').value = 1;
+    document.getElementById('dailySessionLimit').value = 10;
     slotCounter = 0;
     addSlot();
   }
@@ -180,8 +197,23 @@ function updatePreview() {
     }
   });
   
-  document.getElementById('preview').innerHTML = 
-    slots.length ? 
-    `<div>✅ ${slots.length} active slots:<br>${slots.map(s => `• ${s.days}: ${s.time}`).join('<br>')}</div>` :
-    'No slots selected yet...';
+  const capacity = document.getElementById('slotCapacity').value || 1;
+  const dailyLimit = document.getElementById('dailySessionLimit').value || 10;
+
+  let previewHTML = '';
+  if (slots.length) {
+    previewHTML += `✅ ${slots.length} time slot(s) defined<br>`;
+    slots.forEach(s => {
+      previewHTML += `• ${s.days}: ${s.time}<br>`;
+    });
+  } else {
+    previewHTML = 'No slots selected yet...<br>';
+  }
+  
+  previewHTML += `<br>📊 Workload Limits:<br>`;
+  previewHTML += `• Max students per slot: ${capacity}<br>`;
+  previewHTML += `• Max daily bookings: ${dailyLimit}<br>`;
+  
+
+  document.getElementById('preview').innerHTML = previewHTML;
 }

@@ -31,6 +31,28 @@
       </div>
     </div>
 
+ <!-- Workload Limits (NEW) -->
+    <div class="workload-section">
+      <h4 style="color: white; font-weight: 600; margin-bottom: 12px;">
+        <i class="bi bi-speedometer2"></i> Workload Limits
+      </h4>
+      <div class="limit-card p-3 rounded">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="text-white mb-2">Max Students per Slot</label>
+            <input type="number" class="form-control custom-input" id="slotCapacity" min="1" value="1" placeholder="e.g., 1">
+            <small class="text-white-50">Maximum students allowed in a single time slot</small>
+          </div>
+          <div class="col-md-6">
+            <label class="text-white mb-2">Max Daily Bookings</label>
+            <input type="number" class="form-control custom-input" id="dailySessionLimit" min="1" value="10" placeholder="e.g., 10">
+            <small class="text-white-50">Total bookings allowed across all slots in a day</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
     <!-- Time Slots -->
     <div class="slots-section">
       <h3><i class="bi bi-calendar-day"></i> Weekly Time Slots</h3>
