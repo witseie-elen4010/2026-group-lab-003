@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecturer Availability</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/lecturer-availability.css">
+</head>
+<body>
+  <div class="availability-container">
+    <!-- Header -->
+    <div class="availability-header">
+      <div class="header-left">
+        <h1><i class="bi bi-calendar3-week"></i> Set Availability</h1>
+        <div class="header-subtitle">Configure weekly consultation times for students</div>
+      </div>
+    </div>
+
+    <!-- Duration Selector -->
+    <div class="duration-section">
+      <div class="duration-group">
+        <label><i class="bi bi-stopwatch"></i> Default Duration</label>
+        <select class="duration-select" id="defaultDuration">
+          <option value="15">15 minutes</option>
+          <option value="30" selected>30 minutes</option>
+          <option value="45">45 minutes</option>
+          <option value="60">60 minutes</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Time Slots -->
+    <div class="slots-section">
+      <h3><i class="bi bi-calendar-day"></i> Weekly Time Slots</h3>
+      <div id="slotsContainer" class="slots-container"></div>
+      <button type="button" class="btn btn-success-custom mt-4" id="addSlotBtn">
+        <i class="bi bi-plus-circle-fill"></i> Add Time Slot
+      </button>
+    </div>
+
+    <!-- Preview & Actions -->
+    <div class="preview-section">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 style="color: white; margin: 0; font-weight: 600;">
+          <i class="bi bi-eye-fill"></i> Live Preview
+        </h4>
+        <div>
+          <button type="button" class="btn btn-outline me-2" id="resetBtn" style="background: rgba(255,255,255,0.15); color: white;">
+            Reset
+          </button>
+          <button type="submit" class="btn btn-primary-custom" form="availabilityForm">
+            <i class="bi bi-save2-fill"></i> Save Changes
+          </button>
+        </div>
+      </div>
+      <div id="preview" class="preview-grid bg-dark text-white p-3 rounded">No slots added yet...</div>
+    </div>
+  </div>
+
+  <form id="availabilityForm" style="display: none;"></form>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/lecturer-availability.js"></script>
+</body>
+</html>
