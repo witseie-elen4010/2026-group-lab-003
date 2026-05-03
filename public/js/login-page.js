@@ -85,7 +85,7 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       // Send email and the passwordValue we just grabbed
-      body: JSON.stringify({ email, passwordValue })
+      body: JSON.stringify({ email, password })
     })
 
     const data = await response.json()

@@ -47,6 +47,8 @@ app.post('/api/register', async (req, res) => {
       password: hashedPassword
     })
 
+    await user.save()
+
     console.log('User registered in DB:', user.email)
     res.status(201).json({ success: true, message: 'User registered!' })
   } catch (err) {
@@ -57,33 +59,24 @@ app.post('/api/register', async (req, res) => {
 
 // --- Login Route ---
 app.post('/api/login', async (req, res) => {
-  console.log('--- Login Attempt Start ---')
   try {
     const { email, password } = req.body
-    console.log('1. Data received:', email)
 
     // Find user and include the password field (since it's hidden in schema)
     const user = await User.findOne({ email }).select('+password').lean()
-    console.log('2. Database query finished. User found?', !!user)
 
     // Check if user exists in the database
     if (!user) {
-      console.log('3 STOP: User not found in database.')
       return res.status(401).json({ success: false, message: 'Invalid email or password' })
     }
 
-    console.log('User from DB:', user)
-    console.log('4. About to check bcrypt. Password from DB exists?', !!user.password)
-
     // Compare hashed password
     const isMatch = await bcrypt.compare(password, user.password)
-    console.log('5. Bcrypt compare finished. Match?', isMatch)
 
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' })
     }
 
-    console.log('6. Login successful, sending response.')
     res.status(200).json({
       success: true,
       message: 'Login successful!',
