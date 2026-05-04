@@ -1,3 +1,7 @@
+/**
+ * @jest-environment jsdom
+ */
+
 global.sessionStorage = {
     store: {},
     getItem(key) { return this.store[key] || null; },
