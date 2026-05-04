@@ -19,7 +19,7 @@ router.post('/create', validateLecturerHours, (req, res) => {
 
 // routes/bookings.js
 const Availability = require('../models/Availability')
-const Booking = require('../models/Booking')
+const Booking = require('../models/booking')
 
 // GET: Check available slots
 router.get('/api/availability', async (req, res) => {

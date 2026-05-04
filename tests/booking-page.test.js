@@ -2,12 +2,12 @@ const request = require('supertest')
 const express = require('express')
 
 // 1. MOCK FIRST! Tell Jest to intercept these before the router loads.
-jest.mock('../src/models/Booking')
+jest.mock('../src/models/booking')
 jest.mock('../src/models/Availability')
 
 // 2. NOW import your router and models
 const bookingsRouter = require('../src/routes/bookings')
-const Booking = require('../src/models/Booking')
+const Booking = require('../src/models/booking')
 const Availability = require('../src/models/Availability')
 
 // 3. Set up the fake Express app
