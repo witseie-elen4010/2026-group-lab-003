@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try {
         // Fetch data from your backend API
-        const response = await fetch(`/api/availability?lecturerId=${lecturerId}&date=${date}`)
+        const response = await fetch(`/api/bookings/availability?lecturerId=${lecturerId}&date=${date}`)
         const data = await response.json()
 
         // Handle errors or no availability

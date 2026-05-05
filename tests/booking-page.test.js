@@ -37,7 +37,7 @@ describe('Booking API Routes', () => {
 
       // Act
       const response = await request(app)
-        .post('/api/bookings')
+        .post('/')
         .send(newBookingData)
 
       // Assert
@@ -47,7 +47,7 @@ describe('Booking API Routes', () => {
     })
   })
 
-  describe('GET /api/availability', () => {
+  describe('GET /api/bookings', () => {
     it('should ignore canceled bookings when checking availability', async () => {
       // Arrange: Fake the responses for our database queries
       Availability.findOne.mockResolvedValue({
@@ -64,7 +64,7 @@ describe('Booking API Routes', () => {
 
       // Act: Request slots for a Tuesday
       const response = await request(app)
-        .get('/api/availability?lecturerId=test@lecturer.com&date=2026-05-05')
+        .get('/availability?lecturerId=test@lecturer.com&date=2026-05-05')
 
       // Assert
       expect(response.status).toBe(200)

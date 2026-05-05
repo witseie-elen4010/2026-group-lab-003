@@ -22,7 +22,7 @@ const Availability = require('../models/Availability')
 const Booking = require('../models/booking')
 
 // GET: Check available slots
-router.get('/api/availability', async (req, res) => {
+router.get('/availability', async (req, res) => {
   try {
     const { lecturerId, date } = req.query
     const dateObj = new Date(date)
@@ -59,7 +59,7 @@ router.get('/api/availability', async (req, res) => {
 })
 
 // POST: Save a new booking
-router.post('/api/bookings', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     // Create the booking, ensuring studentId is included
     const newBooking = new Booking({
@@ -82,7 +82,7 @@ router.post('/api/bookings', async (req, res) => {
 })
 
 // Fetch ONLY the logged-in student's bookings
-router.get('/api/bookings', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { studentId } = req.query 
 
@@ -102,7 +102,7 @@ router.get('/api/bookings', async (req, res) => {
 })
 
 // DELETE: Cancel a booking (Soft Delete)
-router.delete('/api/bookings/:id', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     // Instead of erasing the record, we just update the status to 'canceled'
     await Booking.findByIdAndUpdate(req.params.id, { status: 'canceled' })

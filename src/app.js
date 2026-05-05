@@ -19,9 +19,9 @@ app.use(express.static(path.join(__dirname, '../public')))
 const bookingRoutes = require('./routes/bookings')
 app.use(express.json())
 
-app.use(express.static('public'));
+app.use(express.static('public'))
 
-app.use('/', bookingRoutes);
+app.use('/api/bookings', bookingRoutes)
 
 // --- Registration Route ---
 app.post('/api/register', async (req, res) => {
