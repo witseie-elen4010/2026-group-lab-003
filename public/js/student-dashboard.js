@@ -229,65 +229,77 @@ class StudentScheduleManager {
         `
   }
 
-  showDetail (id) {
-    const session = this.sessions.find(s => s.id === id)
+  showDetail (sessionId) {
+    const session = this.sessions.find(s => s.id === sessionId)
     if (!session) return
 
-    const date = new Date(`${session.date}T${session.time}`).toLocaleDateString('en-US', {
-      weekday: 'long', month: 'long', day: 'numeric'
-    })
+    const content = document.getElementById('session-detail-content')
 
-    const location = session.location || 'Online'
+    // Build the HTML for the modal
+    content.innerHTML = `
+        <div class="detail-row">
+            <span class="detail-label">Module:</span>
+            <span class="detail-value">${this.escape(session.courseCode || session.module)}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Date:</span>
+            <span class="detail-value">${this.escape(session.date)}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Time:</span>
+            <span class="detail-value">${this.escape(session.startTime || session.time)} - ${this.escape(session.endTime || '')}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Status:</span>
+            <span class="detail-value status-badge status-${session.status}">${session.status}</span>
+        </div>
 
-    this.sessionDetailContent.innerHTML = `
-            <div class="detail-row">
-                <span class="detail-label">Course</span>
-                <span class="detail-value">${this.escape(session.courseCode || '')}</span>
+        ${session.status === 'upcoming' ? `
+            <div style="margin-top: 20px; text-align: center;">
+                <button class="btn btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
+                    <i class="fas fa-trash-alt"></i> Cancel Consultation
+                </button>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">Lecturer</span>
-                <span class="detail-value"><i class="fas fa-chalkboard-teacher"></i> ${this.escape(session.lecturerName || 'Unknown')}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Date & Time</span>
-                <span class="detail-value">${date} at ${this.formatTime(session.time)}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Duration</span>
-                <span class="detail-value">${session.duration || 0} minutes</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Status</span>
-                <span class="detail-value">${(session.status || 'unknown').toUpperCase()}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Location</span>
-                <span class="detail-value">${this.escape(location)}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Topic</span>
-                <span class="detail-value">${this.escape(session.topic)}</span>
-            </div>
-        `
+        ` : ''}
+    `
 
-    this.sessionModal.classList.remove('hidden')
+    document.getElementById('session-modal').classList.remove('hidden')
   }
 
-  // 4. Update Cancel to DELETE from database instead of localStorage
-  async cancelBooking (id) {
-    if (confirm('Are you sure you want to cancel your booking for this session?')) {
-      try {
-        const response = await fetch(`/api/bookings/${id}`, { method: 'DELETE' })
-        if (response.ok) {
-          await this.loadSessions() // Refresh the data from the DB
-          this.updateStats()
-          this.applyFilters()
+  async cancelBooking (sessionId) {
+    // 1. Confirm with the user before deleting
+    if (!confirm('Are you sure you want to cancel this consultation? This action cannot be undone.')) {
+        return
+    }
+
+    // 2. Get the current user's email to verify ownership
+    const currentUser = JSON.parse(sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user'))
+
+    if (!currentUser || !currentUser.email) {
+        alert('Error: You must be logged in to cancel a booking.')
+        return
+    }
+
+    try {
+        // 3. Call the backend DELETE route
+        const response = await fetch(`/api/bookings/${sessionId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ studentEmail: currentUser.email })
+        })
+
+        const result = await response.json()
+
+        if (response.ok && result.success) {
+            alert('Consultation canceled successfully.')
+            this.closeModal()       // Close the popup
+            await this.init()       // Re-fetch bookings and update the dashboard
         } else {
-          alert('Failed to cancel the booking. Please try again.')
+            alert('Failed to cancel: ' + (result.message || 'Unknown error'))
         }
-      } catch (error) {
-        console.error('Error canceling booking:', error)
-      }
+    } catch (error) {
+        console.error('Cancellation Error:', error)
+        alert('An error occurred while trying to cancel the booking.')
     }
   }
 

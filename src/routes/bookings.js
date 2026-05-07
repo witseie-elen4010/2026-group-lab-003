@@ -104,13 +104,61 @@ router.get('/', async (req, res) => {
 // DELETE: Cancel a booking (Soft Delete)
 router.delete('/:id', async (req, res) => {
   try {
-    // Instead of erasing the record, we just update the status to 'canceled'
+    // 1. Check the booking exists
+    const booking = await Booking.findById(req.params.id)
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' })
+    }
+
+    // 2. Authorization: only the student who made the booking can cancel it
+    if (booking.studentId !== req.body.studentEmail) {
+      return res.status(403).json({ success: false, message: 'Unauthorized: You can only cancel your own bookings.' })
+    }
+
+    // 3. Soft delete — update status to 'canceled'
     await Booking.findByIdAndUpdate(req.params.id, { status: 'canceled' })
-    res.json({ message: 'Booking canceled successfully' })
+    res.json({ success: true, message: 'Booking successfully canceled' })
   } catch (error) {
     console.error(error)
-    res.status(500).json({ error: 'Failed to cancel booking' })
+    res.status(500).json({ success: false, error: 'Failed to cancel booking' })
   }
 })
+
+// DELETE: Cancel a consultation (Organizer only)
+router.delete('/:id', async (req, res) => {
+  try {
+    const bookingId = req.params.id;
+    const { studentEmail } = req.body; // We send the email to verify ownership
+
+    // 1. Find the booking
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Consultation not found.' });
+    }
+
+    // 2. SECURITY CHECK: Only the organizer (the student who booked it) can cancel
+    if (booking.studentId !== studentEmail) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Unauthorized: Only the organizer can cancel this consultation.' 
+      });
+    }
+
+    // 3. DELETE (Or Soft Delete by changing status to 'canceled')
+    // We'll do a real delete to keep the DB clean for now
+    await Booking.findByIdAndDelete(bookingId);
+
+    res.status(200).json({ 
+        success: true, 
+        message: 'Consultation successfully canceled and removed from all dashboards.' 
+    });
+
+  } catch (error) {
+    console.error('Cancellation Error:', error);
+    res.status(500).json({ success: false, message: 'Server error during cancellation.' });
+  }
+});
 
 module.exports = router
