@@ -1,22 +1,6 @@
 /** @jest-environment jsdom */
 
-// 1. Setup global fetch mock BEFORE importing anything else
-const mockSessions = [
-  { _id: 'sess_1', topic: 'Math Help', status: 'upcoming', studentId: 'fntstembe@gmail.com' },
-  { _id: 'sess_2', topic: 'Group Study', status: 'upcoming', studentId: 'fntstembe@gmail.com' }
-]
-
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve(mockSessions)
-  })
-)
-
-global.confirm = jest.fn(() => true)
-global.alert = jest.fn()
-
-const { StudentScheduleManager } = require('../public/js/student-dashboard.js')
+const { StudentScheduleManager } = require('../public/js/student-dashboard.js') // Update path if needed
 
 describe('StudentScheduleManager', () => {
   let manager
@@ -100,20 +84,21 @@ describe('StudentScheduleManager', () => {
       expect(manager.currentStudent.fullName).toBe('John Doe')
     })
 
-    test('loadSessions filters out sessions not belonging to the current student', async () => {
-      // 1. "Log in" the student by putting them in localStorage
-      const mockUser = { email: 'fntstembe@gmail.com' }
-      window.localStorage.setItem('sychro_current_user', JSON.stringify(mockUser))
+    test('loadSessions filters out sessions not belonging to the current student', () => {
+      manager.currentStudent = { fullName: 'Jane Doe' }
 
-      // 2. Also set it on the manager just in case
-      manager.currentStudent = mockUser
+      const fakeSessions = [
+        { id: 1, studentName: 'Jane Doe', topic: 'Math Help' },
+        { id: 2, studentName: 'John Smith', topic: 'Physics Help' }, // Should be ignored
+        { id: 3, joinedStudents: ['Jane Doe'], topic: 'Group Study' }
+      ]
+      window.localStorage.setItem('sychro_consultations', JSON.stringify(fakeSessions))
 
-      // 3. Now run the method
-      await manager.loadSessions()
+      manager.loadSessions()
 
-      // 4. Assert (This should now be 2)
       expect(manager.sessions.length).toBe(2)
       expect(manager.sessions[0].topic).toBe('Math Help')
+      expect(manager.sessions[1].topic).toBe('Group Study')
     })
   })
 
@@ -192,11 +177,16 @@ describe('StudentScheduleManager', () => {
       expect(content.innerHTML).toContain('Dr. Smith')
     })
 
-    test('cancelBooking updates session status to canceled', async () => {
-      global.confirm = jest.fn(() => true)
-      manager.sessions = [{ _id: 'sess_1', status: 'canceled', studentId: 'fntstembe@gmail.com' }]
+    test('cancelBooking updates session status to canceled', () => {
+      // Mock window.confirm to simulate the user clicking "OK"
+      window.confirm = jest.fn(() => true)
+
+      manager.sessions = [{ id: 'sess_1', status: 'upcoming' }]
+
+      manager.cancelBooking('sess_1')
 
       expect(manager.sessions[0].status).toBe('canceled')
+      expect(window.confirm).toHaveBeenCalled()
     })
   })
 })

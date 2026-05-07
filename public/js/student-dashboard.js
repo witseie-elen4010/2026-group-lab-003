@@ -1,5 +1,6 @@
 class StudentScheduleManager {
   constructor () {
+    this.storageKey = 'sychro_consultations'
     this.userStorageKey = 'sychro_current_user'
     this.sessions = []
     this.filteredSessions = []
@@ -8,15 +9,14 @@ class StudentScheduleManager {
     this.init()
   }
 
-  // 1. Make init async so we can wait for the database fetch
-  async init () {
+  init () {
     this.loadCurrentStudent()
-    await this.loadSessions() // Wait for database data
+    this.loadSessions()
     this.setupEventListeners()
     this.displayCurrentDate()
     this.updateStats()
     this.updateFilterOptions()
-    this.applyFilters() // Render immediately after applying filters
+    this.render()
   }
 
   // DOM GETTERS
@@ -41,12 +41,11 @@ class StudentScheduleManager {
     this.dateFilter.addEventListener('change', () => this.handleFilterChange())
     this.searchInput.addEventListener('input', this.debounce(() => this.handleFilterChange(), 300))
 
-    // 2. Make the refresh button async
-    document.getElementById('refresh-btn').addEventListener('click', async () => {
-      await this.loadSessions()
+    document.getElementById('refresh-btn').addEventListener('click', () => {
+      this.loadSessions()
       this.updateStats()
       this.updateFilterOptions()
-      this.applyFilters()
+      this.render()
     })
 
     document.getElementById('close-session-modal').addEventListener('click', () => this.closeModal())
@@ -59,10 +58,6 @@ class StudentScheduleManager {
     this.applyFilters()
   }
 
-  closeModal () {
-    this.sessionModal.classList.add('hidden')
-  }
-
   // DATA MANAGEMENT
   loadCurrentStudent () {
     const sessionUser = sessionStorage.getItem(this.userStorageKey)
@@ -70,51 +65,43 @@ class StudentScheduleManager {
       this.currentStudent = JSON.parse(sessionUser)
       return
     }
+
     const localUser = localStorage.getItem(this.userStorageKey)
     if (localUser) {
       this.currentStudent = JSON.parse(localUser)
       return
     }
+
     this.currentStudent = null
   }
 
-  async loadSessions () {
-    try {
-      this.scheduleList.innerHTML = '<div class="text-center p-4">Loading your bookings...</div>'
+  loadSessions () {
+    const stored = localStorage.getItem(this.storageKey)
+    const allSessions = stored ? JSON.parse(stored) : []
 
-      // 1. Grab the user EXACTLY like we did on the booking page
-      const user = JSON.parse(sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user'))
-
-      // 2. Safety check
-      if (!user || !user.email) {
-        this.scheduleList.innerHTML = '<div class="text-center p-4 text-danger">Please log in to view your sessions.</div>'
-        return
-      }
-
-      // 3. Fetch ONLY this student's bookings using their email
-      const studentEmail = user.email
-      const response = await fetch(`/api/bookings?studentId=${studentEmail}`)
-      const dbBookings = await response.json()
-      console.log("Bookings from Database:", dbBookings)
-
-      // 4. Map the data to the UI
-      this.sessions = dbBookings.map(b => {
-        return {
-          id: b._id,
-          date: b.date,
-          time: b.startTime,
-          duration: 30,
-          courseCode: b.module,
-          lecturerName: b.lecturerId === 'lecturer_1' ? 'Dr. Smith' : 'Prof. Jones', // Update this based on how your lecturers are saved
-          topic: b.topic || 'No topic specified',
-          status: b.status || 'upcoming'
-        }
-      })
-    } catch (error) {
-      console.error('Error fetching bookings from DB:', error)
-      this.sessions = []
-      this.scheduleList.innerHTML = '<div class="text-center p-4 text-danger">Failed to load bookings.</div>'
+    if (this.currentStudent && this.currentStudent.fullName) {
+      // Filter sessions where this student is the primary booker OR in the joined array
+      this.sessions = allSessions.filter(session =>
+        session.studentName === this.currentStudent.fullName ||
+                (session.joinedStudents && session.joinedStudents.includes(this.currentStudent.fullName))
+      )
+    } else {
+      this.sessions = [] // If no student logged in, show nothing
     }
+  }
+
+  saveSessions () {
+    const stored = localStorage.getItem(this.storageKey)
+    const allSessions = stored ? JSON.parse(stored) : []
+
+    this.sessions.forEach(updatedSession => {
+      const index = allSessions.findIndex(s => s.id === updatedSession.id)
+      if (index !== -1) {
+        allSessions[index] = updatedSession
+      }
+    })
+
+    localStorage.setItem(this.storageKey, JSON.stringify(allSessions))
   }
 
   // FILTERING
@@ -140,6 +127,7 @@ class StudentScheduleManager {
       }
 
       if (searchTerm) {
+        // Search by Lecturer Name instead of Student Name
         const searchStr = `${session.lecturerName || ''} ${session.courseCode || ''} ${session.topic || ''}`.toLowerCase()
         if (!searchStr.includes(searchTerm)) return false
       }
@@ -196,7 +184,7 @@ class StudentScheduleManager {
   renderSessionCard (session) {
     const timeDisplay = this.formatTime(session.time)
     const statusClass = `status-${session.status}`
-    const location = session.location || 'Online'
+    const location = session.location || 'Not specified'
 
     return `
             <div class="session-card">
@@ -205,8 +193,8 @@ class StudentScheduleManager {
                     <div class="duration">${session.duration || 0}min</div>
                 </div>
                 <div class="session-info">
-                    <div class="session-course">${this.escape(session.courseCode || '')}</div>
-                    <div class="session-title">${this.escape(session.topic)}</div>
+                    <div class="session-course">${this.escape(session.courseCode || '')} ${session.courseName ? '- ' + this.escape(session.courseName) : ''}</div>
+                    <div class="session-title">${this.escape(session.topic || 'No topic specified')}</div>
                     <div class="session-meta">
                         <span><i class="fas fa-chalkboard-teacher"></i> ${this.escape(session.lecturerName || 'Unknown Lecturer')}</span>
                         <span><i class="fas fa-map-marker-alt"></i> ${this.escape(location)}</span>
@@ -237,12 +225,12 @@ class StudentScheduleManager {
       weekday: 'long', month: 'long', day: 'numeric'
     })
 
-    const location = session.location || 'Online'
+    const location = session.location || 'Not specified'
 
     this.sessionDetailContent.innerHTML = `
             <div class="detail-row">
                 <span class="detail-label">Course</span>
-                <span class="detail-value">${this.escape(session.courseCode || '')}</span>
+                <span class="detail-value">${this.escape(session.courseCode || '')} ${session.courseName ? '- ' + this.escape(session.courseName) : ''}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Lecturer</span>
@@ -266,27 +254,23 @@ class StudentScheduleManager {
             </div>
             <div class="detail-row">
                 <span class="detail-label">Topic</span>
-                <span class="detail-value">${this.escape(session.topic)}</span>
+                <span class="detail-value">${this.escape(session.topic || 'No topic specified')}</span>
             </div>
         `
 
     this.sessionModal.classList.remove('hidden')
   }
 
-  // 4. Update Cancel to DELETE from database instead of localStorage
-  async cancelBooking (id) {
+  cancelBooking (id) {
     if (confirm('Are you sure you want to cancel your booking for this session?')) {
-      try {
-        const response = await fetch(`/api/bookings/${id}`, { method: 'DELETE' })
-        if (response.ok) {
-          await this.loadSessions() // Refresh the data from the DB
-          this.updateStats()
-          this.applyFilters()
-        } else {
-          alert('Failed to cancel the booking. Please try again.')
-        }
-      } catch (error) {
-        console.error('Error canceling booking:', error)
+      const session = this.sessions.find(s => s.id === id)
+      if (session) {
+        // Depending on your logic, you might change the status or just remove the student from joinedStudents.
+        // Assuming 1-on-1 for now, so we set status to canceled.
+        session.status = 'canceled'
+        this.saveSessions()
+        this.updateStats()
+        this.applyFilters()
       }
     }
   }
@@ -352,5 +336,6 @@ if (typeof module === 'undefined') {
   const scheduleManager = new StudentScheduleManager()
   window.scheduleManager = scheduleManager
 } else {
+  // EXPORT FOR JEST TESTING
   module.exports = { StudentScheduleManager }
 }
