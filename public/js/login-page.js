@@ -84,7 +84,6 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
     const response = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Send email and the passwordValue we just grabbed
       body: JSON.stringify({ email, password })
     })
 
@@ -92,21 +91,27 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
     const rememberMe = document.getElementById('remember').checked
 
     if (data.success) {
-      // If they checked "Remember Me", use localStorage (persists after closing browser)
-      // If NOT, you could use sessionStorage (clears when tab closes)
-      if (rememberMe) {
-        localStorage.setItem('userEmail', email) // To pre-fill the box next time
-        localStorage.setItem('isLoggedIn', 'true')
+      // Create the packaged object with safety checks
+      // If data.user exists, it uses the DB data. If not, it defaults to the email.
+      const userPackage = {
+        email,
+        name: (data.user && data.user.name) ? data.user.name : 'Student',
+        role: (data.user && data.user.role) ? data.user.role : 'student'
       }
 
-      // Store user info in the browser so the app "remembers" them
-      localStorage.setItem('userName', data.user.name)
-      localStorage.setItem('userRole', data.user.role)
+      // Save it based on "Remember Me"
+      if (rememberMe) {
+        localStorage.setItem('sychro_current_user', JSON.stringify(userPackage))
+        localStorage.setItem('userEmail', email)
+        localStorage.setItem('isLoggedIn', 'true')
+      } else {
+        sessionStorage.setItem('sychro_current_user', JSON.stringify(userPackage))
+      }
 
       alert('Login Successful!')
 
-      // Redirect based on role (Requirement for Epic #2)
-      if (data.user.role === 'lecturer') {
+      // Redirect based on the role in our package
+      if (userPackage.role === 'lecturer') {
         window.location.href = '/lecturer-dashboard.html'
       } else {
         window.location.href = '/student-dashboard.html'

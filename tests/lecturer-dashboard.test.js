@@ -202,28 +202,32 @@ describe('Lecturer Dashboard', () => {
         });
 
 
-
-
         test('should count upcoming sessions this week', () => {
-            const today = new Date();
-            const todayStr = today.toISOString().split('T')[0];
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        jest.useFakeTimers().setSystemTime(new Date('2026-05-06T12:00:00Z')); // Wednesday
 
-            const testSessions = [
-                { id: '1', date: todayStr, time: '09:00', status: 'upcoming', joinedStudents: [], lecturerName: 'Dr. Smith' },
-                { id: '2', date: tomorrowStr, time: '10:00', status: 'upcoming', joinedStudents: [], lecturerName: 'Dr. Smith' },
-                { id: '3', date: '2024-01-01', time: '11:00', status: 'upcoming', joinedStudents: [], lecturerName: 'Dr. Smith' }
-            ];
-            global.localStorage.setItem('sychro_consultations', JSON.stringify(testSessions));
-            global.sessionStorage.setItem('sychro_current_user', JSON.stringify({ fullName: 'Dr. Smith' }));
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];   // 2026-05-06
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0]; // 2026-05-07
 
-            const manager = new LecturerScheduleManager();
-            manager.updateStats();
+        const testSessions = [
+            { id: '1', date: todayStr, time: '09:00', status: 'upcoming', joinedStudents: [], lecturerName: 'Dr. Smith' },
+            { id: '2', date: tomorrowStr, time: '10:00', status: 'upcoming', joinedStudents: [], lecturerName: 'Dr. Smith' },
+            { id: '3', date: '2024-01-01', time: '11:00', status: 'upcoming', joinedStudents: [], lecturerName: 'Dr. Smith' }
+        ];
+        global.localStorage.setItem('sychro_consultations', JSON.stringify(testSessions));
+        global.sessionStorage.setItem('sychro_current_user', JSON.stringify({ fullName: 'Dr. Smith' }));
 
-            expect(document.getElementById('upcoming-count').textContent).toBe('2');
-        });
+        const manager = new LecturerScheduleManager();
+        manager.updateStats();
+
+        expect(document.getElementById('upcoming-count').textContent).toBe('2');
+
+        jest.useRealTimers();
+    
+});
+
 
         test('should handle empty sessions gracefully', () => {
             const manager = new LecturerScheduleManager();
@@ -369,8 +373,10 @@ describe('Lecturer Dashboard', () => {
         });
 
         test('isThisWeek returns true for today', () => {
+            jest.useFakeTimers().setSystemTime(new Date('2026-05-06T12:00:00z'))
             const today = new Date().toISOString().split('T')[0];
             expect(manager.isThisWeek(today)).toBe(true);
+            jest.useRealTimers();
         });
 
         test('isThisWeek handles null', () => {

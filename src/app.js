@@ -16,8 +16,12 @@ app.get('/', (req, res) => {
 
 app.use(express.static(path.join(__dirname, '../public')))
 
-const bookingRoutes = require('./routes/bookings');
-app.use('/api/bookings', bookingRoutes);
+const bookingRoutes = require('./routes/bookings')
+app.use(express.json())
+
+app.use(express.static('public'))
+
+app.use('/api/bookings', bookingRoutes)
 
 // --- Registration Route ---
 app.post('/api/register', async (req, res) => {
@@ -47,7 +51,9 @@ app.post('/api/register', async (req, res) => {
       password: hashedPassword
     })
 
-    await user.save()
+    await user.save();
+    console.log('User registered in DB:', user.email); // This will now show the actual email
+    res.status(201).json({ success: true, message: 'User registered!' });
 
     console.log('User registered in DB:', user.email)
     res.status(201).json({ success: true, message: 'User registered!' })

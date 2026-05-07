@@ -1,6 +1,5 @@
 class StudentScheduleManager {
   constructor () {
-    this.storageKey = 'sychro_consultations'
     this.userStorageKey = 'sychro_current_user'
     this.sessions = []
     this.filteredSessions = []
@@ -9,14 +8,15 @@ class StudentScheduleManager {
     this.init()
   }
 
-  init () {
+  // 1. Make init async so we can wait for the database fetch
+  async init () {
     this.loadCurrentStudent()
-    this.loadSessions()
+    await this.loadSessions() // Wait for database data
     this.setupEventListeners()
     this.displayCurrentDate()
     this.updateStats()
     this.updateFilterOptions()
-    this.render()
+    this.applyFilters() // Render immediately after applying filters
   }
 
   // DOM GETTERS
@@ -41,11 +41,12 @@ class StudentScheduleManager {
     this.dateFilter.addEventListener('change', () => this.handleFilterChange())
     this.searchInput.addEventListener('input', this.debounce(() => this.handleFilterChange(), 300))
 
-    document.getElementById('refresh-btn').addEventListener('click', () => {
-      this.loadSessions()
+    // 2. Make the refresh button async
+    document.getElementById('refresh-btn').addEventListener('click', async () => {
+      await this.loadSessions()
       this.updateStats()
       this.updateFilterOptions()
-      this.render()
+      this.applyFilters()
     })
 
     document.getElementById('close-session-modal').addEventListener('click', () => this.closeModal())
@@ -87,6 +88,10 @@ class StudentScheduleManager {
     this.applyFilters()
   }
 
+  closeModal () {
+    this.sessionModal.classList.add('hidden')
+  }
+
   // DATA MANAGEMENT
   loadCurrentStudent () {
     const sessionUser = sessionStorage.getItem(this.userStorageKey)
@@ -94,13 +99,11 @@ class StudentScheduleManager {
       this.currentStudent = JSON.parse(sessionUser)
       return
     }
-
     const localUser = localStorage.getItem(this.userStorageKey)
     if (localUser) {
       this.currentStudent = JSON.parse(localUser)
       return
     }
-
     this.currentStudent = null
   }
 
@@ -166,7 +169,6 @@ class StudentScheduleManager {
       }
 
       if (searchTerm) {
-        // Search by Lecturer Name instead of Student Name
         const searchStr = `${session.lecturerName || ''} ${session.courseCode || ''} ${session.topic || ''}`.toLowerCase()
         if (!searchStr.includes(searchTerm)) return false
       }
@@ -223,7 +225,7 @@ class StudentScheduleManager {
   renderSessionCard (session) {
     const timeDisplay = this.formatTime(session.time)
     const statusClass = `status-${session.status}`
-    const location = session.location || 'Not specified'
+    const location = session.location || 'Online'
 
     return `
             <div class="session-card">
@@ -232,8 +234,8 @@ class StudentScheduleManager {
                     <div class="duration">${session.duration || 0}min</div>
                 </div>
                 <div class="session-info">
-                    <div class="session-course">${this.escape(session.courseCode || '')} ${session.courseName ? '- ' + this.escape(session.courseName) : ''}</div>
-                    <div class="session-title">${this.escape(session.topic || 'No topic specified')}</div>
+                    <div class="session-course">${this.escape(session.courseCode || '')}</div>
+                    <div class="session-title">${this.escape(session.topic)}</div>
                     <div class="session-meta">
                         <span><i class="fas fa-chalkboard-teacher"></i> ${this.escape(session.lecturerName || 'Unknown Lecturer')}</span>
                         <span><i class="fas fa-map-marker-alt"></i> ${this.escape(location)}</span>
@@ -256,8 +258,8 @@ class StudentScheduleManager {
         `
   }
 
-  showDetail (id) {
-    const session = this.sessions.find(s => s.id === id)
+  showDetail (sessionId) {
+    const session = this.sessions.find(s => s.id === sessionId)
     if (!session) return
 
     const content = document.getElementById('session-detail-content')
@@ -292,7 +294,7 @@ class StudentScheduleManager {
 : ''}
     `
 
-    this.sessionModal.classList.remove('hidden')
+    document.getElementById('session-modal').classList.remove('hidden')
   }
 
   async cancelBooking (sessionId) {
@@ -393,6 +395,5 @@ if (typeof module === 'undefined') {
   const scheduleManager = new StudentScheduleManager()
   window.scheduleManager = scheduleManager
 } else {
-  // EXPORT FOR JEST TESTING
   module.exports = { StudentScheduleManager }
 }
