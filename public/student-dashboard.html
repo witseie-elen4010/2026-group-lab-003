@@ -12,12 +12,30 @@
     <div class="schedule-container">
         <header class="schedule-header">
             <div class="header-left">
-                <h1>
-                    <i class="fas fa-user-graduate"></i>
-                    My Bookings
-                </h1>
-                <p class="header-subtitle">Your upcoming academic support sessions</p>
+                <div class="menu-wrapper">
+                    <button id="menu-toggle" class="burger-btn" title="Open Menu">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    
+                    <nav id="side-menu" class="burger-dropdown hidden">
+                        <div class="menu-items">
+                            <a href="profile-settings.html"><i class="fas fa-user-cog"></i> Profile Settings</a>
+                            <a href="activity-log.html"><i class="fas fa-list-ul"></i> Activity Log</a>
+                            <hr>
+                            <a href="login-page.html" class="sign-out"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
+                        </div>
+                    </nav>
+                </div>
+
+                <div class="header-text-group">
+                    <h1>
+                        <i class="fas fa-user-graduate"></i>
+                        My Bookings
+                    </h1>
+                    <p class="header-subtitle">Your upcoming academic support sessions</p>
+                </div>
             </div>
+
             <div class="header-right">
                 <button id="refresh-btn" class="btn btn-outline" title="Refresh schedule">
                     <i class="fas fa-sync-alt"></i>

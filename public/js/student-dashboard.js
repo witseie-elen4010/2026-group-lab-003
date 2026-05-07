@@ -52,6 +52,35 @@ class StudentScheduleManager {
     this.sessionModal.addEventListener('click', (e) => {
       if (e.target === this.sessionModal) this.closeModal()
     })
+
+    const menuBtn = document.getElementById('menu-toggle')
+    const sideMenu = document.getElementById('side-menu')
+
+    if (menuBtn && sideMenu) {
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        sideMenu.classList.toggle('hidden')
+      })
+
+      document.addEventListener('click', (e) => {
+        // Close menu if clicking outside of it
+        if (!sideMenu.contains(e.target) && !menuBtn.contains(e.target)) {
+          sideMenu.classList.add('hidden')
+        }
+      })
+    }
+
+    // Sign Out functionality
+    const signOutBtn = document.querySelector('.sign-out')
+    if (signOutBtn) {
+      signOutBtn.addEventListener('click', (e) => {
+        e.preventDefault()
+        console.log('Clearing session and redirecting...')
+        sessionStorage.removeItem(this.userStorageKey)
+        localStorage.removeItem(this.userStorageKey)
+        window.location.href = 'login.html'
+      })
+    }
   }
 
   handleFilterChange () {
@@ -75,33 +104,43 @@ class StudentScheduleManager {
     this.currentStudent = null
   }
 
-  loadSessions () {
-    const stored = localStorage.getItem(this.storageKey)
-    const allSessions = stored ? JSON.parse(stored) : []
+  async loadSessions () {
+    try {
+      this.scheduleList.innerHTML = '<div class="text-center p-4">Loading your bookings...</div>'
 
-    if (this.currentStudent && this.currentStudent.fullName) {
-      // Filter sessions where this student is the primary booker OR in the joined array
-      this.sessions = allSessions.filter(session =>
-        session.studentName === this.currentStudent.fullName ||
-                (session.joinedStudents && session.joinedStudents.includes(this.currentStudent.fullName))
-      )
-    } else {
-      this.sessions = [] // If no student logged in, show nothing
-    }
-  }
+      // 1. Grab the user EXACTLY like we did on the booking page
+      const user = JSON.parse(sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user'))
 
-  saveSessions () {
-    const stored = localStorage.getItem(this.storageKey)
-    const allSessions = stored ? JSON.parse(stored) : []
-
-    this.sessions.forEach(updatedSession => {
-      const index = allSessions.findIndex(s => s.id === updatedSession.id)
-      if (index !== -1) {
-        allSessions[index] = updatedSession
+      // 2. Safety check
+      if (!user || !user.email) {
+        this.scheduleList.innerHTML = '<div class="text-center p-4 text-danger">Please log in to view your sessions.</div>'
+        return
       }
-    })
 
-    localStorage.setItem(this.storageKey, JSON.stringify(allSessions))
+      // 3. Fetch ONLY this student's bookings using their email
+      const studentEmail = user.email
+      const response = await fetch(`/api/bookings?studentId=${studentEmail}`)
+      const dbBookings = await response.json()
+      console.log('Bookings from Database:', dbBookings)
+
+      // 4. Map the data to the UI
+      this.sessions = dbBookings.map(b => {
+        return {
+          id: b._id,
+          date: b.date,
+          time: b.startTime,
+          duration: 30,
+          courseCode: b.module,
+          lecturerName: b.lecturerId === 'lecturer_1' ? 'Dr. Smith' : 'Prof. Jones', // Update this based on how your lecturers are saved
+          topic: b.topic || 'No topic specified',
+          status: b.status || 'upcoming'
+        }
+      })
+    } catch (error) {
+      console.error('Error fetching bookings from DB:', error)
+      this.sessions = []
+      this.scheduleList.innerHTML = '<div class="text-center p-4 text-danger">Failed to load bookings.</div>'
+    }
   }
 
   // FILTERING
@@ -221,57 +260,75 @@ class StudentScheduleManager {
     const session = this.sessions.find(s => s.id === id)
     if (!session) return
 
-    const date = new Date(`${session.date}T${session.time}`).toLocaleDateString('en-US', {
-      weekday: 'long', month: 'long', day: 'numeric'
-    })
+    const content = document.getElementById('session-detail-content')
 
-    const location = session.location || 'Not specified'
+    // Build the HTML for the modal
+    content.innerHTML = `
+        <div class="detail-row">
+            <span class="detail-label">Module:</span>
+            <span class="detail-value">${this.escape(session.courseCode || session.module)}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Date:</span>
+            <span class="detail-value">${this.escape(session.date)}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Time:</span>
+            <span class="detail-value">${this.escape(session.startTime || session.time)} - ${this.escape(session.endTime || '')}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Status:</span>
+            <span class="detail-value status-badge status-${session.status}">${session.status}</span>
+        </div>
 
-    this.sessionDetailContent.innerHTML = `
-            <div class="detail-row">
-                <span class="detail-label">Course</span>
-                <span class="detail-value">${this.escape(session.courseCode || '')} ${session.courseName ? '- ' + this.escape(session.courseName) : ''}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Lecturer</span>
-                <span class="detail-value"><i class="fas fa-chalkboard-teacher"></i> ${this.escape(session.lecturerName || 'Unknown')}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Date & Time</span>
-                <span class="detail-value">${date} at ${this.formatTime(session.time)}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Duration</span>
-                <span class="detail-value">${session.duration || 0} minutes</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Status</span>
-                <span class="detail-value">${(session.status || 'unknown').toUpperCase()}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Location</span>
-                <span class="detail-value">${this.escape(location)}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Topic</span>
-                <span class="detail-value">${this.escape(session.topic || 'No topic specified')}</span>
+        ${session.status === 'upcoming'
+? `
+            <div style="margin-top: 20px; text-align: center;">
+                <button class="btn btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
+                    <i class="fas fa-trash-alt"></i> Cancel Consultation
+                </button>
             </div>
         `
+: ''}
+    `
 
     this.sessionModal.classList.remove('hidden')
   }
 
-  cancelBooking (id) {
-    if (confirm('Are you sure you want to cancel your booking for this session?')) {
-      const session = this.sessions.find(s => s.id === id)
-      if (session) {
-        // Depending on your logic, you might change the status or just remove the student from joinedStudents.
-        // Assuming 1-on-1 for now, so we set status to canceled.
-        session.status = 'canceled'
-        this.saveSessions()
-        this.updateStats()
-        this.applyFilters()
+  async cancelBooking (sessionId) {
+    // 1. Confirm with the user before deleting
+    if (!confirm('Are you sure you want to cancel this consultation? This action cannot be undone.')) {
+      return
+    }
+
+    // 2. Get the current user's email to verify ownership
+    const currentUser = JSON.parse(sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user'))
+
+    if (!currentUser || !currentUser.email) {
+      alert('Error: You must be logged in to cancel a booking.')
+      return
+    }
+
+    try {
+      // 3. Call the backend DELETE route
+      const response = await fetch(`/api/bookings/${sessionId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentEmail: currentUser.email })
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        alert('Consultation canceled successfully.')
+        this.closeModal() // Close the popup
+        await this.init() // Re-fetch bookings and update the dashboard
+      } else {
+        alert('Failed to cancel: ' + (result.message || 'Unknown error'))
       }
+    } catch (error) {
+      console.error('Cancellation Error:', error)
+      alert('An error occurred while trying to cancel the booking.')
     }
   }
 
