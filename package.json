@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "jest",
+    "test:coverage": "jest --coverage", 
     "dev": "nodemon src/server.js"
   },
   "repository": {

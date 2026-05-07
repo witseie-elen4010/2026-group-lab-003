@@ -20,3 +20,6 @@ Thumbs.db
 
 postman
 .postman
+
+# Test coverage
+coverage/
