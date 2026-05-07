@@ -176,7 +176,6 @@ describe('StudentScheduleManager', () => {
       manager.sessions = [{
         id: '123',
         courseCode: 'CS101',
-        lecturerName: 'Dr. Smith',
         date: '2025-10-10',
         time: '14:00',
         status: 'upcoming'
@@ -189,7 +188,8 @@ describe('StudentScheduleManager', () => {
 
       expect(modal.classList.contains('hidden')).toBe(false)
       expect(content.innerHTML).toContain('CS101')
-      expect(content.innerHTML).toContain('Dr. Smith')
+      expect(content.innerHTML).toContain('Cancel Consultation')
+      expect(content.innerHTML).toContain('upcoming')
     })
 
     test('cancelBooking updates session status to canceled', async () => {
