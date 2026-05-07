@@ -16,10 +16,26 @@ body {
 .schedule-container {
     width: 100%;
     max-width: 1000px;
+    height: 90vh;
     display: flex;
     flex-direction: column;
     gap: 20px;
     padding: 0 20px;
+    margin: 0 auto;
+}
+
+.schedule-list-container {
+    flex: 1;            
+    min-height: 0;      
+    overflow-y: auto;   
+    padding-right: 10px;
+    border-radius: 8px;
+}
+
+.schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
 /* Header */
@@ -518,6 +534,13 @@ body {
     font-size: 14px;
     color: #555;
     border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.bottom-actions {
+    margin-top: auto; 
+    display: flex;
+    flex-direction: column; 
+    gap: 12px;
 }
 
 .book_button {
