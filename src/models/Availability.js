@@ -19,3 +19,4 @@ const availabilitySchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model('Availability', availabilitySchema);
+
