@@ -53,6 +53,35 @@ class StudentScheduleManager {
     this.sessionModal.addEventListener('click', (e) => {
       if (e.target === this.sessionModal) this.closeModal()
     })
+
+    const menuBtn = document.getElementById('menu-toggle')
+    const sideMenu = document.getElementById('side-menu')
+
+    if (menuBtn && sideMenu) {
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        sideMenu.classList.toggle('hidden')
+      })
+
+      document.addEventListener('click', (e) => {
+        // Close menu if clicking outside of it
+        if (!sideMenu.contains(e.target) && !menuBtn.contains(e.target)) {
+          sideMenu.classList.add('hidden')
+        }
+      })
+    }
+
+    // Sign Out functionality
+    const signOutBtn = document.querySelector('.sign-out')
+    if (signOutBtn) {
+      signOutBtn.addEventListener('click', (e) => {
+        e.preventDefault()
+        console.log('Clearing session and redirecting...')
+        sessionStorage.removeItem(this.userStorageKey)
+        localStorage.removeItem(this.userStorageKey)
+        window.location.href = 'login.html'
+      })
+    }
   }
 
   handleFilterChange () {
@@ -95,7 +124,7 @@ class StudentScheduleManager {
       const studentEmail = user.email
       const response = await fetch(`/api/bookings?studentId=${studentEmail}`)
       const dbBookings = await response.json()
-      console.log("Bookings from Database:", dbBookings)
+      console.log('Bookings from Database:', dbBookings)
 
       // 4. Map the data to the UI
       this.sessions = dbBookings.map(b => {
@@ -254,13 +283,15 @@ class StudentScheduleManager {
             <span class="detail-value status-badge status-${session.status}">${session.status}</span>
         </div>
 
-        ${session.status === 'upcoming' ? `
+        ${session.status === 'upcoming'
+? `
             <div style="margin-top: 20px; text-align: center;">
                 <button class="btn btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
                     <i class="fas fa-trash-alt"></i> Cancel Consultation
                 </button>
             </div>
-        ` : ''}
+        `
+: ''}
     `
 
     document.getElementById('session-modal').classList.remove('hidden')
@@ -269,37 +300,37 @@ class StudentScheduleManager {
   async cancelBooking (sessionId) {
     // 1. Confirm with the user before deleting
     if (!confirm('Are you sure you want to cancel this consultation? This action cannot be undone.')) {
-        return
+      return
     }
 
     // 2. Get the current user's email to verify ownership
     const currentUser = JSON.parse(sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user'))
 
     if (!currentUser || !currentUser.email) {
-        alert('Error: You must be logged in to cancel a booking.')
-        return
+      alert('Error: You must be logged in to cancel a booking.')
+      return
     }
 
     try {
-        // 3. Call the backend DELETE route
-        const response = await fetch(`/api/bookings/${sessionId}`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ studentEmail: currentUser.email })
-        })
+      // 3. Call the backend DELETE route
+      const response = await fetch(`/api/bookings/${sessionId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentEmail: currentUser.email })
+      })
 
-        const result = await response.json()
+      const result = await response.json()
 
-        if (response.ok && result.success) {
-            alert('Consultation canceled successfully.')
-            this.closeModal()       // Close the popup
-            await this.init()       // Re-fetch bookings and update the dashboard
-        } else {
-            alert('Failed to cancel: ' + (result.message || 'Unknown error'))
-        }
+      if (response.ok && result.success) {
+        alert('Consultation canceled successfully.')
+        this.closeModal() // Close the popup
+        await this.init() // Re-fetch bookings and update the dashboard
+      } else {
+        alert('Failed to cancel: ' + (result.message || 'Unknown error'))
+      }
     } catch (error) {
-        console.error('Cancellation Error:', error)
-        alert('An error occurred while trying to cancel the booking.')
+      console.error('Cancellation Error:', error)
+      alert('An error occurred while trying to cancel the booking.')
     }
   }
 
