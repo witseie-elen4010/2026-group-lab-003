@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 
 const sourceCode = fs.readFileSync(
-    path.join(__dirname, '..', 'public', 'js', 'booking-conflict-checker.js'),
+    path.join(__dirname, '..', '..', 'public', 'js', 'booking-conflict-checker.js'),
     'utf8'
 );
 
@@ -25,10 +25,10 @@ const classOnly = sourceCode
 
 const fullCode = classOnly + '\nmodule.exports = { BookingConflictChecker };';
 
-const tempPath = path.join(__dirname, '..', 'public', 'js', 'booking-conflict-checker-testable.js');
+const tempPath = path.join(__dirname, '..', '..', 'public', 'js', 'booking-conflict-checker-testable.js');
 fs.writeFileSync(tempPath, fullCode);
 
-const { BookingConflictChecker } = require('../public/js/booking-conflict-checker-testable');
+const { BookingConflictChecker } = require('../../public/js/booking-conflict-checker-testable');
 
 afterAll(() => {
     try { fs.unlinkSync(tempPath); } catch (e) { }

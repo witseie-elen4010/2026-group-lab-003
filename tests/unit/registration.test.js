@@ -1,10 +1,10 @@
 const request = require('supertest')
 const bcrypt = require('bcrypt')
-const app = require('../src/server')
-const User = require('../src/models/user')
+const app = require('../../src/server')
+const User = require('../../src/models/user')
 
 // Mock the database so we don't save dummy data during tests
-jest.mock('../src/models/user')
+jest.mock('../../src/models/user')
 
 describe('POST /register - User Registration', () => {
   beforeEach(() => {

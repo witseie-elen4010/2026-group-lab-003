@@ -6,15 +6,25 @@ const router = express.Router()
 const { validateLecturerHours } = require('../middleware/booking-validator')
 
 // Create the POST route using your middleware
-router.post('/create', validateLecturerHours, (req, res) => {
-  // This is the PLACEHOLDER function.
-  // If the middleware lets the request through, this runs.
+router.post('/create', validateLecturerHours, async (req, res) => {
+  try {
+    const newBooking = new Booking({
+      studentId: req.body.studentId,
+      lecturerId: req.body.lecturerId,
+      date: req.body.date,
+      startTime: req.body.startTime,
+      endTime: req.body.endTime,
+      module: req.body.module,
+      topic: req.body.topic,
+      status: 'upcoming'
+    })
 
-  // To-Do for Teammate: Replace this response with actual Database saving logic
-  res.status(200).json({
-    success: true,
-    message: 'Validation passed! Booking is ready to be saved to the database.'
-  })
+    const savedBooking = await newBooking.save()
+    res.status(201).json({ success: true, message: 'Booking successful!', booking: savedBooking || newBooking })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ success: false, error: 'Failed to create booking' })
+  }
 })
 
 // routes/bookings.js
@@ -125,40 +135,5 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
-// DELETE: Cancel a consultation (Organizer only)
-router.delete('/:id', async (req, res) => {
-  try {
-    const bookingId = req.params.id;
-    const { studentEmail } = req.body; // We send the email to verify ownership
-
-    // 1. Find the booking
-    const booking = await Booking.findById(bookingId);
-
-    if (!booking) {
-      return res.status(404).json({ success: false, message: 'Consultation not found.' });
-    }
-
-    // 2. SECURITY CHECK: Only the organizer (the student who booked it) can cancel
-    if (booking.studentId !== studentEmail) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Unauthorized: Only the organizer can cancel this consultation.' 
-      });
-    }
-
-    // 3. DELETE (Or Soft Delete by changing status to 'canceled')
-    // We'll do a real delete to keep the DB clean for now
-    await Booking.findByIdAndDelete(bookingId);
-
-    res.status(200).json({ 
-        success: true, 
-        message: 'Consultation successfully canceled and removed from all dashboards.' 
-    });
-
-  } catch (error) {
-    console.error('Cancellation Error:', error);
-    res.status(500).json({ success: false, message: 'Server error during cancellation.' });
-  }
-});
 
 module.exports = router
