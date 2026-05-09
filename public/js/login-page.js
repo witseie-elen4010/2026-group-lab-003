@@ -9,7 +9,7 @@ togglePassword.addEventListener('click', function () {
 })
 
 // Text Entry password and email Logic
-const emailInput = document.getElementById('username')
+const emailInput = document.getElementById('email')
 const emailError = document.getElementById('emailError')
 const passwordInput = document.getElementById('password')
 const passwordError = document.getElementById('passwordError')
@@ -38,11 +38,11 @@ passwordInput.addEventListener('input', () => {
 })
 
 // FORM LOGIC: Submit & Fetch (Runs on click)
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault() // Stop page from refreshing
+document.getElementById('loginForm').addEventListener('submit', async (event) => {
+  event.preventDefault() // Stop page from refreshing
 
   // Grab the actual text VALUES right when they hit submit
-  const username = document.getElementById('username').value
+  const email = document.getElementById('email').value
   const emailError = document.getElementById('emailError')
   const passwordValue = document.getElementById('password').value
   const passwordError = document.getElementById('passwordError')
@@ -81,24 +81,46 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   }
 
   try {
-    const response = await fetch('/login', {
+    const response = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Send username and the passwordValue we just grabbed
-      body: JSON.stringify({ username, password: passwordValue })
+      body: JSON.stringify({ email, password })
     })
 
     const data = await response.json()
+    const rememberMe = document.getElementById('remember').checked
 
-    if (response.ok) {
-      messageElement.style.color = 'green'
-      messageElement.innerText = 'Login Successful! Redirecting...'
+    if (data.success) {
+      // Create the packaged object with safety checks
+      // If data.user exists, it uses the DB data. If not, it defaults to the email.
+      const userPackage = {
+        email,
+        name: (data.user && data.user.name) ? data.user.name : 'Student',
+        role: (data.user && data.user.role) ? data.user.role : 'student'
+      }
+
+      // Save it based on "Remember Me"
+      if (rememberMe) {
+        localStorage.setItem('sychro_current_user', JSON.stringify(userPackage))
+        localStorage.setItem('userEmail', email)
+        localStorage.setItem('isLoggedIn', 'true')
+      } else {
+        sessionStorage.setItem('sychro_current_user', JSON.stringify(userPackage))
+      }
+
+      alert('Login Successful!')
+
+      // Redirect based on the role in our package
+      if (userPackage.role === 'lecturer') {
+        window.location.href = '/lecturer-dashboard.html'
+      } else {
+        window.location.href = '/student-dashboard.html'
+      }
     } else {
-      messageElement.style.color = 'red'
-      messageElement.innerText = data.error || 'Login failed'
+      alert('Login failed: ' + data.message)
     }
   } catch (error) {
-    messageElement.style.color = 'red'
-    messageElement.innerText = 'Error connecting to server.'
+    console.error('Error during login:', error)
+    alert('An error occurred. Please try again.')
   }
 })

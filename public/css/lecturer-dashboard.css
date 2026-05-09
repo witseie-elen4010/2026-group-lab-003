@@ -1,0 +1,565 @@
+body {
+    background-image: url('../images/login-background.png'); /* using login background picture*/
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    padding: 30px 0;
+}
+
+.schedule-container {
+    width: 100%;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 0 20px;
+}
+
+/* Header */
+.schedule-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.header-left h1 {
+    font-size: 28px;
+    color: white;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.header-left h1 i {
+    color: #FFC107;
+    font-size: 26px;
+}
+
+.header-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    margin: 5px 0 0 0;
+}
+
+/* Date Banner */
+.date-banner {
+    background-color: rgba(255, 255, 255, 0.15);
+    padding: 15px 25px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    font-size: 18px;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.date-banner i {
+    color: #FFC107;
+    font-size: 22px;
+}
+
+/* Buttons */
+.btn {
+    background: #FFC107;
+    color: black;
+    border: none;
+    border-radius: 25px;
+    height: 35px;
+    font-size: 14px;
+    font-weight: bolder;
+    cursor: pointer;
+    padding: 0 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: opacity 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn:active {
+    opacity: 0.6;
+}
+
+.btn-outline {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-outline:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.btn-sm {
+    height: 30px;
+    font-size: 12px;
+    padding: 0 15px;
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn-danger {
+    background: #ff4d4d;
+    color: white;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+}
+
+.stat-card {
+    background-color: rgba(255, 255, 255, 0.15);
+    padding: 20px 25px;
+    border-radius: 25px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: #FFC107;
+    line-height: 1.2;
+}
+
+.stat-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 5px;
+}
+
+
+/* Filters */
+.filters-section {
+    background-color: rgba(255, 255, 255, 0.15);
+    padding: 20px 25px;
+    border-radius: 25px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.filter-row {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 150px;
+}
+
+.filter-group.flex-grow {
+    flex: 1;
+    min-width: 200px;
+}
+
+.filter-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-group label i {
+    color: #FFC107;
+    font-size: 14px;
+}
+
+.filter-select,
+.search-input {
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    border-radius: 15px;
+    padding: 10px 15px;
+    font-size: 14px;
+    color: #333;
+    outline: none;
+    transition: border-color 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+.filter-select:focus,
+.search-input:focus {
+    border-color: #58A6FF;
+    box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+}
+
+.search-input::placeholder {
+    color: #888888;
+}
+
+/* Schedule List */
+.schedule-list-container {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 25px;
+    min-height: 300px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.schedule-list {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Session Card */
+.session-card {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    transition: background 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.session-card:hover {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Time Block */
+.session-time {
+    text-align: center;
+    min-width: 80px;
+    flex-shrink: 0;
+}
+
+.session-time .time {
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+}
+
+.session-time .period {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 2px;
+}
+
+.session-time .duration {
+    font-size: 11px;
+    color: #FFC107;
+    margin-top: 4px;
+}
+
+/* Session Info */
+.session-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.session-course {
+    font-size: 12px;
+    font-weight: 600;
+    color: #FFC107;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.session-title {
+    font-size: 16px;
+    color: white;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.session-meta {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.session-meta span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.session-meta i {
+    font-size: 12px;
+}
+
+/* Status Badge */
+.session-status {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.status-upcoming {
+    background: rgba(88, 166, 255, 0.2);
+    color: #58A6FF;
+    border: 1px solid rgba(88, 166, 255, 0.3);
+}
+
+.status-ongoing {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    animation: pulse 2s infinite;
+}
+
+.status-completed {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.status-canceled {
+    background: rgba(255, 77, 77, 0.2);
+    color: #ff4d4d;
+    border: 1px solid rgba(255, 77, 77, 0.3);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+
+/* Joined Students */
+.joined-students {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.student-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(255, 193, 7, 0.2);
+    color: #FFC107;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.student-count {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Session Actions */
+.session-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.empty-state.hidden {
+    display: none;
+}
+
+.empty-state i {
+    font-size: 60px;
+    margin-bottom: 20px;
+    opacity: 0.4;
+    color: white;
+}
+
+.empty-state h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+    color: white;
+}
+
+.empty-state p {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 25px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    background: white;
+    border-radius: 25px 25px 0 0;
+}
+
+.modal-header h2 {
+    font-size: 20px;
+    margin: 0;
+    color: #333;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #888888;
+}
+
+.close-btn:hover {
+    color: #333;
+}
+
+.detail-body {
+    padding: 25px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.detail-value {
+    color: #555;
+    font-size: 14px;
+    text-align: right;
+}
+
+.detail-students {
+    margin-top: 15px;
+}
+
+.detail-students h4 {
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.student-list {
+    list-style: none;
+    padding: 0;
+}
+
+.student-list li {
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #555;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .schedule-container {
+        padding: 0 10px;
+        gap: 15px;
+    }
+
+    .session-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .session-time {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+    }
+
+    .session-actions {
+        flex-direction: row;
+        width: 100%;
+    }
+
+    .session-actions .btn {
+        flex: 1;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+

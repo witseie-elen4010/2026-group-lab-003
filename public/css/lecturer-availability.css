@@ -1,0 +1,117 @@
+body {
+  background-image: url('../images/login-background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  padding: 30px 0;
+}
+
+.availability-container {
+  width: 100%;
+  max-width: 1000px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  padding: 0 20px;
+}
+
+/* Header */
+.availability-header {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 30px;
+  border-radius: 25px;
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Duration */
+.duration-select {
+  width: 100%;
+  background: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Slots */
+.slots-section h3 {
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.slot-row {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Buttons */
+.btn-primary-custom,
+.btn-success-custom {
+  background: #FFC107;
+  color: #333;
+  border: none;
+  border-radius: 25px;
+  padding: 12px 24px;
+  font-weight: 600;
+}
+
+/* Preview */
+.preview-grid {
+  height: 280px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+  padding: 16px;
+  color: white;
+  font-size: 14px;
+}
+
+/* Workload Section Styling */
+.limit-card {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+}
+
+.custom-input {
+  background: white;
+  border-radius: 12px;
+  border: none;
+  padding: 10px 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.custom-input:focus {
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.3);
+  border: 1px solid #FFC107;
+}
+
+/* Additional spacing for workload labels */
+.workload-section label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.workload-section small {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.6);
+}

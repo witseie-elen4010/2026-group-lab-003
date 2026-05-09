@@ -1,63 +1,96 @@
 const express = require('express')
 const app = express()
 const bcrypt = require('bcrypt')
-const saltRounds = 10 // This determines how strong the hash is
+const saltRounds = 10
 const path = require('path')
+const User = require('./models/user')
+const console = require('console')
 
-// Temporary in-memory user store
-const users = []
+// --- Middleware ---
+app.use(express.json())
 
-app.use(express.json()) // Essential for reading JSON in Login/Registration
+// --- Default Route ---
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/landing-page.html'))
+})
 
-app.use(express.static('../public'))
+app.use(express.static(path.join(__dirname, '../public')))
 
-// For registration
-app.post('/register', async (req, res) => {
+const bookingRoutes = require('./routes/bookings')
+app.use(express.json())
+
+app.use(express.static('public'))
+
+app.use('/api/bookings', bookingRoutes)
+
+// --- Registration Route ---
+app.post('/api/register', async (req, res) => {
   try {
-    const { username, password } = req.body
-    if (!username || !password) return res.status(400).json({ error: 'Missing fields' })
+    const { name, surname, idNumber, email, role, password } = req.body
 
+    // Basic validation
+    if (!email || !password || !idNumber) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' })
+    }
+
+    // Check for duplicates
+    const existingUser = await User.findOne({ email })
+    if (existingUser) {
+      return res.status(400).json({ success: false, error: 'Email is already registered' })
+    }
+
+    // Hash the password before saving
     const hashedPassword = await bcrypt.hash(password, saltRounds)
-    const newUser = { username, password: hashedPassword }
 
-    users.push(newUser)
-    console.log('User registered:', newUser) // Helpful for debugging
-    res.status(201).json({ message: 'User created successfully' })
-  } catch (error) {
-    res.status(500).json({ error: 'Registration failed' })
+    const user = new User({
+      name,
+      surname,
+      idNumber,
+      email,
+      role,
+      password: hashedPassword
+    })
+
+    await user.save();
+    console.log('User registered in DB:', user.email); // This will now show the actual email
+    res.status(201).json({ success: true, message: 'User registered!' });
+
+    console.log('User registered in DB:', user.email)
+    res.status(201).json({ success: true, message: 'User registered!' })
+  } catch (err) {
+    console.error('Registration Error:', err.message)
+    res.status(400).json({ success: false, error: err.message })
   }
 })
 
-// For login
-app.post('/login', async (req, res) => {
+// --- Login Route ---
+app.post('/api/login', async (req, res) => {
   try {
-    const { username, password } = req.body
+    const { email, password } = req.body
 
-    // Ensure both fields are present
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' })
+    // Find user and include the password field (since it's hidden in schema)
+    const user = await User.findOne({ email }).select('+password').lean()
+
+    // Check if user exists in the database
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid email or password' })
     }
 
-    // Find the user in the temporary array
-    const user = users.find(u => u.username === username)
+    // Compare hashed password
+    const isMatch = await bcrypt.compare(password, user.password)
 
-    // If user doesn't exist OR password doesn't match
-    // Note: We use the same error for both to prevent "Username Enumeration"
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ error: 'Invalid username or password' })
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid email or password' })
     }
 
     res.status(200).json({
+      success: true,
       message: 'Login successful!',
-      user: user.username
+      user: { name: user.name, role: user.role }
     })
-  } catch (error) {
-    res.status(500).json({ error: 'Server error during login.' })
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Server error during login.' })
   }
-})
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/login-page.html'))
 })
 
 module.exports = app
