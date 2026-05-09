@@ -47,6 +47,9 @@ const studentNoInput = document.getElementById('idNumber')
 const studentNoError = document.getElementById('studnoError')
 
 registrationForm.addEventListener('submit', async (event) => {
+// Prevent the page from refreshing
+  event.preventDefault()
+
   const emailValue = emailInput.value.trim()
   const nameValue = nameInput.value.trim()
   const surnameValue = surnameInput.value.trim()
@@ -88,33 +91,6 @@ registrationForm.addEventListener('submit', async (event) => {
     studentNoError.textContent = 'Please enter your student number.'
   }
 
-  // Prevent the page from refreshing
-  event.preventDefault()
-
-  // Pull values from HTML
-  const formData = {
-    name: document.getElementById('name').value,
-    surname: document.getElementById('surname').value,
-    idNumber: document.getElementById('idNumber').value,
-    email: document.getElementById('email').value,
-    role: document.getElementById('role').value, // 'student' or 'lecturer'
-    password: document.getElementById('password').value
-  }
-
-  const response = await fetch('http://localhost:3000/api/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(formData)
-  })
-
-  const result = await response.json()
-  if (result.success) {
-    alert('Welcome to Synchro!')
-    window.location.href = '/login-page.html'
-  } else {
-    alert('Error: ' + result.error)
-  }
-
   // Clear any previous errors
   errorMessage.style.display = 'none'
   errorMessage.textContent = ''
@@ -132,6 +108,24 @@ registrationForm.addEventListener('submit', async (event) => {
     isValid = false
   } else if (passwordValue.length <= 7 && passwordValue !== '') {
     passwordError.textContent = 'Weak Password. Password has to contain 8 or more characters.'
+  }
+
+  // Pull values from HTML
+  const formData = {
+    name: document.getElementById('name').value,
+    surname: document.getElementById('surname').value,
+    idNumber: document.getElementById('idNumber').value,
+    email: document.getElementById('email').value,
+    role: document.getElementById('role').value, // 'student' or 'lecturer'
+    password: document.getElementById('password').value
+  }
+
+  const result = await response.json()
+  if (result.success) {
+    alert('Welcome to Synchro!')
+    window.location.href = '/login-page.html'
+  } else {
+    alert('Error: ' + result.error)
   }
 
   // The Final Decision: If anything was wrong, stop everything right here.
