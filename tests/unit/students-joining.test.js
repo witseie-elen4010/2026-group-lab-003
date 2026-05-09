@@ -34,7 +34,7 @@ const fs = require('fs');
 const path = require('path');
 
 const sourceCode = fs.readFileSync(
-    path.join(__dirname, '..', 'public', 'js', 'students-joining.js'),
+    path.join(__dirname, '..', '..', 'public', 'js', 'students-joining.js'),
     'utf8'
 );
 
@@ -43,10 +43,10 @@ const classOnly = sourceCode
     .replace('window.studentJoiner = studentJoiner;', '');
 
 const fullCode = classOnly + '\nmodule.exports = { StudentSessionJoiner };';
-const tempPath = path.join(__dirname, '..', 'public', 'js', 'students-joining-testable.js');
+const tempPath = path.join(__dirname, '..', '..', 'public', 'js', 'students-joining-testable.js');
 fs.writeFileSync(tempPath, fullCode);
 
-const { StudentSessionJoiner } = require('../public/js/students-joining-testable');
+const { StudentSessionJoiner } = require('../../public/js/students-joining-testable');
 
 afterAll(() => {
     try { fs.unlinkSync(tempPath); } catch (e) {}

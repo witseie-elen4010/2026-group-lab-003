@@ -16,7 +16,7 @@ global.fetch = jest.fn(() =>
 global.confirm = jest.fn(() => true)
 global.alert = jest.fn()
 
-const { StudentScheduleManager } = require('../public/js/student-dashboard.js')
+const { StudentScheduleManager } = require('../../public/js/student-dashboard.js')
 
 describe('StudentScheduleManager', () => {
   let manager

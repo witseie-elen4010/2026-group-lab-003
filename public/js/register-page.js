@@ -47,6 +47,9 @@ const studentNoInput = document.getElementById('idNumber')
 const studentNoError = document.getElementById('studnoError')
 
 registrationForm.addEventListener('submit', async (event) => {
+// Prevent the page from refreshing
+  event.preventDefault()
+
   const emailValue = emailInput.value.trim()
   const nameValue = nameInput.value.trim()
   const surnameValue = surnameInput.value.trim()
@@ -60,7 +63,7 @@ registrationForm.addEventListener('submit', async (event) => {
   passwordError.textContent = ''
   studentNoError.textContent = ''
 
-  // We assume the form is valid until proven otherwise!
+  // We assume the form is valid until proven otherwise
   let isValid = true
 
   // Check the Email for empty and correct email address format
@@ -88,33 +91,6 @@ registrationForm.addEventListener('submit', async (event) => {
     studentNoError.textContent = 'Please enter your student number.'
   }
 
-  // Prevent the page from refreshing
-  event.preventDefault()
-
-  // Pull values from HTML
-  const formData = {
-    name: document.getElementById('name').value,
-    surname: document.getElementById('surname').value,
-    idNumber: document.getElementById('idNumber').value,
-    email: document.getElementById('email').value,
-    role: document.getElementById('role').value, // 'student' or 'lecturer'
-    password: document.getElementById('password').value
-  }
-
-  const response = await fetch('http://localhost:3000/api/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(formData)
-  })
-
-  const result = await response.json()
-  if (result.success) {
-    alert('Welcome to Synchro!')
-    window.location.href = '/login-page.html'
-  } else {
-    alert('Error: ' + result.error)
-  }
-
   // Clear any previous errors
   errorMessage.style.display = 'none'
   errorMessage.textContent = ''
@@ -139,23 +115,36 @@ registrationForm.addEventListener('submit', async (event) => {
     return
   }
 
-  // Send to your /register route (using Fetch)
+  // Pull values from HTML
+  const formData = {
+    name: document.getElementById('name').value,
+    surname: document.getElementById('surname').value,
+    idNumber: document.getElementById('idNumber').value,
+    email: document.getElementById('email').value,
+    role: document.getElementById('role').value, // 'student' or 'lecturer'
+    password: document.getElementById('password').value
+  }
+
   try {
-    const response = await fetch('api/register', {
+    const response = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)
     })
 
-    if (response.ok) {
-      alert('Account created! Redirecting to login...')
+    const result = await response.json()
+
+    if (response.ok && result.success) {
+      alert('Welcome to Synchro! Redirecting to login...')
       window.location.href = 'login-page.html'
     } else {
-      const data = await response.json()
-      errorMessage.textContent = data.error || 'Registration failed.'
+      // Show server-side error (e.g., "Email already exists")
+      errorMessage.textContent = result.error || 'Registration failed.'
       errorMessage.style.display = 'block'
     }
   } catch (err) {
     console.error('Network error:', err)
+    errorMessage.textContent = 'Unable to connect to server. Please try again later.'
+    errorMessage.style.display = 'block'
   }
 })

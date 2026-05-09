@@ -65,7 +65,7 @@ const path = require('path');
 
 // Read and evaluate the source file to get the class
 const sourceCode = fs.readFileSync(
-    path.join(__dirname, '..', 'public', 'js', 'lecturer-dashboard.js'),
+    path.join(__dirname, '..', '..', 'public', 'js', 'lecturer-dashboard.js'),
     'utf8'
 );
 
@@ -80,10 +80,10 @@ const classOnly = sourceCode
 const fullCode = classOnly + '\nmodule.exports = { LecturerScheduleManager };';
 
 // Write to temp file for testing
-const tempPath = path.join(__dirname, '..', 'public', 'js', 'lecturer-dashboard-testable.js');
+const tempPath = path.join(__dirname, '..', '..', 'public', 'js', 'lecturer-dashboard-testable.js');
 fs.writeFileSync(tempPath, fullCode);
 
-const { LecturerScheduleManager } = require('../public/js/lecturer-dashboard-testable');
+const { LecturerScheduleManager } = require('../../public/js/lecturer-dashboard-testable');
 
 // Clean up temp file after tests
 afterAll(() => {

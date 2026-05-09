@@ -1,10 +1,10 @@
 // tests/booking.test.js
 const request = require('supertest');
-const app = require('../src/app');
-const Booking = require('../src/models/booking');
+const app = require('../../src/app');
+const Booking = require('../../src/models/booking');
 
 // Mock the Booking model so we can control database responses during tests
-jest.mock('../src/models/booking', () => ({
+jest.mock('../../src/models/booking', () => ({
   countDocuments: jest.fn(),
   findById: jest.fn(),
   findByIdAndUpdate: jest.fn()
