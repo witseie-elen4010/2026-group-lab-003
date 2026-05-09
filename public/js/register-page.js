@@ -127,7 +127,7 @@ registrationForm.addEventListener('submit', async (event) => {
 
   // Send to your /register route (using Fetch)
   try {
-    // ✅ Note the /api/ prefix to match your backend routes
+    // Note the /api/ prefix to match your backend routes
     const response = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
