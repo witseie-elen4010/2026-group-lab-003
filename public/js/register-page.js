@@ -63,7 +63,7 @@ registrationForm.addEventListener('submit', async (event) => {
   passwordError.textContent = ''
   studentNoError.textContent = ''
 
-  // We assume the form is valid until proven otherwise!
+  // We assume the form is valid until proven otherwise
   let isValid = true
 
   // Check the Email for empty and correct email address format
@@ -125,9 +125,7 @@ registrationForm.addEventListener('submit', async (event) => {
     password: document.getElementById('password').value
   }
 
-  // Send to your /register route (using Fetch)
   try {
-    // Note the /api/ prefix to match your backend routes
     const response = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
