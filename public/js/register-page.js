@@ -63,7 +63,7 @@ registrationForm.addEventListener('submit', async (event) => {
   passwordError.textContent = ''
   studentNoError.textContent = ''
 
-  // We assume the form is valid until proven otherwise!
+  // We assume the form is valid until proven otherwise
   let isValid = true
 
   // Check the Email for empty and correct email address format
@@ -110,6 +110,11 @@ registrationForm.addEventListener('submit', async (event) => {
     passwordError.textContent = 'Weak Password. Password has to contain 8 or more characters.'
   }
 
+  // The Final Decision: If anything was wrong, stop everything right here.
+  if (!isValid) {
+    return
+  }
+
   // Pull values from HTML
   const formData = {
     name: document.getElementById('name').value,
@@ -120,20 +125,6 @@ registrationForm.addEventListener('submit', async (event) => {
     password: document.getElementById('password').value
   }
 
-  const result = await response.json()
-  if (result.success) {
-    alert('Welcome to Synchro!')
-    window.location.href = '/login-page.html'
-  } else {
-    alert('Error: ' + result.error)
-  }
-
-  // The Final Decision: If anything was wrong, stop everything right here.
-  if (!isValid) {
-    return
-  }
-
-  // Send to your /register route (using Fetch)
   try {
     const response = await fetch('/api/register', {
       method: 'POST',
@@ -141,15 +132,19 @@ registrationForm.addEventListener('submit', async (event) => {
       body: JSON.stringify(formData)
     })
 
-    if (response.ok) {
-      alert('Account created! Redirecting to login...')
+    const result = await response.json()
+
+    if (response.ok && result.success) {
+      alert('Welcome to Synchro! Redirecting to login...')
       window.location.href = 'login-page.html'
     } else {
-      const data = await response.json()
-      errorMessage.textContent = data.error || 'Registration failed.'
+      // Show server-side error (e.g., "Email already exists")
+      errorMessage.textContent = result.error || 'Registration failed.'
       errorMessage.style.display = 'block'
     }
   } catch (err) {
     console.error('Network error:', err)
+    errorMessage.textContent = 'Unable to connect to server. Please try again later.'
+    errorMessage.style.display = 'block'
   }
 })
