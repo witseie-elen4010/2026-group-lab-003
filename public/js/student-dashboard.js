@@ -79,7 +79,7 @@ class StudentScheduleManager {
         console.log('Clearing session and redirecting...')
         sessionStorage.removeItem(this.userStorageKey)
         localStorage.removeItem(this.userStorageKey)
-        window.location.href = 'login.html'
+        window.location.href = 'login-page.html'
       })
     }
   }
