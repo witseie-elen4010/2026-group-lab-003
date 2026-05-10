@@ -35,10 +35,9 @@ const UserSchema = new mongoose.Schema({
     minlength: 8,
     select: false // Security feature: prevents the password from being returned in standard queries
   },
-
-  emailNotification: {
-    type: Boolean,
-    default: true
+  notificationsEnabled: { 
+    type: Boolean, 
+    default: true 
   }
 }, {
   timestamps: true // Automatically adds 'createdAt' and 'updatedAt'
