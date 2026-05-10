@@ -373,11 +373,6 @@ class LecturerScheduleManager {
 const settingsBtn = document.getElementById('settings-btn');
 const settingsDropdown = document.getElementById('settings-dropdown');
 
-settingsBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    settingsDropdown.classList.toggle('hidden');
-});
-
 document.addEventListener('click', function(e) {
     if (!settingsBtn.contains(e.target) && !settingsDropdown.contains(e.target)) {
         settingsDropdown.classList.add('hidden');
