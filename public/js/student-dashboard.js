@@ -128,6 +128,7 @@ class StudentScheduleManager {
 
       // 4. Map the data to the UI
       this.sessions = dbBookings.map(b => {
+        const participantCount = Array.isArray(b.participantIDs) ? b.participantIDs.length : 1
         return {
           id: b._id,
           date: b.date,
@@ -136,7 +137,9 @@ class StudentScheduleManager {
           courseCode: b.module,
           lecturerName: b.lecturerId === 'lecturer_1' ? 'Dr. Smith' : 'Prof. Jones', // Update this based on how your lecturers are saved
           topic: b.topic || 'No topic specified',
-          status: b.status || 'upcoming'
+          status: b.status || 'upcoming',
+          organizerEmail: b.studentId,
+          participantsCount: participantCount
         }
       })
     } catch (error) {
@@ -227,6 +230,25 @@ class StudentScheduleManager {
     const statusClass = `status-${session.status}`
     const location = session.location || 'Online'
 
+    const isOrganizer = this.currentStudent && this.currentStudent.email === session.organizerEmail
+
+    let actionButtons = ''
+    if (session.status === 'upcoming') {
+      if (isOrganizer) {
+        actionButtons = `
+          <button class="btn btn-sm btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')">
+            <i class="fas fa-times"></i> Cancel
+          </button>
+        `
+      } else {
+        actionButtons = `
+          <button class="btn btn-sm btn-warning" onclick="scheduleManager.leaveBooking('${session.id}')">
+            <i class="fas fa-sign-out-alt"></i> Leave
+          </button>
+        `
+      }
+    }
+
     return `
             <div class="session-card">
                 <div class="session-time">
@@ -262,6 +284,7 @@ class StudentScheduleManager {
     const session = this.sessions.find(s => s.id === sessionId)
     if (!session) return
 
+    const isOrganizer = this.currentStudent && this.currentStudent.email === session.organizerEmail
     const content = document.getElementById('session-detail-content')
 
     // Build the HTML for the modal
@@ -286,9 +309,17 @@ class StudentScheduleManager {
         ${session.status === 'upcoming'
 ? `
             <div style="margin-top: 20px; text-align: center;">
-                <button class="btn btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
-                    <i class="fas fa-trash-alt"></i> Cancel Consultation
-                </button>
+                ${isOrganizer
+? `
+                  <button class="btn btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
+                      <i class="fas fa-trash-alt"></i> Cancel Consultation
+                  </button>
+                `
+: `
+                  <button class="btn btn-warning" onclick="scheduleManager.leaveBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
+                      <i class="fas fa-sign-out-alt"></i> Leave Consultation
+                  </button>
+                `}
             </div>
         `
 : ''}
@@ -331,6 +362,38 @@ class StudentScheduleManager {
     } catch (error) {
       console.error('Cancellation Error:', error)
       alert('An error occurred while trying to cancel the booking.')
+    }
+  }
+
+  async leaveBooking (sessionId) {
+    if (!confirm('Are you sure you want to leave this consultation? Your space will be freed up, and this session will show as canceled for you.')) {
+      return
+    }
+
+    if (!this.currentStudent || !this.currentStudent.email) {
+      alert('Error: You must be logged in to leave a booking.')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/bookings/leave/${sessionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: this.currentStudent.email })
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        alert('You have successfully left the consultation.')
+        this.closeModal()
+        await this.init()
+      } else {
+        alert('Failed to leave: ' + (result.message || 'Unknown error'))
+      }
+    } catch (error) {
+      console.error('Leave Error:', error)
+      alert('An error occurred while trying to leave the booking.')
     }
   }
 
