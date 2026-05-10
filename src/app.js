@@ -23,6 +23,10 @@ app.use(express.static('public'))
 
 app.use('/api/bookings', bookingRoutes)
 
+// password-reset
+const authRoutes = require('./routes/auth')
+app.use('/api/auth', authRoutes)
+
 // --- Registration Route ---
 app.post('/api/register', async (req, res) => {
   try {
