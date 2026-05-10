@@ -1,3 +1,4 @@
+
 // ============================================================
 // Synchro v2 — Day-Based Availability Setup
 // Lecturers set daily time ranges (e.g., "Mon 09:00–16:00")
@@ -5,7 +6,6 @@
 // Supports MULTIPLE time slots per day.
 // ============================================================
 
-const LECTURER_EMAIL_KEY = 'lecturerEmail';
 const DAYS = [
   { id: 'mon', label: 'Mon', dayOfWeek: 1 },
   { id: 'tue', label: 'Tue', dayOfWeek: 2 },
@@ -14,20 +14,52 @@ const DAYS = [
   { id: 'fri', label: 'Fri', dayOfWeek: 5 }
 ];
 
+// Course code → name mapping (populated by loadCourses)
+let courseMap = {};
+
+// =============================================================
+//  loadCourses — Fetch courses from API and render checkboxes
+// =============================================================
+async function loadCourses() {
+  try {
+    const res = await fetch('/api/courses');
+    const courses = await res.json();
+    const courseList = document.getElementById('courseList');
+    courseList.innerHTML = '';
+
+    courses.forEach(course => {
+      courseMap[course.code] = course.name;
+      const label = document.createElement('label');
+      label.className = 'course-checkbox';
+      label.innerHTML = `
+        <input type="checkbox" class="course-select" value="${course.code}">
+        <span class="checkbox-label">${course.code} – ${course.name}</span>
+      `;
+      courseList.appendChild(label);
+    });
+  } catch (err) {
+    console.error('Failed to load courses:', err);
+    document.getElementById('courseList').innerHTML =
+      '<span style="color: #ef4444;">Failed to load courses</span>';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // --- Grab DOM refs ---
   const form = document.getElementById('availabilityForm');
   const resetBtn = document.getElementById('resetBtn');
   const saveBtn = document.getElementById('saveBtn');
-  const defaultDuration = document.getElementById('defaultDuration');
   const slotCapacity = document.getElementById('slotCapacity');
   const dailySessionLimit = document.getElementById('dailySessionLimit');
   const previewEl = document.getElementById('preview');
   const courseCheckboxes = () => document.querySelectorAll('.course-select');
 
 
-  // --- Load saved availability on startup ---
-  loadAvailability();
+  // --- Load courses, then load saved availability on startup ---
+  (async () => {
+    await loadCourses();
+    await loadAvailability();
+  })();
 
   // --- Attach events ---
   form.addEventListener('submit', saveAvailability);
@@ -36,6 +68,69 @@ document.addEventListener('DOMContentLoaded', () => {
   // Live preview on any change
   form.addEventListener('change', updatePreview);
   form.addEventListener('input', updatePreview);
+
+  // --- Wire up "Add Course" button ---
+  const addCourseBtn = document.getElementById('addCourseBtn');
+  const newCourseCode = document.getElementById('newCourseCode');
+  const newCourseName = document.getElementById('newCourseName');
+  const addCourseStatus = document.getElementById('addCourseStatus');
+
+  async function addCourse() {
+    const code = newCourseCode.value.trim().toUpperCase();
+    const name = newCourseName.value.trim();
+    if (!code || !name) {
+      addCourseStatus.textContent = '⚠️ Enter both code and name';
+      addCourseStatus.style.color = '#f59e0b';
+      return;
+    }
+    // Get the logged-in lecturer's name from sessionStorage or localStorage
+    const currentUser = JSON.parse(
+      sessionStorage.getItem('sychro_current_user') ||
+      localStorage.getItem('sychro_current_user') ||
+      '{}'
+    );
+    const lecturerName = currentUser.name || 'Unknown Lecturer';
+    addCourseStatus.textContent = '⏳ Adding...';
+    addCourseStatus.style.color = '#94a3b8';
+    addCourseBtn.disabled = true;
+
+    try {
+      const res = await fetch('/api/courses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, name, lecturers: [lecturerName] })
+      });
+      const course = await res.json();
+      if (res.ok || res.status === 201) {
+        addCourseStatus.textContent = `✅ "${course.code}" added!`;
+        addCourseStatus.style.color = '#16a34a';
+        newCourseCode.value = '';
+        newCourseName.value = '';
+        // Reload the course list to include the new course
+        await loadCourses();
+        // Re-apply any previously saved course selections
+        if (window._savedCourses) {
+          document.querySelectorAll('.course-select').forEach(cb => {
+            cb.checked = window._savedCourses.includes(cb.value);
+          });
+        }
+        updatePreview();
+      } else {
+        addCourseStatus.textContent = `⚠️ ${course.error || 'Failed to add course'}`;
+        addCourseStatus.style.color = '#ef4444';
+      }
+    } catch (err) {
+      addCourseStatus.textContent = '❌ Network error';
+      addCourseStatus.style.color = '#ef4444';
+    } finally {
+      addCourseBtn.disabled = false;
+      setTimeout(() => { addCourseStatus.textContent = ''; }, 3000);
+    }
+  }
+
+  addCourseBtn.addEventListener('click', addCourse);
+  newCourseCode.addEventListener('keydown', e => { if (e.key === 'Enter') addCourse(); });
+  newCourseName.addEventListener('keydown', e => { if (e.key === 'Enter') addCourse(); });
 
   // --- Wire up "Add Slot" buttons ---
   document.querySelectorAll('.add-slot-btn').forEach(btn => {
@@ -163,7 +258,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // =============================================================
   function updatePreview() {
     const days = getDayData();
-    const dur = parseInt(defaultDuration.value, 10);
     const cap = slotCapacity.value || 1;
     const dLimit = dailySessionLimit.value || 10;
     const courses = getSelectedCourses();
@@ -174,9 +268,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (activeDays.length === 0 && courses.length === 0) {
       html = '<span style="color: #94a3b8;">No availability set. Select courses and toggle days.</span>';
     } else {
-      // Show selected courses
+      // Show selected courses (with names from courseMap)
       if (courses.length > 0) {
-        html += `<div style="font-weight: 700; margin-bottom: 10px; color: var(--navy-blue);">📚 ${courses.join(', ')}</div>`;
+        const courseLabels = courses.map(code => {
+          const name = courseMap[code];
+          return name ? `${code} – ${name}` : code;
+        });
+        html += `<div style="font-weight: 700; margin-bottom: 10px; color: var(--navy-blue);">📚 ${courseLabels.join(', ')}</div>`;
       }
       if (activeDays.length > 0) {
         html += `<div style="font-weight: 700; margin-bottom: 12px; color: var(--navy-blue);">✅ ${activeDays.length} day(s) active</div>`;
@@ -184,17 +282,20 @@ document.addEventListener('DOMContentLoaded', () => {
           const dayLabel = DAYS.find(day => day.dayOfWeek === d.dayOfWeek)?.label || d.dayOfWeek;
           
           // Calculate total slots across all ranges for this day
-          let dayTotalSlots = 0;
           let rangesHtml = '';
           d.slots.forEach(slot => {
             if (slot.start && slot.end && slot.start < slot.end) {
               const startMins = timeToMinutes(slot.start);
               const endMins = timeToMinutes(slot.end);
-              const slotCount = Math.floor((endMins - startMins) / dur);
-              dayTotalSlots += slotCount;
+              const diffMins = endMins - startMins;
+              const hours = Math.floor(diffMins / 60);
+              const mins = diffMins % 60;
+              const durationStr = hours > 0
+                ? `${hours}h ${mins > 0 ? mins + 'm' : ''}`
+                : `${mins}m`;
               rangesHtml += `<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px; padding: 6px 12px; background: #f8fafc; border-radius: 10px;">
                 <span style="color: var(--navy-blue);">${slot.start} – ${slot.end}</span>
-                <span style="color: #64748b; font-size: 0.85rem;">→ ${slotCount} slots × ${dur}min</span>
+                <span style="color: #64748b; font-size: 0.85rem;">→ ${durationStr}</span>
               </div>`;
             }
           });
@@ -248,9 +349,16 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const lecturerEmail = localStorage.getItem(LECTURER_EMAIL_KEY) || 'test@lecturer.com';
+    const currentUser = JSON.parse(
+      sessionStorage.getItem('sychro_current_user') ||
+      localStorage.getItem('sychro_current_user') ||
+      '{}'
+    );
+    const lecturerId = currentUser.email || 'unknown@lecturer.com';
+    const lecturerName = currentUser.name || 'Unknown Lecturer';
+    const staffId = currentUser.idNumber || '';
     const payload = {
-      defaultDuration: parseInt(defaultDuration.value, 10) || 30,
+      staffId,
       slotCapacity: parseInt(slotCapacity.value, 10) || 1,
       dailySessionLimit: parseInt(dailySessionLimit.value, 10) || 10,
       courses,
@@ -258,11 +366,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     try {
-      const res = await fetch('/api/availability', {
+      const res = await fetch('/api/schedules', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Lecturer-Email': lecturerEmail
+          'X-Lecturer-Id': lecturerId,
+          'X-Lecturer-Name': lecturerName
         },
         body: JSON.stringify(payload)
       });
@@ -294,22 +403,27 @@ document.addEventListener('DOMContentLoaded', () => {
   //  loadAvailability — Load saved data and populate the form
   // =============================================================
   async function loadAvailability() {
-    const lecturerEmail = localStorage.getItem(LECTURER_EMAIL_KEY) || 'test@lecturer.com';
+    const currentUser = JSON.parse(
+      sessionStorage.getItem('sychro_current_user') ||
+      localStorage.getItem('sychro_current_user') ||
+      '{}'
+    );
+    const lecturerId = currentUser.email || 'unknown@lecturer.com';
 
     try {
-      const res = await fetch('/api/availability', {
-        headers: { 'X-Lecturer-Email': lecturerEmail }
+      const res = await fetch('/api/schedules', {
+        headers: { 'X-Lecturer-Id': lecturerId }
       });
       const data = await res.json();
 
       if (data) {
         // Fill global settings
-        if (data.defaultDuration) defaultDuration.value = data.defaultDuration;
         if (data.slotCapacity) slotCapacity.value = data.slotCapacity;
         if (data.dailySessionLimit) dailySessionLimit.value = data.dailySessionLimit;
 
         // Restore selected courses
         if (data.courses && Array.isArray(data.courses)) {
+          window._savedCourses = data.courses; // keep reference for addCourse reload
           document.querySelectorAll('.course-select').forEach(cb => {
             cb.checked = data.courses.includes(cb.value);
           });
@@ -385,9 +499,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const card = document.getElementById(`toggle-${day.id}`).closest('.day-card');
       card.classList.remove('active');
     });
-    defaultDuration.value = 30;
     slotCapacity.value = 1;
     dailySessionLimit.value = 10;
+
+    // Uncheck all course checkboxes
+    document.querySelectorAll('.course-select').forEach(cb => { cb.checked = false; });
 
     refreshRemoveButtons();
     updatePreview();

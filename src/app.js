@@ -80,6 +80,14 @@ app.post('/api/availability', async (req, res) => {
   }
 });
 
+// --- Course Routes ---
+const courseRoutes = require('./routes/courses');
+app.use('/api/courses', courseRoutes);
+
+// --- Schedule Routes ---
+const scheduleRoutes = require('./routes/schedules');
+app.use('/api/schedules', scheduleRoutes);
+
 // --- Registration Route ---
 app.post('/api/register', async (req, res) => {
   try {
@@ -143,7 +151,7 @@ app.post('/api/login', async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Login successful!',
-      user: { name: user.name, role: user.role }
+      user: { name: user.name, surname: user.surname, idNumber: user.idNumber, role: user.role }
     })
   } catch (err) {
     res.status(500).json({ success: false, error: 'Server error during login.' })

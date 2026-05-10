@@ -96,6 +96,8 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
       const userPackage = {
         email,
         name: (data.user && data.user.name) ? data.user.name : 'Student',
+        surname: (data.user && data.user.surname) ? data.user.surname : '',
+        idNumber: (data.user && data.user.idNumber) ? data.user.idNumber : '',
         role: (data.user && data.user.role) ? data.user.role : 'student'
       }
 
