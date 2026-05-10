@@ -93,4 +93,24 @@ app.post('/api/login', async (req, res) => {
   }
 })
 
+// --- Profile Routes ---
+app.get('/api/profile', async (req, res) => {
+  const user = await User.findOne({ email: req.headers['x-user-email'] }).select('name surname email notificationsEnabled');
+  if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+  res.json({ success: true, user });
+});
+
+app.put('/api/profile', async (req, res) => {
+  const email = req.headers['x-user-email'];
+  const { name, surname, notificationsEnabled } = req.body;
+  const user = await User.findOneAndUpdate(
+    { email },
+    { $set: { name, surname, notificationsEnabled } },
+    { new: true, select: 'name surname email notificationsEnabled' }
+  );
+  if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+  res.json({ success: true, message: 'Profile updated.', user });
+});
+
+
 module.exports = app
