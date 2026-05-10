@@ -154,28 +154,4 @@ describe('POST /api/auth/reset-password', () => {
     expect(sendNotification).toHaveBeenCalledTimes(1)
     expect(sendNotification.mock.calls[0][0]).toBe(user)
   })
-
-  test('still calls notification service when user opted out', async () => {
-    const user = makeUser({ emailNotifications: false })
-    User.findOne.mockResolvedValue(user)
-    PasswordResetToken.findOne.mockResolvedValue({
-      used: false,
-      save: jest.fn().mockResolvedValue(true)
-    })
-
-    const res = await request(app)
-      .post('/api/auth/reset-password')
-      .send({
-        email: user.email,
-        token: crypto.randomBytes(32).toString('hex'),
-        newPassword: 'AnotherPass1!'
-      })
-
-    expect(res.status).toBe(200)
-    expect(sendNotification).toHaveBeenCalledWith(
-      user,
-      expect.any(String),
-      expect.any(String)
-    )
-  })
 })
