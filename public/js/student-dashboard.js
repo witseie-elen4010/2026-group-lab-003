@@ -79,7 +79,7 @@ class StudentScheduleManager {
         console.log('Clearing session and redirecting...')
         sessionStorage.removeItem(this.userStorageKey)
         localStorage.removeItem(this.userStorageKey)
-        window.location.href = 'login.html'
+        window.location.href = 'login-page.html'
       })
     }
   }
@@ -354,8 +354,10 @@ class StudentScheduleManager {
     if (!dateStr) return false
     const date = new Date(dateStr)
     const today = new Date()
-    const startOfWeek = new Date(today)
-    startOfWeek.setDate(today.getDate() - today.getDay())
+    const day = today.getDay()
+    const diffToMonday = day === 0 ? 6 : day - 1
+    // Set to midnight so the comparison works regardless of current time
+    const startOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - diffToMonday, 0, 0, 0, 0)
     const endOfWeek = new Date(startOfWeek)
     endOfWeek.setDate(startOfWeek.getDate() + 6)
     endOfWeek.setHours(23, 59, 59, 999)
