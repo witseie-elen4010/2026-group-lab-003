@@ -13,7 +13,9 @@ const dayScheduleSchema = new mongoose.Schema({
 const availabilitySchema = new mongoose.Schema({
   lecturerEmail: { type: String, required: true, unique: true },
   defaultDuration: { type: Number, required: true, default: 30 },
+  slotCapacity: { type: Number, default: 1 },
   dailySessionLimit: { type: Number, required: true, default: 10},
+  courses: [{ type: String, trim: true }],
   weeklySchedule: [dayScheduleSchema],
   updatedAt: { type: Date, default: Date.now }
 });

@@ -1,0 +1,402 @@
+/* ============================================================
+   SYCHRO v2 — Day-Based Availability Setup
+   Theme: Dark Navy, Gold Accent, Silver Background
+   ============================================================ */
+
+:root {
+  --bg-silver: #cbd5e1;
+  --navy-blue: #0f172a;
+  --gold-accent: #a48931;
+  --gold-light: #d4b84a;
+  --card-bg: rgba(255, 255, 255, 0.92);
+  --text-muted: #64748b;
+  --radius-lg: 24px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background-color: var(--bg-silver);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  margin: 0;
+  color: var(--navy-blue);
+}
+
+/* ---- Layout ---- */
+.app-layout { display: flex; min-height: 100vh; }
+
+/* ---- Sidebar ---- */
+.sidebar {
+  width: 80px;
+  background: var(--navy-blue);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+  flex-shrink: 0;
+}
+.sidebar-brand { padding: 20px 0; }
+.sidebar-brand img { width: 42px; height: auto; }
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  height: 100%;
+}
+.sidebar-nav a {
+  color: #64748b;
+  font-size: 22px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.sidebar-nav a.active { color: var(--gold-accent); }
+.sidebar-nav a:hover { color: var(--gold-light); transform: scale(1.1); }
+.nav-spacer { flex-grow: 1; }
+.logout { color: #f87171 !important; }
+
+/* ---- Main Content ---- */
+.main-content {
+  flex: 1;
+  padding: 40px 50px;
+  overflow-y: auto;
+}
+
+/* ---- Top Bar ---- */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 36px;
+}
+.greeting {
+  font-weight: 800;
+  font-size: 2rem;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.5px;
+}
+.header-actions { display: flex; gap: 12px; }
+
+/* ---- Content Grid: 2 columns ---- */
+.content-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 36px;
+}
+
+/* ---- Glass Card ---- */
+.glass-card {
+  background: var(--card-bg);
+  padding: 28px;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+}
+.glass-card h3 {
+  font-size: 1.1rem;
+  margin: 0 0 22px 0;
+  color: var(--navy-blue);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mt-4 { margin-top: 24px; }
+
+/* ---- Course Checkbox Group ---- */
+.course-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.course-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid #e2e8f0;
+  transition: all 0.2s;
+}
+.course-checkbox:hover {
+  border-color: var(--gold-accent);
+  background: rgba(164, 137, 49, 0.04);
+}
+.course-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold-accent);
+  cursor: pointer;
+}
+.course-checkbox .checkbox-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--navy-blue);
+}
+
+/* ---- Form Controls (Minimal) ---- */
+.input-group-minimal { margin-bottom: 22px; }
+.input-group-minimal label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #475569;
+  margin-bottom: 8px;
+}
+.form-select-minimal,
+.form-control-minimal {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--navy-blue);
+  transition: border-color 0.2s;
+}
+.form-select-minimal:focus,
+.form-control-minimal:focus {
+  outline: none;
+  border-color: var(--gold-accent);
+  box-shadow: 0 0 0 3px rgba(164, 137, 49, 0.15);
+}
+
+/* ---- Preview Panel ---- */
+.preview-text {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--navy-blue);
+}
+
+/* ---- Day Grid (Right Panel) ---- */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.section-header h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.badge-subtle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(100, 116, 139, 0.1);
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+.day-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ---- Day Card ---- */
+.day-card {
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition: all 0.25s ease;
+  border-left: 5px solid #e2e8f0;
+}
+.day-card.active {
+  border-left-color: var(--gold-accent);
+  box-shadow: 0 4px 20px rgba(164, 137, 49, 0.12);
+}
+
+.day-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: #f8fafc;
+}
+.day-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--navy-blue);
+}
+
+.day-card-body {
+  padding: 0 20px 18px 20px;
+}
+
+/* Time row: From / To side by side */
+.time-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 14px;
+}
+.time-field label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 6px;
+}
+.time-field .time-input {
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  background: #ffffff;
+}
+.time-field .time-input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ---- Toggle Switch ---- */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.toggle-switch .day-toggle {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #cbd5e1;
+  border-radius: 24px;
+  transition: 0.3s;
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: 0.3s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.day-toggle:checked + .toggle-slider {
+  background: var(--gold-accent);
+}
+.day-toggle:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+
+/* ---- Buttons ---- */
+.minimal-btn-primary {
+  background: var(--gold-accent);
+  color: white;
+  border: none;
+  padding: 12px 26px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.minimal-btn-primary:hover { background: #8f752a; transform: translateY(-1px); }
+.minimal-btn-primary:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+.minimal-btn-outline {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1.5px solid #cbd5e1;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.minimal-btn-outline:hover {
+  border-color: #94a3b8;
+  color: var(--navy-blue);
+}
+
+/* ---- Multi-Slot Row ---- */
+.time-slot-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.time-slot-row .time-pair {
+  flex: 1;
+  margin-top: 0;
+}
+
+/* ---- Remove Slot Button ---- */
+.remove-slot-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 1.4rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 4px 10px 4px;
+  line-height: 1;
+  transition: opacity 0.2s;
+  opacity: 0.6;
+}
+.remove-slot-btn:hover { opacity: 1; }
+.remove-slot-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+
+/* ---- Add Slot Button ---- */
+.add-slot-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1.5px dashed #cbd5e1;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.2s;
+  width: 100%;
+  justify-content: center;
+}
+.add-slot-btn:hover {
+  border-color: var(--gold-accent);
+  color: var(--gold-accent);
+  background: rgba(164, 137, 49, 0.05);
+}
+
+/* ---- Spacer between slot rows ---- */
+.day-slots-container .time-slot-row + .time-slot-row {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+  .content-grid { grid-template-columns: 1fr; }
+  .main-content { padding: 24px 20px; }
+}

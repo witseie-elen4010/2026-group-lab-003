@@ -23,9 +23,62 @@ app.use(express.static('public'))
 
 app.use('/api/bookings', bookingRoutes)
 
-// password-reset
-const authRoutes = require('./routes/auth')
-app.use('/api/auth', authRoutes)
+const Availability = require('./models/Availability');
+
+// --- Lecturer Availability: GET (load saved availability) ---
+app.get('/api/availability', async (req, res) => {
+  try {
+    const lecturerEmail = req.headers['x-lecturer-email'];
+    if (!lecturerEmail) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const availability = await Availability.findOne({ lecturerEmail });
+    if (!availability) {
+      return res.json({ defaultDuration: 30, slotCapacity: 1, dailySessionLimit: 10, weeklySchedule: [], courses: [] });
+    }
+    res.json({
+      defaultDuration: availability.defaultDuration,
+      slotCapacity: availability.slotCapacity,
+      dailySessionLimit: availability.dailySessionLimit,
+      weeklySchedule: availability.weeklySchedule,
+      courses: availability.courses || []
+    });
+  } catch (err) {
+    console.error('Error loading availability:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// --- Lecturer Availability: POST (save availability) ---
+app.post('/api/availability', async (req, res) => {
+  try {
+    const lecturerEmail = req.headers['x-lecturer-email'];
+    if (!lecturerEmail) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const { defaultDuration, slotCapacity, dailySessionLimit, weeklySchedule, courses } = req.body;
+
+    const update = {
+      defaultDuration: defaultDuration || 30,
+      slotCapacity: slotCapacity || 1,
+      dailySessionLimit: dailySessionLimit || 10,
+      weeklySchedule: weeklySchedule || [],
+      courses: courses || [],
+      updatedAt: new Date()
+    };
+
+    const availability = await Availability.findOneAndUpdate(
+      { lecturerEmail },
+      { $set: update },
+      { upsert: true, new: true }
+    );
+
+    res.json({ message: 'Availability saved', data: availability });
+  } catch (err) {
+    console.error('Error saving availability:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 // --- Registration Route ---
 app.post('/api/register', async (req, res) => {

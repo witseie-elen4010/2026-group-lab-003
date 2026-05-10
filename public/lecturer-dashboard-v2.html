@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Synchro v2</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/lecturer-dashboard-v2.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <img src="images/synchro-logo.png" alt="Logo">
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="active"><i class="fas fa-home"></i></a>
+                <a href="lecturer-availability-v2.html"><i class="fas fa-calendar-plus"></i></a>
+                <a href="activity-log.html"><i class="fas fa-list-ul"></i></a>
+                <div class="nav-spacer"></div>
+                <a href="login-page.html" class="logout"><i class="fas fa-sign-out-alt"></i></a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <div>
+                    <h1 class="greeting">Hello, <span id="lecturer-name">Lecturer</span></h1>
+                    <p class="text-muted">Here is what's happening today.</p>
+                </div>
+                <div class="quick-actions">
+                    <button id="refresh-btn" class="minimal-btn"><i class="fas fa-redo-alt"></i></button>
+                </div>
+            </header>
+
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <span class="label">Total Sessions</span>
+                    <span class="value" id="total-sessions">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="label">Active Students</span>
+                    <span class="value" id="total-joined">0</span>
+                </div>
+                <div class="stat-card accent">
+                    <span class="label">Upcoming</span>
+                    <span class="value" id="upcoming-count">0</span>
+                </div>
+            </section>
+
+            <section class="content-body">
+                <div class="section-header">
+                    <h2>Upcoming Consultations</h2>
+                    <div class="filters-minimal">
+                        <input type="text" id="search-input" placeholder="Search...">
+                    </div>
+                </div>
+                <div id="schedule-list" class="minimal-list">
+                    </div>
+                
+                <div id="empty-state" class="empty-state hidden">
+                    <p>No scheduled sessions found.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/lecturer-dashboard-v2.js"></script>
+</body>
+</html>
