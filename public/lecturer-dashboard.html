@@ -21,22 +21,29 @@
             <div class="header-right">
                 <button id="refresh-btn" class="btn btn-outline" title="Refresh schedule">
                     <i class="fas fa-sync-alt"></i>
-                    <span>Refresh</span>
                 </button>
+                <button id="settings-btn" class="btn btn-outline" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <div id="settings-dropdown" class="settings_dropdown hidden">
+            <a href="/profile-page.html" class="dropdown_item">Profile</a>
+            <a href="/activity-log.html" class="dropdown_item">Activity Log</a>
+            <a href="/logout" class="dropdown_item">Logout</a>
+        </div>
             </div>
         </header>
 
-        <!-- Today's Date -->
-        <div class="date-banner">
-            <i class="fas fa-calendar-day"></i>
+<!-- Today's Date -->
+    <div class="date-banner">
+        <i class="fas fa-calendar-day"></i>
             <span id="current-date">Loading...</span>
-        </div>
+            </div>
 
         <!-- Stats Cards -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value" id="total-sessions">0</div>
-                <div class="stat-label">Today's Sessions</div>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value" id="total-sessions">0</div>
+            <div class="stat-label">Today's Sessions</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="total-joined">0</div>
@@ -53,7 +60,7 @@
         </div>
 
         <!-- Filters -->
-        <div class="filters-section">
+    <div class="filters-section">
             <div class="filter-row">
                 <div class="filter-group">
                     <label for="status-filter">
