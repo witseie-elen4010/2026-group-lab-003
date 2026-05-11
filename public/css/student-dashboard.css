@@ -15,17 +15,18 @@ body {
 
 .burger-btn {
     background: #2766a5;
-    padding: 10px 14px;
     border-radius: 8px;
     border: 0;
     cursor: pointer;
     color: white;
     transition: all 0.2s;
+    height: 40px;
+    width: 40px;
 }
 
 .burger-btn:hover {
     background: #FFC107;
-    color: #1a202c;
+    --color: #2766a5;
 }
 
 .menu-wrapper {
@@ -60,6 +61,7 @@ body {
 
 .menu-items a:hover {
     background: #f1f5f9;
+    border-radius: 10px;
 }
 
 .menu-items hr {
