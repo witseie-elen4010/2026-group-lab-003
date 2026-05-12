@@ -32,6 +32,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// Login page tests
 describe('Login page browser script', () => {
   function setupLoginDom() {
     document.body.innerHTML = `
@@ -114,6 +115,7 @@ describe('Login page browser script', () => {
   });
 });
 
+// Registration page tests
 describe('Registration page browser script', () => {
   function setupRegistrationDom() {
     document.body.innerHTML = `
@@ -194,6 +196,7 @@ describe('Registration page browser script', () => {
   });
 });
 
+// Booking page tests
 describe('Booking page browser script', () => {
   function setupBookingDom() {
     document.body.innerHTML = `
@@ -264,6 +267,7 @@ describe('Booking page browser script', () => {
   });
 });
 
+// Lecturer availability page tests
 describe('Lecturer availability browser script', () => {
   function setupAvailabilityDom() {
     document.body.innerHTML = `
@@ -339,6 +343,7 @@ describe('Lecturer availability browser script', () => {
   });
 });
 
+// Activity log page tests
 describe('Activity log browser script', () => {
   const tempPath = frontendScript('activity-log-testable.js');
 
