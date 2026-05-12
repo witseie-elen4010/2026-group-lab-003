@@ -11,7 +11,7 @@ class LecturerScheduleManager {
 
     init() {
         this.loadCurrentLecturer();
-        this.loadSessions();
+        await this.loadSessions();
         this.setupEventListeners();
         this.displayCurrentDate();
         this.updateStats();
@@ -44,7 +44,7 @@ class LecturerScheduleManager {
         this.searchInput.addEventListener('input', this.debounce(() => this.handleFilterChange(), 300));
 
         document.getElementById('refresh-btn').addEventListener('click', () => {
-            this.loadSessions();
+            await this.loadSessions();
             this.updateStats();
             this.updateFilterOptions();
             this.render();
@@ -78,35 +78,30 @@ class LecturerScheduleManager {
         this.currentLecturer = null;
     }
 
-    loadSessions() {
-        const stored = localStorage.getItem(this.storageKey);
-        const allSessions = stored ? JSON.parse(stored) : [];
-
-        if (this.currentLecturer && this.currentLecturer.fullName) {
-            this.sessions = allSessions.filter(session =>
-                session.lecturerName === this.currentLecturer.fullName
-            );
-        } else if (this.currentLecturer && this.currentLecturer.email) {
-            this.sessions = allSessions.filter(session =>
-                session.lecturerEmail === this.currentLecturer.email
-            );
-        } else {
-            this.sessions = allSessions;
+        async loadSessions() {
+        try {
+            const lecturerName = this.currentLecturer?.fullName || '';
+            const response = await fetch(`/api/consultations?lecturer=${encodeURIComponent(lecturerName)}`);
+            
+            if (response.ok) {
+                this.sessions = await response.json();
+            } else {
+                console.error('Failed to load sessions');
+                this.sessions = [];
+            }
+        } catch (error) {
+            console.error('Failed to load sessions:', error);
+            this.sessions = [];
         }
     }
 
-    saveSessions() {
-        const stored = localStorage.getItem(this.storageKey);
-        const allSessions = stored ? JSON.parse(stored) : [];
-
-        this.sessions.forEach(updatedSession => {
-            const index = allSessions.findIndex(s => s.id === updatedSession.id);
-            if (index !== -1) {
-                allSessions[index] = updatedSession;
-            }
+    async saveSession(updatedSession) {
+        const id = updatedSession._id || updatedSession.id;
+        await fetch(`/api/consultations/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedSession)
         });
-
-        localStorage.setItem(this.storageKey, JSON.stringify(allSessions));
     }
 
     // FILTERING
@@ -290,23 +285,23 @@ class LecturerScheduleManager {
         this.sessionModal.classList.add('hidden');
     }
 
-    cancelSession(id) {
+    async cancelSession(id) {
         if (confirm('Cancel this session?')) {
             const session = this.sessions.find(s => s.id === id);
             if (session) {
                 session.status = 'canceled';
-                this.saveSessions();
+                await this.saveSession(session);
                 this.updateStats();
                 this.applyFilters();
             }
         }
     }
 
-    completeSession(id) {
+    async completeSession(id) {
         const session = this.sessions.find(s => s.id === id);
         if (session) {
             session.status = 'completed';
-            this.saveSessions();
+            await this.saveSession(session);
             this.updateStats();
             this.applyFilters();
         }
