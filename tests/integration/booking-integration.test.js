@@ -16,13 +16,13 @@ jest.mock('../../src/models/booking', () => {
   return Booking;
 });
 
-jest.mock('../../src/models/Availability', () => ({
+jest.mock('../../src/models/Schedule', () => ({
   findOne: jest.fn()
 }));
 
 const app = require('../../src/app');
 const Booking = require('../../src/models/booking');
-const Availability = require('../../src/models/Availability');
+const Schedule = require('../../src/models/Schedule');
 
 describe('Booking Integration Tests', () => {
   beforeEach(() => {
@@ -84,8 +84,8 @@ describe('Booking Integration Tests', () => {
   });
 
   it('returns available blocks and booked times for a lecturer and date', async () => {
-    Availability.findOne.mockResolvedValue({
-      lecturerEmail: 'lecturer@wits.ac.za',
+    Schedule.findOne.mockResolvedValue({
+      lecturerId: 'lecturer@wits.ac.za',
       defaultDuration: 30,
       weeklySchedule: [
         { dayOfWeek: 1, slots: [{ start: '09:00', end: '10:00' }] }
@@ -108,7 +108,7 @@ describe('Booking Integration Tests', () => {
       availableBlocks: [{ start: '09:00', end: '10:00' }],
       bookedTimes: ['09:00']
     });
-    expect(Availability.findOne).toHaveBeenCalledWith({ lecturerEmail: 'lecturer@wits.ac.za' });
+    expect(Schedule.findOne).toHaveBeenCalledWith({ lecturerId: 'lecturer@wits.ac.za' });
     expect(Booking.find).toHaveBeenCalledWith({
       lecturerId: 'lecturer@wits.ac.za',
       date: '2026-06-01',
@@ -117,8 +117,8 @@ describe('Booking Integration Tests', () => {
   });
 
   it('returns an empty availability response when the lecturer has no slots that day', async () => {
-    Availability.findOne.mockResolvedValue({
-      lecturerEmail: 'lecturer@wits.ac.za',
+    Schedule.findOne.mockResolvedValue({
+      lecturerId: 'lecturer@wits.ac.za',
       defaultDuration: 30,
       weeklySchedule: [
         { dayOfWeek: 2, slots: [{ start: '09:00', end: '10:00' }] }
@@ -142,7 +142,7 @@ describe('Booking Integration Tests', () => {
   });
 
   it('returns 404 when lecturer availability does not exist', async () => {
-    Availability.findOne.mockResolvedValue(null);
+    Schedule.findOne.mockResolvedValue(null);
 
     const response = await request(app)
       .get('/api/bookings/availability')

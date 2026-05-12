@@ -15,7 +15,7 @@ class ActivityLogManager {
         this.setupEventListeners();
         this.updateStats();
         this.updateFilterOptions();
-        this.render();
+        this.applyFilters();
     }
 
 
@@ -113,9 +113,7 @@ class ActivityLogManager {
         this.updateStats();
         this.updateFilterOptions();
 
-        if (this.currentPage === 1) {
-            this.render();
-        }
+        this.applyFilters();
     }
 
     getCurrentUser() {
@@ -140,7 +138,7 @@ class ActivityLogManager {
             this.saveActivities();
             this.updateStats();
             this.updateFilterOptions();
-            this.render();
+            this.applyFilters();
         }
     }
 

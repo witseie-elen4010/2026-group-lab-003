@@ -1,42 +1,85 @@
 const request = require('supertest');
-const express = require('express');
 
-const app = express();
-app.use(express.json());
-app.get('/', (req, res) => res.json({ status: 'ok' }));
+jest.mock('../../src/models/Schedule', () => ({
+  findOne: jest.fn(),
+  findOneAndUpdate: jest.fn()
+}));
 
-// Test‑only stubs
-app.get('/api/availability', (req, res) => {
-  const id = req.headers['x-lecturer-id'];
-  if (!id) return res.status(401).json({ error: 'Unauthorized' });
-  res.json({ lecturerName: 'Test Lecturer', weeklySchedule: [] });
-});
+const app = require('../../src/app');
+const Schedule = require('../../src/models/Schedule');
 
-app.post('/api/availability', (req, res) => {
-  const { weeklySchedule } = req.body;
-  if (!Array.isArray(weeklySchedule)) {
-    return res.status(400).json({ error: 'Invalid data' });
-  }
-  res.json({
-    message: 'Availability saved',
-    data: { weeklySchedule }
+describe('Lecturer Schedule API', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
-});
 
-describe('Lecturer Availability API', () => {
-  it('should reject if X-Lecturer-Id is missing', async () => {
-    const response = await request(app).get('/api/availability');
+  it('rejects schedule reads when X-Lecturer-Id is missing', async () => {
+    const response = await request(app).get('/api/schedules');
+
     expect(response.status).toBe(401);
+    expect(response.body.error).toBe('Unauthorized');
+    expect(Schedule.findOne).not.toHaveBeenCalled();
   });
 
-  it('should save valid availability', async () => {
+  it('returns default schedule data when the lecturer has not saved availability yet', async () => {
+    Schedule.findOne.mockResolvedValue(null);
+
     const response = await request(app)
-      .post('/api/availability')
-      .set('X-Lecturer-Id', 'test@example.com')
-      .set('X-Lecturer-Name', 'Test Lecturer')
-      .send({ weeklySchedule: [] });
-    
+      .get('/api/schedules')
+      .set('X-Lecturer-Id', 'lecturer-123');
+
     expect(response.status).toBe(200);
-    expect(response.body.message).toBe('Availability saved');
+    expect(response.body).toEqual({
+      slotCapacity: 1,
+      dailySessionLimit: 10,
+      weeklySchedule: [],
+      courses: []
+    });
+  });
+
+  it('saves a valid lecturer schedule', async () => {
+    const savedSchedule = {
+      lecturerId: 'lecturer-123',
+      lecturerName: 'Test Lecturer',
+      staffId: 'STAFF123',
+      slotCapacity: 2,
+      dailySessionLimit: 6,
+      weeklySchedule: [
+        { dayOfWeek: 1, slots: [{ start: '09:00', end: '10:00' }] }
+      ],
+      courses: ['ELEN4010']
+    };
+    Schedule.findOneAndUpdate.mockResolvedValue(savedSchedule);
+
+    const response = await request(app)
+      .post('/api/schedules')
+      .set('X-Lecturer-Id', savedSchedule.lecturerId)
+      .set('X-Lecturer-Name', savedSchedule.lecturerName)
+      .send({
+        staffId: savedSchedule.staffId,
+        slotCapacity: savedSchedule.slotCapacity,
+        dailySessionLimit: savedSchedule.dailySessionLimit,
+        weeklySchedule: savedSchedule.weeklySchedule,
+        courses: savedSchedule.courses
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe('Schedule saved');
+    expect(response.body.data).toEqual(savedSchedule);
+    expect(Schedule.findOneAndUpdate).toHaveBeenCalledWith(
+      { lecturerId: savedSchedule.lecturerId },
+      {
+        $set: expect.objectContaining({
+          lecturerId: savedSchedule.lecturerId,
+          lecturerName: savedSchedule.lecturerName,
+          staffId: savedSchedule.staffId,
+          slotCapacity: savedSchedule.slotCapacity,
+          dailySessionLimit: savedSchedule.dailySessionLimit,
+          weeklySchedule: savedSchedule.weeklySchedule,
+          courses: savedSchedule.courses
+        })
+      },
+      { upsert: true, new: true }
+    );
   });
 });

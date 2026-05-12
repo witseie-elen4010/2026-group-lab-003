@@ -3,12 +3,12 @@ const express = require('express')
 
 // 1. MOCK FIRST! Tell Jest to intercept these before the router loads.
 jest.mock('../../src/models/booking')
-jest.mock('../../src/models/Availability')
+jest.mock('../../src/models/Schedule')
 
 // 2. NOW import your router and models
 const bookingsRouter = require('../../src/routes/bookings')
 const Booking = require('../../src/models/booking')
-const Availability = require('../../src/models/Availability')
+const Schedule = require('../../src/models/Schedule')
 
 // 3. Set up the fake Express app
 const app = express()
@@ -50,11 +50,11 @@ describe('Booking API Routes', () => {
   describe('GET /api/bookings', () => {
     it('should ignore canceled bookings when checking availability', async () => {
       // Arrange: Fake the responses for our database queries
-      Availability.findOne.mockResolvedValue({
-        defaultDuration: 30,
+      Schedule.findOne.mockResolvedValue({
+        lecturerId: 'test@lecturer.com',
         weeklySchedule: [{
           dayOfWeek: 2, // Tuesday
-          slots: ['10:00', '10:30']
+          slots: [{ start: '10:00', end: '10:30' }]
         }]
       })
 
@@ -69,6 +69,7 @@ describe('Booking API Routes', () => {
       // Assert
       expect(response.status).toBe(200)
       expect(response.body.bookedTimes).toContain('10:00')
+      expect(response.body.availableBlocks).toEqual([{ start: '10:00', end: '10:30' }])
 
       // Prove that it specifically asked Mongoose to ignore 'canceled' bookings!
       expect(Booking.find).toHaveBeenCalledWith({

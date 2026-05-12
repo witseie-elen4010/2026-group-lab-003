@@ -28,7 +28,7 @@ router.post('/create', validateLecturerHours, async (req, res) => {
 })
 
 // routes/bookings.js
-const Availability = require('../models/Availability')
+const Schedule = require('../models/Schedule')
 const Booking = require('../models/booking')
 
 // GET: Check available slots
@@ -38,13 +38,13 @@ router.get('/availability', async (req, res) => {
     const dateObj = new Date(date)
     const dayOfWeek = dateObj.getDay()
 
-    const availability = await Availability.findOne({ lecturerEmail: lecturerId })
+    const schedule = await Schedule.findOne({ lecturerId })
 
-    if (!availability) {
+    if (!schedule) {
       return res.status(404).json({ error: 'Lecturer availability not found.' })
     }
 
-    const daySchedule = availability.weeklySchedule.find(d => d.dayOfWeek === dayOfWeek)
+    const daySchedule = schedule.weeklySchedule.find(d => d.dayOfWeek === dayOfWeek)
 
     if (!daySchedule || daySchedule.slots.length === 0) {
       return res.json({ message: 'Lecturer is not available on this day.', slots: [], booked: [] })
@@ -58,7 +58,7 @@ router.get('/availability', async (req, res) => {
     const bookedTimes = existingBookings.map(b => b.startTime)
 
     res.json({
-      duration: availability.defaultDuration,
+      duration: schedule.defaultDuration || 30,
       availableBlocks: daySchedule.slots,
       bookedTimes
     })

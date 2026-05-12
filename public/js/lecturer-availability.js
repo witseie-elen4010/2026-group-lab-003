@@ -1,10 +1,12 @@
 // Fixed: Slots load on page open
-const lecturerEmail = localStorage.getItem('lecturerEmail') || 'test@lecturer.com';
-const daysOfWeek = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const storedLecturer = JSON.parse(sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user') || '{}');
+const lecturerId = storedLecturer.idNumber || localStorage.getItem('lecturerId') || localStorage.getItem('lecturerEmail') || storedLecturer.email || 'test@lecturer.com';
+const lecturerName = [storedLecturer.name, storedLecturer.surname].filter(Boolean).join(' ') || storedLecturer.email || 'Unknown Lecturer';
+const daysOfWeek = ['mon', 'tue', 'wed', 'thu', 'fri'];
 let slotCounter = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('✅ Availability loaded for:', lecturerEmail);
+  console.log('Availability loaded for:', lecturerId);
   
   // ALWAYS add first slot
   addSlot();
@@ -87,8 +89,8 @@ async function saveAvailability(e) {
     
     if (checkedDays.length && start && end && start < end) {
       checkedDays.forEach(day => {
-        const dayNum = daysOfWeek.indexOf(day);
-        if (dayNum >= 0) {
+        const dayNum = daysOfWeek.indexOf(day) + 1;
+        if (dayNum > 0) {
           transformedSchedule.push({
             dayOfWeek: dayNum,
             slots: [{ start, end }]
@@ -103,18 +105,19 @@ async function saveAvailability(e) {
   
   
   const data = {
-    defaultDuration: parseInt(document.getElementById('defaultDuration').value) || 30,
+    staffId: storedLecturer.idNumber || '',
     slotCapacity: slotCapacity,
     dailySessionLimit: dailySessionLimit,
     weeklySchedule: transformedSchedule
   };
   
   try {
-    const res = await fetch('/api/availability', {
+    const res = await fetch('/api/schedules', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Lecturer-Email': lecturerEmail
+        'X-Lecturer-Id': lecturerId,
+        'X-Lecturer-Name': lecturerName
       },
       body: JSON.stringify(data)
     });
@@ -136,13 +139,15 @@ async function saveAvailability(e) {
 
 async function loadAvailability() {
   try {
-    const res = await fetch('/api/availability', {
-      headers: { 'X-Lecturer-Email': lecturerEmail }
+    const res = await fetch('/api/schedules', {
+      headers: { 'X-Lecturer-Id': lecturerId }
     });
     const data = await res.json();
     console.log('📥 Loaded:', data);
     
     document.getElementById('defaultDuration').value = data.defaultDuration || 30;
+    document.getElementById('slotCapacity').value = data.slotCapacity || 1;
+    document.getElementById('dailySessionLimit').value = data.dailySessionLimit || 10;
     
     // Clear initial slot, load real data
     document.getElementById('slotsContainer').innerHTML = '';
@@ -152,7 +157,7 @@ async function loadAvailability() {
       // Group by day + recreate slots
       const daySlots = {};
       data.weeklySchedule.forEach(item => {
-        const dayName = daysOfWeek[item.dayOfWeek];
+        const dayName = daysOfWeek[item.dayOfWeek - 1];
         if (dayName) {
           item.slots.forEach(slot => {
             if (!daySlots[dayName]) daySlots[dayName] = [];
