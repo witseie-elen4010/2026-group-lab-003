@@ -63,11 +63,7 @@ app.post('/api/register', async (req, res) => {
       password: hashedPassword
     })
 
-    await user.save();
-    console.log('User registered in DB:', user.email); // This will now show the actual email
-    res.status(201).json({ success: true, message: 'User registered!' });
-
-    console.log('User registered in DB:', user.email)
+    await user.save()
     res.status(201).json({ success: true, message: 'User registered!' })
   } catch (err) {
     console.error('Registration Error:', err.message)
