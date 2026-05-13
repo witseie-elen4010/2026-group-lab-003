@@ -104,6 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
         date: dateInput.value,
         startTime: selectedStartInput.value,
         endTime: selectedEndInput.value,
+        participantIDs: [user.email],
         topic: document.getElementById('topic') ? document.getElementById('topic').value : ''
       }
 
