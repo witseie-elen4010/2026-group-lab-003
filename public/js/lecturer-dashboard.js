@@ -320,6 +320,13 @@ class LecturerScheduleManager {
         return `${displayHour}:${minutes} ${period}`;
     }
 
+        calculateDuration(startTime, endTime) {
+        if (!startTime || !endTime) return 30;
+        const [startH, startM] = startTime.split(':').map(Number);
+        const [endH, endM] = endTime.split(':').map(Number);
+        return (endH * 60 + endM) - (startH * 60 + startM);
+    }
+
     getTomorrow() {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -375,6 +382,7 @@ document.addEventListener('click', function(e) {
         settingsDropdown.classList.add('hidden');
     }
 });
+
 
 // INITIALIZE
 const scheduleManager = new LecturerScheduleManager();
