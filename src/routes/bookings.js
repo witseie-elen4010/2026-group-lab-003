@@ -172,4 +172,30 @@ router.put('/leave/:id', async (req, res) => {
   }
 })
 
+// GET /api/lecturer/bookings?email=lecturer_1
+router.get('/lecturer/bookings', async (req, res) => {
+  try {
+    const { email } = req.query;
+    // Find all upcoming bookings for this specific lecturer
+    const bookings = await Booking.find({ 
+      lecturerId: email, 
+      status: 'upcoming' 
+    }).sort({ date: 1, startTime: 1 });
+    
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/lecturer/availability?email=lecturer_1
+router.get('/lecturer/availability', async (req, res) => {
+  try {
+    const availability = await Availability.findOne({ lecturerEmail: req.query.email });
+    res.json(availability);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router
