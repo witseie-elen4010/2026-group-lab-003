@@ -198,4 +198,22 @@ router.get('/lecturer/availability', async (req, res) => {
   }
 });
 
+// Update booking status (for dashboard cancel/complete)
+router.put('/:id', async (req, res) => {
+    try {
+        const updated = await Booking.findByIdAndUpdate(
+            req.params.id,
+            { status: req.body.status },
+            { new: true }
+        );
+        if (!updated) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        res.json(updated);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to update booking' });
+    }
+});
+
 module.exports = router
