@@ -172,4 +172,48 @@ router.put('/leave/:id', async (req, res) => {
   }
 })
 
+// GET /api/lecturer/bookings?email=lecturer_1
+router.get('/lecturer/bookings', async (req, res) => {
+  try {
+    const { email } = req.query;
+    // Find all upcoming bookings for this specific lecturer
+    const bookings = await Booking.find({ 
+      lecturerId: email, 
+      status: 'upcoming' 
+    }).sort({ date: 1, startTime: 1 });
+    
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/lecturer/availability?email=lecturer_1
+router.get('/lecturer/availability', async (req, res) => {
+  try {
+    const availability = await Availability.findOne({ lecturerEmail: req.query.email });
+    res.json(availability);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Update booking status (for dashboard cancel/complete)
+router.put('/:id', async (req, res) => {
+    try {
+        const updated = await Booking.findByIdAndUpdate(
+            req.params.id,
+            { status: req.body.status },
+            { new: true }
+        );
+        if (!updated) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        res.json(updated);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to update booking' });
+    }
+});
+
 module.exports = router
