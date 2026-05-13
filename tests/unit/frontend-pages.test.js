@@ -260,6 +260,7 @@ describe('Booking page browser script', () => {
         date: '2026-06-01',
         startTime: '09:30',
         endTime: '10:00',
+        participantIDs: ['student@wits.ac.za'],
         topic: 'Project planning'
       })
     }));

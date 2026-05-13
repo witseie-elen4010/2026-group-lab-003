@@ -165,9 +165,17 @@ describe('Booking Integration Tests', () => {
 
   it('returns sorted bookings for the requested student', async () => {
     const bookings = [
-      { _id: 'b1', studentId: 'student@wits.ac.za', date: '2026-06-01', startTime: '10:00' }
+      {
+        _id: 'b1',
+        studentId: 'student@wits.ac.za',
+        participantIDs: ['student@wits.ac.za'],
+        leftParticipantIDs: [],
+        date: '2026-06-01',
+        startTime: '10:00'
+      }
     ];
-    const sort = jest.fn().mockResolvedValue(bookings);
+    const lean = jest.fn().mockResolvedValue(bookings);
+    const sort = jest.fn().mockReturnValue({ lean });
     Booking.find.mockReturnValue({ sort });
 
     const response = await request(app)
@@ -176,8 +184,14 @@ describe('Booking Integration Tests', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(bookings);
-    expect(Booking.find).toHaveBeenCalledWith({ studentId: 'student@wits.ac.za' });
+    expect(Booking.find).toHaveBeenCalledWith({
+      $or: [
+        { participantIDs: 'student@wits.ac.za' },
+        { leftParticipantIDs: 'student@wits.ac.za' }
+      ]
+    });
     expect(sort).toHaveBeenCalledWith({ date: 1, startTime: 1 });
+    expect(lean).toHaveBeenCalled();
   });
 
   it('soft-cancels a booking when the requester owns it', async () => {
