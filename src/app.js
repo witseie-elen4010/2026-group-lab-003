@@ -121,4 +121,6 @@ app.put('/api/profile', async (req, res) => {
 });
 
 
+app.use('/api/activities', require('./routes/activities'));
+
 module.exports = app
