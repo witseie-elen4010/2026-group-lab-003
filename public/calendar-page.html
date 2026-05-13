@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultation Calendar</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/calendar-page.css">
+</head>
+<body>
+
+    <div class="calendar-container">
+        <header class="calendar-header">
+            <button id="prev-month" class="btn-nav" aria-label="Previous Month">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <h2 id="month-display">Loading...</h2>
+            <button id="next-month" class="btn-nav" aria-label="Next Month">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </header>
+
+        <div class="weekdays-grid">
+            <div>Sun</div>
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div>Sat</div>
+        </div>
+
+        <div id="days-grid" class="days-grid"></div>
+    </div>
+
+    <script src="js/calendar-page.js"></script>
+</body>
+</html>
