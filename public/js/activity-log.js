@@ -41,6 +41,7 @@ class ActivityLogManager {
     get totalPagesSpan() { return document.getElementById('total-pages'); }
     get prevPageBtn() { return document.getElementById('prev-page'); }
     get nextPageBtn() { return document.getElementById('next-page'); }
+    get courseFilter() { return document.getElementById('course-filter'); } 
 
     // EVENT LISTENERS
 
@@ -49,6 +50,7 @@ class ActivityLogManager {
         this.userFilter.addEventListener('change', () => this.handleFilterChange());
         this.dateRangeFilter.addEventListener('change', () => this.handleDateRangeChange());
         this.searchInput.addEventListener('input', this.debounce(() => this.handleFilterChange(), 300));
+        this.courseFilter.addEventListener('change', () => this.handleFilterChange());
 
         document.getElementById('apply-date-range').addEventListener('click', () => this.handleFilterChange());
         document.getElementById('clear-filters-btn').addEventListener('click', () => this.clearFilters());
@@ -163,11 +165,13 @@ class ActivityLogManager {
         const user = this.userFilter.value;
         const dateRange = this.dateRangeFilter.value;
         const searchTerm = this.searchInput.value.toLowerCase().trim();
+        const course = this.courseFilter.value;
 
         this.filteredActivities = this.activities.filter(activity => {
             if (actionType !== 'all' && activity.type !== actionType) return false;
             if (user !== 'all' && activity.user !== user) return false;
-
+            if (course !== 'all' && activity.metadata.course !== course) return false;
+        
             if (dateRange !== 'all') {
                 const activityDate = new Date(activity.timestamp);
                 const today = new Date();
@@ -215,6 +219,7 @@ class ActivityLogManager {
         this.searchInput.value = '';
         this.customDateRange.classList.add('hidden');
         this.currentPage = 1;
+        this.courseFilter.value = 'all';
         this.applyFilters();
     }
 
@@ -226,6 +231,15 @@ class ActivityLogManager {
             option.value = user;
             option.textContent = user;
             this.userFilter.appendChild(option);
+        });
+
+        const courses = [...new Set(this.activities.map(a => a.metadata.course))].sort();
+        this.courseFilter.innerHTML = '<option value="all">All Courses</option>';
+        courses.forEach(course => {
+            const option = document.createElement('option');
+            option.value = course;
+            option.textContent = course;
+            this.courseFilter.appendChild(option);
         });
     }
 
