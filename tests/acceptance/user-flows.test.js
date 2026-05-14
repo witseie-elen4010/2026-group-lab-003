@@ -51,7 +51,8 @@ describe('User Acceptance Flows', () => {
       module: 'PHYS1000',
       status: 'upcoming'
     };
-    const sort = jest.fn().mockResolvedValue([booking]);
+    const lean = jest.fn().mockResolvedValue([booking]);
+    const sort = jest.fn().mockReturnValue({ lean });
 
     User.findOne
       .mockResolvedValueOnce(null)
@@ -108,8 +109,14 @@ describe('User Acceptance Flows', () => {
 
     expect(bookingsResponse.status).toBe(200);
     expect(bookingsResponse.body).toEqual([booking]);
-    expect(Booking.find).toHaveBeenCalledWith({ studentId: student.email });
+    expect(Booking.find).toHaveBeenCalledWith({
+      $or: [
+        { participantIDs: student.email },
+        { leftParticipantIDs: student.email }
+      ]
+    });
     expect(sort).toHaveBeenCalledWith({ date: 1, startTime: 1 });
+    expect(lean).toHaveBeenCalled();
 
     const cancelResponse = await request(app)
       .delete(`/api/bookings/${booking._id}`)

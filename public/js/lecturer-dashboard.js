@@ -77,37 +77,34 @@ class LecturerScheduleManager {
 
         this.currentLecturer = null;
     }
+ ///Running sessions from the databse
+    async loadSessions() {
+    const email = this.currentLecturer?.email || '';
+    const response = await fetch(`/api/bookings/lecturer/bookings?email=${encodeURIComponent(email)}`);
 
-    loadSessions() {
-        const stored = localStorage.getItem(this.storageKey);
-        const allSessions = stored ? JSON.parse(stored) : [];
-
-        if (this.currentLecturer && this.currentLecturer.fullName) {
-            this.sessions = allSessions.filter(session =>
-                session.lecturerName === this.currentLecturer.fullName
-            );
-        } else if (this.currentLecturer && this.currentLecturer.email) {
-            this.sessions = allSessions.filter(session =>
-                session.lecturerEmail === this.currentLecturer.email
-            );
-        } else {
-            this.sessions = allSessions;
-        }
+    if (response.ok) {
+        const bookings = await response.json();
+        this.sessions = bookings.map(b => ({
+            id: b._id,
+            courseCode: b.module || '',
+            studentName: b.studentId || 'Unknown',
+            date: b.date ? b.date.split('T')[0] : '',
+            time: b.startTime || '',
+            duration: this.calculateDuration(b.startTime, b.endTime),
+            status: b.status || 'upcoming',
+            topic: b.topic || '',
+            joinedStudents: b.participantIDs || [],
+            
+    }));
     }
-
-    saveSessions() {
-        const stored = localStorage.getItem(this.storageKey);
-        const allSessions = stored ? JSON.parse(stored) : [];
-
-        this.sessions.forEach(updatedSession => {
-            const index = allSessions.findIndex(s => s.id === updatedSession.id);
-            if (index !== -1) {
-                allSessions[index] = updatedSession;
-            }
-        });
-
-        localStorage.setItem(this.storageKey, JSON.stringify(allSessions));
-    }
+}
+    async updateSessionStatus(session) {
+    await fetch(`/api/bookings/${session._id || session.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: session.status })
+    });
+}
 
     // FILTERING
 
@@ -323,6 +320,13 @@ class LecturerScheduleManager {
         return `${displayHour}:${minutes} ${period}`;
     }
 
+        calculateDuration(startTime, endTime) {
+        if (!startTime || !endTime) return 30;
+        const [startH, startM] = startTime.split(':').map(Number);
+        const [endH, endM] = endTime.split(':').map(Number);
+        return (endH * 60 + endM) - (startH * 60 + startM);
+    }
+
     getTomorrow() {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -378,6 +382,7 @@ document.addEventListener('click', function(e) {
         settingsDropdown.classList.add('hidden');
     }
 });
+
 
 // INITIALIZE
 const scheduleManager = new LecturerScheduleManager();
