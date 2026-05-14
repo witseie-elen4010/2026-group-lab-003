@@ -3,7 +3,7 @@ const currentDate = new Date()
 let sessions = []
 
 // 2. THE CORE FUNCTION
-export function renderCalendar (date, bookings = []) {
+function renderCalendar (date, bookings = []) {
   const monthDisplay = document.getElementById('month-display')
   const daysGrid = document.getElementById('days-grid')
   if (!daysGrid) return
