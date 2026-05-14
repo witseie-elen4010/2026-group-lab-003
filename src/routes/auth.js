@@ -18,7 +18,7 @@ const SALT_ROUNDS = 10, TOKEN_EXPIRY_MS = 60 * 60 * 1000
 const hashToken = raw => crypto.createHash('sha256').update(raw).digest('hex')
 
 async function requireAuth(req, res, next) {
-  const email = req.headers['x-user-email']
+  const email = req.session?.userEmail || req.headers['x-user-email']
   if (!email) return res.status(401).json({ success: false, error: 'Unauthorised' })
   const user = await User.findOne({ email })
   if (!user) return res.status(401).json({ success: false, error: 'Unauthorised' })
