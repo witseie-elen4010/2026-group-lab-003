@@ -1,13 +1,39 @@
 const express = require('express')
+const session = require('express-session')
 const app = express()
 const bcrypt = require('bcrypt')
 const saltRounds = 10
 const path = require('path')
 const User = require('./models/user')
+const { sanitizeRequest } = require('./middleware/input-sanitizer')
 const console = require('console')
+
+const SESSION_IDLE_TIMEOUT = 30 * 60 * 1000 // 30 minutes
 
 // --- Middleware ---
 app.use(express.json())
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'keyboard cat',
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: SESSION_IDLE_TIMEOUT
+  }
+}))
+app.use(sanitizeRequest)
+app.use((req, res, next) => {
+  if (req.session) {
+    if (req.session.lastActivity && Date.now() - req.session.lastActivity > SESSION_IDLE_TIMEOUT) {
+      req.session.destroy(() => next())
+      return
+    }
+    req.session.lastActivity = Date.now()
+  }
+  next()
+})
 
 // --- Default Route ---
 app.get('/', (req, res) => {
@@ -17,9 +43,6 @@ app.get('/', (req, res) => {
 app.use(express.static(path.join(__dirname, '../public')))
 
 const bookingRoutes = require('./routes/bookings')
-app.use(express.json())
-
-app.use(express.static('public'))
 
 app.use('/api/bookings', bookingRoutes)
 
@@ -91,6 +114,9 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password' })
     }
 
+    req.session.userEmail = email
+    req.session.lastActivity = Date.now()
+
     res.status(200).json({
       success: true,
       message: 'Login successful!',
@@ -103,23 +129,23 @@ app.post('/api/login', async (req, res) => {
 
 // --- Profile Routes ---
 app.get('/api/profile', async (req, res) => {
-  const user = await User.findOne({ email: req.headers['x-user-email'] }).select('name surname email notificationsEnabled');
-  if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
-  res.json({ success: true, user });
-});
+  const email = req.session?.userEmail || req.headers['x-user-email']
+  const user = await User.findOne({ email }).select('name surname email notificationsEnabled')
+  if (!user) return res.status(404).json({ success: false, message: 'User not found.' })
+  res.json({ success: true, user })
+})
 
 app.put('/api/profile', async (req, res) => {
-  const email = req.headers['x-user-email'];
-  const { name, surname, notificationsEnabled } = req.body;
+  const email = req.session?.userEmail || req.headers['x-user-email']
+  const { name, surname, notificationsEnabled } = req.body
   const user = await User.findOneAndUpdate(
     { email },
     { $set: { name, surname, notificationsEnabled } },
     { new: true, select: 'name surname email notificationsEnabled' }
-  );
-  if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
-  res.json({ success: true, message: 'Profile updated.', user });
-});
-
+  )
+  if (!user) return res.status(404).json({ success: false, message: 'User not found.' })
+  res.json({ success: true, message: 'Profile updated.', user })
+})
 
 app.use('/api/activities', require('./routes/activities'));
 
