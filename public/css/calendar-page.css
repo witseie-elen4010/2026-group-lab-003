@@ -104,7 +104,8 @@ body {
 }
 
 .day-cell.has-booking {
-    position: relative;
+    background-color: #e7f3ff;
+    color: #0056b3;
     font-weight: bold;
 }
 
@@ -130,4 +131,15 @@ body {
 .days-grid .day-cell.empty:nth-child(7n + 1),
 .days-grid .day-cell.empty:nth-child(7n) {
     background-color: #f1f3f5; 
+}
+
+.booking-indicator {
+    width: 6px;
+    height: 6px;
+    background-color: #007bff;
+    border-radius: 50%;
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
 }

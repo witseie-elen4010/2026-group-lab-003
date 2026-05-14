@@ -1,50 +1,91 @@
-// 1. GLOBAL STATE (Top level)
+// 1. GLOBAL STATE
 const currentDate = new Date()
+let sessions = []
 
-// 2. THE CORE FUNCTION (Top level - visible to Jest)
-function renderCalendar (testDate = null) {
-  const dateToRender = testDate || currentDate
-
+// 2. THE CORE FUNCTION
+export function renderCalendar (date, bookings = []) {
   const monthDisplay = document.getElementById('month-display')
   const daysGrid = document.getElementById('days-grid')
+  if (!daysGrid) return
 
-  if (!daysGrid || !monthDisplay) return // Important for tests
+  daysGrid.innerHTML = '' // Clears "Loading..."
 
-  daysGrid.innerHTML = ''
-  const year = dateToRender.getFullYear()
-  const month = dateToRender.getMonth()
+  const year = date.getFullYear()
+  const month = date.getMonth()
 
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ]
-  monthDisplay.textContent = `${monthNames[month]} ${year}`
-
-  const firstDayIndex = new Date(year, month, 1).getDay()
-  const totalDays = new Date(year, month + 1, 0).getDate()
-  const today = new Date()
-  const isCurrentMonthYear = today.getMonth() === month && today.getFullYear() === year
-
-  // Create empty padding cells
-  for (let i = 0; i < firstDayIndex; i++) {
-    const emptyCell = document.createElement('div')
-    emptyCell.classList.add('day-cell', 'empty')
-    daysGrid.appendChild(emptyCell)
+  if (monthDisplay) {
+    monthDisplay.textContent = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   }
 
-  // Create actual day cells
-  for (let day = 1; day <= totalDays; day++) {
+  const firstDay = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+  // Add empty padding
+  for (let i = 0; i < firstDay; i++) {
+    const emptyDiv = document.createElement('div')
+    emptyDiv.classList.add('day-cell', 'empty')
+    daysGrid.appendChild(emptyDiv)
+  }
+
+  // Add actual days
+  for (let day = 1; day <= daysInMonth; day++) {
     const dayCell = document.createElement('div')
     dayCell.classList.add('day-cell')
     dayCell.textContent = day
-    if (isCurrentMonthYear && day === today.getDate()) {
+
+    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+
+    // FILTER LOGIC
+    const dayBookings = bookings.filter(b => {
+      if (!b || !b.date || b.status === 'canceled') return false
+      const bDate = b.date.split('T')[0]
+      return bDate === dateString
+    }) // Make sure this closing }); is here!
+
+    if (dayBookings.length > 0) {
+      dayCell.classList.add('has-booking')
+      const dot = document.createElement('div')
+      dot.classList.add('booking-indicator')
+      dayCell.appendChild(dot)
+      dayCell.title = `${dayBookings.length} session(s) scheduled`
+    }
+
+    const today = new Date()
+    if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
       dayCell.classList.add('today')
     }
+
     daysGrid.appendChild(dayCell)
   }
 }
 
-// 3. BROWSER INITIALIZATION
+// 3. API FETCH LOGIC
+async function loadUserBookings () {
+  const userData = sessionStorage.getItem('sychro_current_user')
+  if (!userData) {
+    renderCalendar(currentDate, [])
+    return
+  }
+
+  const user = JSON.parse(userData)
+  // Matches your partner's backend routes
+  const endpoint = user.role === 'lecturer'
+    ? `/api/bookings/lecturer/bookings?email=${encodeURIComponent(user.email)}`
+    : `/api/bookings?studentId=${encodeURIComponent(user.email)}`
+
+  try {
+    const response = await fetch(endpoint)
+    if (response.ok) {
+      sessions = await response.json()
+    }
+    renderCalendar(currentDate, sessions)
+  } catch (error) {
+    console.error('Fetch failed:', error)
+    renderCalendar(currentDate, [])
+  }
+}
+
+// 4. BROWSER INITIALIZATION
 if (typeof document !== 'undefined') {
   document.addEventListener('DOMContentLoaded', () => {
     const prevBtn = document.getElementById('prev-month')
@@ -52,19 +93,19 @@ if (typeof document !== 'undefined') {
 
     prevBtn?.addEventListener('click', () => {
       currentDate.setMonth(currentDate.getMonth() - 1)
-      renderCalendar()
+      renderCalendar(currentDate, sessions)
     })
 
     nextBtn?.addEventListener('click', () => {
       currentDate.setMonth(currentDate.getMonth() + 1)
-      renderCalendar()
+      renderCalendar(currentDate, sessions)
     })
 
-    renderCalendar()
+    loadUserBookings()
   })
 }
 
-// 4. EXPORT FOR JEST (Node.js environment)
+// 5. EXPORT FOR JEST
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { renderCalendar }
 }
