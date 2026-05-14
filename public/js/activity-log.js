@@ -1,6 +1,6 @@
 class ActivityLogManager {
     constructor() {
-        this.storageKey = 'activity_logs';
+        this.apiBase = '/api/activities';
         this.pageSize = 15;
         this.currentPage = 1;
         this.activities = [];
@@ -10,8 +10,8 @@ class ActivityLogManager {
         this.init();
     }
 
-    init() {
-        this.loadActivities();
+    async init() {
+        await this.loadActivities();
         this.setupEventListeners();
         this.updateStats();
         this.updateFilterOptions();
@@ -80,21 +80,24 @@ class ActivityLogManager {
     }
 
     // DATA MANAGEMENT
-
-    loadActivities() {
-        const stored = localStorage.getItem(this.storageKey);
-        this.activities = stored ? JSON.parse(stored) : [];
+ async loadActivities() {
+        try {
+            const response = await fetch(this.apiBase);
+            if (response.ok) {
+                this.activities = await response.json();
+            } else {
+                this.activities = [];
+            }
+        } catch (error) {
+            console.error('Failed to load activities:', error);
+            this.activities = [];
+        }
     }
-
-    saveActivities() {
-        localStorage.setItem(this.storageKey, JSON.stringify(this.activities));
-    }
-
-    logAction(type, description, metadata = {}) {
+    
+    async logAction(type, description, metadata = {}) {
         const currentUser = this.getCurrentUser();
 
         const entry = {
-            id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
             type: type,
             description: description,
             user: currentUser.fullName || currentUser.email || 'Unknown User',
@@ -102,18 +105,23 @@ class ActivityLogManager {
             timestamp: new Date().toISOString(),
             metadata: metadata
         };
+        
+      try {
+            const response = await fetch(this.apiBase, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(entry)
+            });
 
-        this.activities.unshift(entry);
-
-        if (this.activities.length > 500) {
-            this.activities = this.activities.slice(0, 500);
+            if (response.ok) {
+                await this.loadActivities();
+                this.updateStats();
+                this.updateFilterOptions();
+                this.applyFilters();
+            }
+        } catch (error) {
+            console.error('Failed to log action:', error);
         }
-
-        this.saveActivities();
-        this.updateStats();
-        this.updateFilterOptions();
-
-        this.applyFilters();
     }
 
     getCurrentUser() {
@@ -132,13 +140,19 @@ class ActivityLogManager {
         return { fullName: 'System', email: 'system', id: null };
     }
 
-    clearAll() {
+    async clearAll() {
         if (confirm('Delete ALL activity logs? This cannot be undone.')) {
+            try {
+            await fetch(this.apiBase, { method: 'DELETE' });
             this.activities = [];
             this.saveActivities();
             this.updateStats();
             this.updateFilterOptions();
             this.applyFilters();
+            } catch (error){
+                console.error('Failed to clear activities:', error);
+            }
+           
         }
     }
 
