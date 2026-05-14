@@ -20,7 +20,7 @@ const UserSchema = new mongoose.Schema({
     required: [true, 'Please add an email'],
     unique: true, // Prevents two users from signing up with the same email
     match: [
-      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
       'Please add a valid email'
     ]
   },
@@ -35,9 +35,15 @@ const UserSchema = new mongoose.Schema({
     minlength: 8,
     select: false // Security feature: prevents the password from being returned in standard queries
   },
-  notificationsEnabled: { 
-    type: Boolean, 
-    default: true 
+  displayName: {
+    type: String,
+    default: '',
+    trim: true,
+    maxlength: 60
+  },
+  emailNotifications: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true // Automatically adds 'createdAt' and 'updatedAt'
