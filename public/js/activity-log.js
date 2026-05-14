@@ -6,7 +6,6 @@ class ActivityLogManager {
         this.activities = [];
         this.filteredActivities = [];
         this.autoRefreshInterval = null;
-
         this.init();
     }
 
@@ -15,7 +14,9 @@ class ActivityLogManager {
         this.setupEventListeners();
         this.updateStats();
         this.updateFilterOptions();
+        this.loadFiltersFromURL();
         this.applyFilters();
+
     }
 
 
@@ -61,6 +62,16 @@ class ActivityLogManager {
         this.prevPageBtn.addEventListener('click', () => this.changePage(-1));
         this.nextPageBtn.addEventListener('click', () => this.changePage(1));
 
+        document.getElementById('bookmark-btn').addEventListener('click', () => {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+        const btn = document.getElementById('bookmark-btn');
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        setTimeout(() => {
+            btn.innerHTML = '<i class="fas fa-bookmark"></i> Copy Link';
+        }, 2000);
+         });
+      });
+
         document.getElementById('close-detail-modal').addEventListener('click', () => this.closeModal());
         this.detailModal.addEventListener('click', (e) => {
             if (e.target === this.detailModal) this.closeModal();
@@ -69,6 +80,7 @@ class ActivityLogManager {
 
     handleFilterChange() {
         this.currentPage = 1;
+        this.updateURLParams();
         this.applyFilters();
     }
 
@@ -220,6 +232,7 @@ class ActivityLogManager {
         this.customDateRange.classList.add('hidden');
         this.currentPage = 1;
         this.courseFilter.value = 'all';
+        this.updateURLParams();
         this.applyFilters();
     }
 
@@ -439,6 +452,31 @@ class ActivityLogManager {
             timer = setTimeout(() => fn.apply(this, args), delay);
         };
     }
+
+     // Call this whenever filters change
+     updateURLParams() {
+    const params = new URLSearchParams();
+    
+    if (this.actionTypeFilter.value !== 'all') params.set('type', this.actionTypeFilter.value);
+    if (this.userFilter.value !== 'all') params.set('user', this.userFilter.value);
+    if (this.courseFilter && this.courseFilter.value !== 'all') params.set('course', this.courseFilter.value);
+    if (this.dateRangeFilter.value !== 'all') params.set('date', this.dateRangeFilter.value);
+    if (this.searchInput.value.trim()) params.set('search', this.searchInput.value.trim());
+    
+    const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.history.replaceState({}, '', newUrl);
+    }
+
+     // Call this on init to read URL params
+     loadFiltersFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    
+    if (params.get('type')) this.actionTypeFilter.value = params.get('type');
+    if (params.get('user')) this.userFilter.value = params.get('user');
+    if (params.get('course') && this.courseFilter) this.courseFilter.value = params.get('course');
+    if (params.get('date')) this.dateRangeFilter.value = params.get('date');
+    if (params.get('search')) this.searchInput.value = params.get('search');
+     }
 }
 
 // INITIALIZE
