@@ -1,25 +1,22 @@
 // src/routes/bookings.js
 const express = require('express')
 const router = express.Router()
-
-// Import your awesome middleware from the previous step
-const { validateLecturerHours } = require('../middleware/booking-validator')
-
-// Create the POST route using your middleware
-router.post('/create', validateLecturerHours, (req, res) => {
-  // This is the PLACEHOLDER function.
-  // If the middleware lets the request through, this runs.
-
-  // To-Do for Teammate: Replace this response with actual Database saving logic
-  res.status(200).json({
-    success: true,
-    message: 'Validation passed! Booking is ready to be saved to the database.'
-  })
-})
-
-// routes/bookings.js
 const Availability = require('../models/Availability')
 const Booking = require('../models/booking')
+
+// Import your awesome middleware 
+const { validateLecturerHours } = require('../middleware/booking-validator')
+
+// GET: Fetch all available courses and lecturers for the booking form
+router.get('/form-data', async (req, res) => {
+  try {
+    const availabilities = await Availability.find({}, 'lecturerEmail courses weeklySchedule')
+    res.json(availabilities)
+  } catch (error) {
+    console.error('Error fetching form data:', error)
+    res.status(500).json({ error: 'Failed to fetch form data' })
+  }
+})
 
 // GET: Check available slots
 router.get('/availability', async (req, res) => {
@@ -37,7 +34,7 @@ router.get('/availability', async (req, res) => {
     const daySchedule = availability.weeklySchedule.find(d => d.dayOfWeek === dayOfWeek)
 
     if (!daySchedule || daySchedule.slots.length === 0) {
-      return res.json({ message: 'Lecturer is not available on this day.', slots: [], booked: [] })
+      return res.json({ message: 'Lecturer is not available on this day.', availableBlocks: [], bookedTimes: [] })
     }
 
     const existingBookings = await Booking.find({
@@ -45,11 +42,11 @@ router.get('/availability', async (req, res) => {
       date,
       status: { $ne: 'canceled' }
     })
+
     const bookedTimes = existingBookings.map(b => b.startTime)
 
     res.json({
-      duration: availability.defaultDuration,
-      availableBlocks: daySchedule.slots,
+      availableBlocks: daySchedule.slots, 
       bookedTimes
     })
   } catch (error) {
@@ -58,10 +55,10 @@ router.get('/availability', async (req, res) => {
   }
 })
 
-// POST: Save a new booking
-router.post('/', async (req, res) => {
+// POST: Save a new booking (MERGED AND FIXED!)
+// Notice how it uses your middleware AND saves the data properly now
+router.post('/', validateLecturerHours, async (req, res) => {
   try {
-    // Create the booking, ensuring studentId is included
     const newBooking = new Booking({
       studentId: req.body.studentId,
       lecturerId: req.body.lecturerId,
@@ -70,18 +67,20 @@ router.post('/', async (req, res) => {
       endTime: req.body.endTime,
       module: req.body.module,
       topic: req.body.topic,
-      status: 'upcoming'
+      status: 'upcoming',
+      participantIDs: [req.body.studentId], // CRITICAL for your "leave" feature
+      leftParticipantIDs: []
     })
 
-    await newBooking.save()
-    res.status(201).json({ message: 'Booking successful!', booking: newBooking })
+    const savedBooking = await newBooking.save()
+    res.status(201).json({ message: 'Booking successful!', booking: savedBooking })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Failed to create booking' })
   }
 })
 
-// Fetch ONLY the logged-in student's bookings
+// GET: Fetch ONLY the logged-in student's bookings (RESTORED GROUP LOGIC)
 router.get('/', async (req, res) => {
   try {
     const { studentId } = req.query 
@@ -90,9 +89,21 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ error: 'Student ID is required.' })
     }
 
-    // Only find bookings that belong to this specific student
-    const bookings = await Booking.find({ studentId })
-      .sort({ date: 1, startTime: 1 })
+    // Fetch bookings where the student is currently active OR where they previously left
+    const rawBookings = await Booking.find({
+      $or: [
+        { participantIDs: studentId },
+        { leftParticipantIDs: studentId }
+      ]
+    }).sort({ date: 1, startTime: 1 }).lean()
+
+    // Dynamically override the status to 'canceled' on the user's side if they left
+    const bookings = rawBookings.map(b => {
+      if (b.leftParticipantIDs && b.leftParticipantIDs.includes(studentId)) {
+        return { ...b, status: 'canceled' }
+      }
+      return b
+    })
 
     res.json(bookings)
   } catch (error) {
@@ -104,12 +115,76 @@ router.get('/', async (req, res) => {
 // DELETE: Cancel a booking (Soft Delete)
 router.delete('/:id', async (req, res) => {
   try {
-    // Instead of erasing the record, we just update the status to 'canceled'
     await Booking.findByIdAndUpdate(req.params.id, { status: 'canceled' })
     res.json({ message: 'Booking canceled successfully' })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Failed to cancel booking' })
+  }
+})
+
+// LEAVE: Leave a booking (Joiners only)
+router.put('/leave/:id', async (req, res) => {
+  try {
+    const { email } = req.body
+    const booking = await Booking.findById(req.params.id)
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' })
+    }
+
+    await Booking.findByIdAndUpdate(req.params.id, {
+      $pull: { participantIDs: email },
+      $addToSet: { leftParticipantIDs: email }
+    })
+
+    res.json({ success: true, message: 'Successfully left the session.' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ success: false, error: 'Failed to leave session' })
+  }
+})
+
+// GET /api/lecturer/bookings?email=lecturer_1
+router.get('/lecturer/bookings', async (req, res) => {
+  try {
+    const { email } = req.query
+    const bookings = await Booking.find({
+      lecturerId: email,
+      status: 'upcoming'
+    }).sort({ date: 1, startTime: 1 })
+
+    res.json(bookings)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// GET /api/lecturer/availability?email=lecturer_1
+router.get('/lecturer/availability', async (req, res) => {
+  try {
+    const availability = await Availability.findOne({ lecturerEmail: req.query.email })
+    res.json(availability)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// PUT: Update booking status (for dashboard cancel/complete)
+router.put('/:id', async (req, res) => {
+  try {
+    const updated = await Booking.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true }
+    )
+    if (!updated) {
+      return res.status(404).json({ error: 'Booking not found' })
+    }
+    res.json(updated)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Failed to update booking' })
   }
 })
 

@@ -23,24 +23,18 @@
 
             <form id="newBookingForm">
                 
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <label for="module" class="form-label fw-bold">Module <span class="text-danger">*</span></label>
-                        <select class="form-select" id="module" required>
-                            <option value="" selected disabled>Select a module...</option>
-                            <option value="ELEN4010">ELEN4010 - Software Engineering</option>
-                            <option value="ELEN4020">ELEN4020 - Data Privacy</option>
-                        </select>
-                    </div>
+                <div class="col-md-6">
+                    <label for="module" class="form-label fw-bold">Module <span class="text-danger">*</span></label>
+                    <select class="form-select" id="module" required>
+                        <option value="" selected disabled>Loading modules...</option>
+                    </select>
+                </div>
 
-                    <div class="col-md-6">
-                        <label for="lecturerId" class="form-label fw-bold">Lecturer <span class="text-danger">*</span></label>
-                        <select class="form-select" id="lecturerId" required disabled>
-                            <option value="" selected disabled>Select module first...</option>
-                            <option value="lecturer_1">Dr. Smith</option>
-                            <option value="lecturer_2">Prof. Jones</option>
-                        </select>
-                    </div>
+                <div class="col-md-6">
+                    <label for="lecturerId" class="form-label fw-bold">Lecturer <span class="text-danger">*</span></label>
+                    <select class="form-select" id="lecturerId" required disabled>
+                        <option value="" selected disabled>Select module first...</option>
+                    </select>
                 </div>
 
                 <div class="row mb-4">
