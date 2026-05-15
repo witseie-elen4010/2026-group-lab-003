@@ -12,12 +12,32 @@
     <div class="schedule-container">
         <header class="schedule-header">
             <div class="header-left">
-                <h1>
-                    <i class="fas fa-user-graduate"></i>
-                    My Bookings
-                </h1>
-                <p class="header-subtitle">Your upcoming academic support sessions</p>
+
+                <div>
+                    <h1>
+                        <div class="menu-wrapper">
+                            <button id="menu-toggle" class="burger-btn" title="Open Menu">
+                                <i class="fas fa-bars"></i>
+                            </button>
+                            
+                            <nav id="side-menu" class="burger-dropdown hidden">
+                                <div class="menu-items">
+                                    <a href="profile-page.html"><i class="fas fa-user-cog"></i> Profile Settings</a>
+                                    <a href="activity-log.html"><i class="fas fa-list-ul"></i> Activity Log</a>
+                                    <hr>
+                                    <a href="login-page.html" class="sign-out"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
+                                </div>
+                            </nav>
+                        </div>
+                        <div class="header-text-group">
+                            <i class="fas fa-user-graduate"></i>
+                            My Bookings
+                        </div>
+                    </h1>
+                    <p class="header-subtitle">Your upcoming academic support sessions</p>
+                </div>
             </div>
+
             <div class="header-right">
                 <button id="refresh-btn" class="btn btn-outline" title="Refresh schedule">
                     <i class="fas fa-sync-alt"></i>
@@ -26,10 +46,12 @@
             </div>
         </header>
 
-        <div class="date-banner">
-            <i class="fas fa-calendar-day"></i>
-            <span id="current-date">Loading...</span>
-        </div>
+        <a href="calendar-page.html" class="banner-link" style="text-decoration: none; color: inherit;">
+            <div class="date-banner">
+                <i class="fas fa-calendar-day"></i>
+                <span id="current-date">Loading...</span>
+            </div>
+        </a>
 
         <div class="stats-grid">
             <div class="stat-card">
@@ -94,13 +116,15 @@
             </div>
         </div>
 
-        <button class="join_button" onclick="window.location.href='students-joining.html'">
-            Join An Existing Consultation
-        </button>
+        <div class="bottom-actions">
+            <button class="join_button" onclick="window.location.href='students-joining.html'">
+                Join An Existing Consultation
+            </button>
 
-        <button id="create-booking-btn" class="book_button" onclick="window.location.href='booking-page.html'">
-            Create New Booking
-        </button>
+            <button id="create-booking-btn" class="book_button" onclick="window.location.href='booking-page.html'">
+                Create New Booking
+            </button>
+        </div>
 
     </div>
 

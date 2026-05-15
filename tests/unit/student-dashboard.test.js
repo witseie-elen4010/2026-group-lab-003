@@ -16,7 +16,7 @@ global.fetch = jest.fn(() =>
 global.confirm = jest.fn(() => true)
 global.alert = jest.fn()
 
-const { StudentScheduleManager } = require('../public/js/student-dashboard.js')
+const { StudentScheduleManager } = require('../../public/js/student-dashboard.js')
 
 describe('StudentScheduleManager', () => {
   let manager
@@ -176,7 +176,6 @@ describe('StudentScheduleManager', () => {
       manager.sessions = [{
         id: '123',
         courseCode: 'CS101',
-        lecturerName: 'Dr. Smith',
         date: '2025-10-10',
         time: '14:00',
         status: 'upcoming'
@@ -189,7 +188,8 @@ describe('StudentScheduleManager', () => {
 
       expect(modal.classList.contains('hidden')).toBe(false)
       expect(content.innerHTML).toContain('CS101')
-      expect(content.innerHTML).toContain('Dr. Smith')
+      expect(content.innerHTML).toContain('Leave Consultation')
+      expect(content.innerHTML).toContain('upcoming')
     })
 
     test('cancelBooking updates session status to canceled', async () => {

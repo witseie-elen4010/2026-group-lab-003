@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile</title>
+  <link rel="stylesheet" href="css/profile-page.css">
+</head>
+<body>
+  <div class="profile-card">
+    <h2><span>👤</span> My Profile</h2>
+    <form id="profileForm">
+      <input type="text" id="name" placeholder="Name" required>
+      <input type="text" id="surname" placeholder="Surname" required>
+      <input type="tel" id="phone" placeholder="Phone (optional)">
+      <label class="toggle">
+        <input type="checkbox" id="notificationsToggle" checked>
+        <span>Email Notifications</span>
+      </label>
+      <button type="submit">Save Changes</button>
+      <a href="dashboard.html" class="cancel-link">Cancel</a>
+    </form>
+    <div id="message" class="message"></div>
+  </div>
+  <script>
+    const email = localStorage.getItem('userEmail') || 'test@lecturer.com';
+    const msg = document.getElementById('message');
+
+    fetch('/api/profile', { headers: { 'X-User-Email': email } })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          document.getElementById('name').value = d.user.name || '';
+          document.getElementById('surname').value = d.user.surname || '';
+          document.getElementById('phone').value = d.user.phone || '';
+          document.getElementById('notificationsToggle').checked = d.user.notificationsEnabled !== false;
+        }
+      });
+
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        name: document.getElementById('name').value.trim(),
+        surname: document.getElementById('surname').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        notificationsEnabled: document.getElementById('notificationsToggle').checked
+      };
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-User-Email': email },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      msg.className = `message ${data.success ? 'success' : 'error'}`;
+      msg.textContent = data.message || 'Error updating profile.';
+    });
+  </script>
+</body>
+</html>

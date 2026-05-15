@@ -1,21 +1,22 @@
 class ActivityLogManager {
     constructor() {
-        this.storageKey = 'activity_logs';
+        this.apiBase = '/api/activities';
         this.pageSize = 15;
         this.currentPage = 1;
         this.activities = [];
         this.filteredActivities = [];
         this.autoRefreshInterval = null;
-
         this.init();
     }
 
-    init() {
-        this.loadActivities();
+    async init() {
+        await this.loadActivities();
         this.setupEventListeners();
         this.updateStats();
         this.updateFilterOptions();
-        this.render();
+        this.loadFiltersFromURL();
+        this.applyFilters();
+
     }
 
 
@@ -41,6 +42,7 @@ class ActivityLogManager {
     get totalPagesSpan() { return document.getElementById('total-pages'); }
     get prevPageBtn() { return document.getElementById('prev-page'); }
     get nextPageBtn() { return document.getElementById('next-page'); }
+    get courseFilter() { return document.getElementById('course-filter'); } 
 
     // EVENT LISTENERS
 
@@ -49,6 +51,7 @@ class ActivityLogManager {
         this.userFilter.addEventListener('change', () => this.handleFilterChange());
         this.dateRangeFilter.addEventListener('change', () => this.handleDateRangeChange());
         this.searchInput.addEventListener('input', this.debounce(() => this.handleFilterChange(), 300));
+        this.courseFilter.addEventListener('change', () => this.handleFilterChange());
 
         document.getElementById('apply-date-range').addEventListener('click', () => this.handleFilterChange());
         document.getElementById('clear-filters-btn').addEventListener('click', () => this.clearFilters());
@@ -59,6 +62,16 @@ class ActivityLogManager {
         this.prevPageBtn.addEventListener('click', () => this.changePage(-1));
         this.nextPageBtn.addEventListener('click', () => this.changePage(1));
 
+        document.getElementById('bookmark-btn').addEventListener('click', () => {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+        const btn = document.getElementById('bookmark-btn');
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        setTimeout(() => {
+            btn.innerHTML = '<i class="fas fa-bookmark"></i> Copy Link';
+        }, 2000);
+         });
+      });
+
         document.getElementById('close-detail-modal').addEventListener('click', () => this.closeModal());
         this.detailModal.addEventListener('click', (e) => {
             if (e.target === this.detailModal) this.closeModal();
@@ -67,6 +80,7 @@ class ActivityLogManager {
 
     handleFilterChange() {
         this.currentPage = 1;
+        this.updateURLParams();
         this.applyFilters();
     }
 
@@ -80,21 +94,24 @@ class ActivityLogManager {
     }
 
     // DATA MANAGEMENT
-
-    loadActivities() {
-        const stored = localStorage.getItem(this.storageKey);
-        this.activities = stored ? JSON.parse(stored) : [];
+ async loadActivities() {
+        try {
+            const response = await fetch(this.apiBase);
+            if (response.ok) {
+                this.activities = await response.json();
+            } else {
+                this.activities = [];
+            }
+        } catch (error) {
+            console.error('Failed to load activities:', error);
+            this.activities = [];
+        }
     }
-
-    saveActivities() {
-        localStorage.setItem(this.storageKey, JSON.stringify(this.activities));
-    }
-
-    logAction(type, description, metadata = {}) {
+    
+    async logAction(type, description, metadata = {}) {
         const currentUser = this.getCurrentUser();
 
         const entry = {
-            id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
             type: type,
             description: description,
             user: currentUser.fullName || currentUser.email || 'Unknown User',
@@ -102,19 +119,22 @@ class ActivityLogManager {
             timestamp: new Date().toISOString(),
             metadata: metadata
         };
+        
+      try {
+            const response = await fetch(this.apiBase, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(entry)
+            });
 
-        this.activities.unshift(entry);
-
-        if (this.activities.length > 500) {
-            this.activities = this.activities.slice(0, 500);
-        }
-
-        this.saveActivities();
-        this.updateStats();
-        this.updateFilterOptions();
-
-        if (this.currentPage === 1) {
-            this.render();
+            if (response.ok) {
+                await this.loadActivities();
+                this.updateStats();
+                this.updateFilterOptions();
+                this.applyFilters();
+            }
+        } catch (error) {
+            console.error('Failed to log action:', error);
         }
     }
 
@@ -134,13 +154,20 @@ class ActivityLogManager {
         return { fullName: 'System', email: 'system', id: null };
     }
 
-    clearAll() {
+    async clearAll() {
         if (confirm('Delete ALL activity logs? This cannot be undone.')) {
-            this.activities = [];
-            this.saveActivities();
-            this.updateStats();
-            this.updateFilterOptions();
-            this.render();
+            try {
+                const response = await fetch(this.apiBase, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Failed to clear activities');
+
+                this.activities = [];
+                this.updateStats();
+                this.updateFilterOptions();
+                this.applyFilters();
+            } catch (error){
+                console.error('Failed to clear activities:', error);
+            }
+           
         }
     }
 
@@ -151,11 +178,13 @@ class ActivityLogManager {
         const user = this.userFilter.value;
         const dateRange = this.dateRangeFilter.value;
         const searchTerm = this.searchInput.value.toLowerCase().trim();
+        const course = this.courseFilter.value;
 
         this.filteredActivities = this.activities.filter(activity => {
             if (actionType !== 'all' && activity.type !== actionType) return false;
             if (user !== 'all' && activity.user !== user) return false;
-
+            if (course !== 'all' && activity.metadata.course !== course) return false;
+        
             if (dateRange !== 'all') {
                 const activityDate = new Date(activity.timestamp);
                 const today = new Date();
@@ -203,6 +232,8 @@ class ActivityLogManager {
         this.searchInput.value = '';
         this.customDateRange.classList.add('hidden');
         this.currentPage = 1;
+        this.courseFilter.value = 'all';
+        this.updateURLParams();
         this.applyFilters();
     }
 
@@ -214,6 +245,15 @@ class ActivityLogManager {
             option.value = user;
             option.textContent = user;
             this.userFilter.appendChild(option);
+        });
+
+        const courses = [...new Set(this.activities.map(a => a.metadata.course))].sort();
+        this.courseFilter.innerHTML = '<option value="all">All Courses</option>';
+        courses.forEach(course => {
+            const option = document.createElement('option');
+            option.value = course;
+            option.textContent = course;
+            this.courseFilter.appendChild(option);
         });
     }
 
@@ -413,6 +453,31 @@ class ActivityLogManager {
             timer = setTimeout(() => fn.apply(this, args), delay);
         };
     }
+
+     // Call this whenever filters change
+     updateURLParams() {
+    const params = new URLSearchParams();
+    
+    if (this.actionTypeFilter.value !== 'all') params.set('type', this.actionTypeFilter.value);
+    if (this.userFilter.value !== 'all') params.set('user', this.userFilter.value);
+    if (this.courseFilter && this.courseFilter.value !== 'all') params.set('course', this.courseFilter.value);
+    if (this.dateRangeFilter.value !== 'all') params.set('date', this.dateRangeFilter.value);
+    if (this.searchInput.value.trim()) params.set('search', this.searchInput.value.trim());
+    
+    const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.history.replaceState({}, '', newUrl);
+    }
+
+     // Call this on init to read URL params
+     loadFiltersFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    
+    if (params.get('type')) this.actionTypeFilter.value = params.get('type');
+    if (params.get('user')) this.userFilter.value = params.get('user');
+    if (params.get('course') && this.courseFilter) this.courseFilter.value = params.get('course');
+    if (params.get('date')) this.dateRangeFilter.value = params.get('date');
+    if (params.get('search')) this.searchInput.value = params.get('search');
+     }
 }
 
 // INITIALIZE

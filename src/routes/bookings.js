@@ -25,13 +25,13 @@ router.get('/availability', async (req, res) => {
     const dateObj = new Date(date)
     const dayOfWeek = dateObj.getDay()
 
-    const availability = await Availability.findOne({ lecturerEmail: lecturerId })
+    const schedule = await Schedule.findOne({ lecturerId })
 
-    if (!availability) {
+    if (!schedule) {
       return res.status(404).json({ error: 'Lecturer availability not found.' })
     }
 
-    const daySchedule = availability.weeklySchedule.find(d => d.dayOfWeek === dayOfWeek)
+    const daySchedule = schedule.weeklySchedule.find(d => d.dayOfWeek === dayOfWeek)
 
     if (!daySchedule || daySchedule.slots.length === 0) {
       return res.json({ message: 'Lecturer is not available on this day.', availableBlocks: [], bookedTimes: [] })
@@ -83,7 +83,7 @@ router.post('/', validateLecturerHours, async (req, res) => {
 // GET: Fetch ONLY the logged-in student's bookings (RESTORED GROUP LOGIC)
 router.get('/', async (req, res) => {
   try {
-    const { studentId } = req.query 
+    const { studentId } = req.query
 
     if (!studentId) {
       return res.status(400).json({ error: 'Student ID is required.' })
@@ -112,14 +112,37 @@ router.get('/', async (req, res) => {
   }
 })
 
-// DELETE: Cancel a booking (Soft Delete)
+// DELETE: Cancel a booking (ORGANIZER ONLY)
 router.delete('/:id', async (req, res) => {
   try {
     await Booking.findByIdAndUpdate(req.params.id, { status: 'canceled' })
-    res.json({ message: 'Booking canceled successfully' })
+    res.json({ success: true, message: 'Booking successfully canceled' })
   } catch (error) {
     console.error(error)
-    res.status(500).json({ error: 'Failed to cancel booking' })
+    res.status(500).json({ success: false, error: 'Failed to cancel booking' })
+  }
+})
+
+// LEAVE: Leave a booking (Joiners only)
+router.put('/leave/:id', async (req, res) => {
+  try {
+    const { email } = req.body
+    const booking = await Booking.findById(req.params.id)
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' })
+    }
+
+    // Reduces participant count by pulling from participantIDs, and records the leave
+    await Booking.findByIdAndUpdate(req.params.id, {
+      $pull: { participantIDs: email },
+      $addToSet: { leftParticipantIDs: email }
+    })
+
+    res.json({ success: true, message: 'Successfully left the session.' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ success: false, error: 'Failed to leave session' })
   }
 })
 
