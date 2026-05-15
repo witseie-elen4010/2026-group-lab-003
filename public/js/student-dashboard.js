@@ -193,20 +193,6 @@ class StudentScheduleManager {
     const timeDisplay = this.formatTime(session.time)
     const location = session.location || 'Online'
 
-<<<<<<< Updated upstream
-=======
-    // Define the color mapping
-    const statusConfig = {
-      upcoming: { badge: 'bg-primary', border: 'border-primary' },
-      ongoing: { badge: 'bg-success', border: 'border-success' },
-      completed: { badge: 'bg-secondary', border: 'border-light' },
-      canceled: { badge: 'bg-danger', border: 'border-danger' }
-    }
-
-    // Fallback if status is unknown
-    const config = statusConfig[session.status] || { badge: 'bg-dark', border: 'border-secondary' }
-
->>>>>>> Stashed changes
     return `
       <div class="session-card d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3 border-start border-4 ${config.border}">
           <div class="session-time text-center" style="min-width: 80px;">
@@ -239,11 +225,7 @@ class StudentScheduleManager {
     const session = this.sessions.find(s => s.id === sessionId)
     if (!session) return
 
-<<<<<<< Updated upstream
     const content = document.getElementById('session-detail-content')
-=======
-    const isOrganizer = this.currentStudent && this.currentStudent.email === session.organizerEmail
->>>>>>> Stashed changes
 
     this.sessionDetailContent.innerHTML = `
         <div class="detail-row d-flex justify-content-between py-2 border-bottom">
@@ -265,25 +247,10 @@ class StudentScheduleManager {
 
         ${session.status === 'upcoming'
 ? `
-<<<<<<< Updated upstream
             <div style="margin-top: 20px; text-align: center;">
                 <button class="btn btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
                     <i class="fas fa-trash-alt"></i> Cancel Consultation
                 </button>
-=======
-            <div class="d-grid gap-2">
-                ${isOrganizer
-? `
-                  <button class="btn btn-danger rounded-pill" onclick="scheduleManager.cancelBooking('${session.id}')">
-                      <i class="fas fa-trash-alt me-2"></i>Cancel Consultation
-                  </button>
-                `
-: `
-                  <button class="btn btn-warning rounded-pill" onclick="scheduleManager.leaveBooking('${session.id}')">
-                      <i class="fas fa-sign-out-alt me-2"></i>Leave Consultation
-                  </button>
-                `}
->>>>>>> Stashed changes
             </div>
         `
 : ''}
@@ -315,30 +282,6 @@ class StudentScheduleManager {
     }
   }
 
-<<<<<<< Updated upstream
-=======
-  async leaveBooking (sessionId) {
-    if (!confirm('Are you sure you want to leave?')) return
-
-    try {
-      const response = await fetch(`/api/bookings/leave/${sessionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: this.currentStudent.email })
-      })
-
-      if (response.ok) {
-        this.bsModal.hide()
-        await this.loadSessions()
-        this.applyFilters()
-        this.updateStats()
-      }
-    } catch (error) {
-      console.error('Leave Error:', error)
-    }
-  }
-
->>>>>>> Stashed changes
   // HELPERS
   formatTime (time) {
     if (!time) return '--:--'
