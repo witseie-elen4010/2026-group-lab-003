@@ -619,6 +619,32 @@ describe('Activity log browser script', () => {
     `;
   }
 
+  function mockActivityApi(initialActivities = []) {
+    let activities = [...initialActivities];
+
+    fetch.mockImplementation((url, options = {}) => {
+      if (url !== '/api/activities') {
+        return Promise.resolve({ ok: false, json: jest.fn().mockResolvedValue({}) });
+      }
+
+      if (options.method === 'POST') {
+        const entry = JSON.parse(options.body);
+        activities = [{ id: `a${activities.length + 1}`, ...entry }, ...activities];
+        return Promise.resolve({ ok: true, json: jest.fn().mockResolvedValue(entry) });
+      }
+
+      if (options.method === 'DELETE') {
+        activities = [];
+        return Promise.resolve({ ok: true, json: jest.fn().mockResolvedValue({}) });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: jest.fn().mockResolvedValue(activities)
+      });
+    });
+  }
+
   afterAll(() => {
     try {
       fs.unlinkSync(tempPath);
@@ -627,8 +653,9 @@ describe('Activity log browser script', () => {
     }
   });
 
-  it('logs activity, updates stats, and escapes rendered text', () => {
+  it('logs activity, updates stats, and escapes rendered text', async () => {
     setupActivityLogDom();
+    mockActivityApi();
     sessionStorage.setItem('sychro_current_user', JSON.stringify({
       fullName: 'Jane Doe',
       email: 'jane@student.wits.ac.za',
@@ -636,19 +663,23 @@ describe('Activity log browser script', () => {
     }));
     const ActivityLogManager = loadActivityLogManager();
     const manager = new ActivityLogManager();
+    await flushPromises();
 
-    manager.logAction('created', 'Created <script>alert(1)</script>');
+    await manager.logAction('created', 'Created <script>alert(1)</script>');
 
     expect(document.getElementById('total-activities').textContent).toBe('1');
     expect(document.getElementById('created-count').textContent).toBe('1');
     expect(document.getElementById('user-filter').textContent).toContain('Jane Doe');
     expect(document.getElementById('activity-timeline').innerHTML).toContain('&lt;script&gt;');
-    expect(localStorage.getItem('activity_logs')).toContain('Created <script>alert(1)</script>');
+    expect(fetch).toHaveBeenCalledWith('/api/activities', expect.objectContaining({
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    }));
   });
 
-  it('loads stored activities and applies filters', () => {
+  it('loads stored activities and applies filters', async () => {
     setupActivityLogDom();
-    localStorage.setItem('activity_logs', JSON.stringify([
+    mockActivityApi([
       {
         id: 'a1',
         type: 'created',
@@ -665,9 +696,10 @@ describe('Activity log browser script', () => {
         timestamp: new Date().toISOString(),
         metadata: {}
       }
-    ]));
+    ]);
     const ActivityLogManager = loadActivityLogManager();
     const manager = new ActivityLogManager();
+    await flushPromises();
 
     expect(document.getElementById('activity-timeline').textContent).toContain('Created booking');
     expect(document.getElementById('activity-timeline').textContent).toContain('Canceled booking');
@@ -680,9 +712,9 @@ describe('Activity log browser script', () => {
     expect(document.getElementById('activity-timeline').textContent).not.toContain('Created booking');
   });
 
-  it('shows activity details and closes the modal', () => {
+  it('shows activity details and closes the modal', async () => {
     setupActivityLogDom();
-    localStorage.setItem('activity_logs', JSON.stringify([
+    mockActivityApi([
       {
         id: 'a1',
         type: 'created',
@@ -691,9 +723,10 @@ describe('Activity log browser script', () => {
         timestamp: new Date().toISOString(),
         metadata: {}
       }
-    ]));
+    ]);
     const ActivityLogManager = loadActivityLogManager();
     const manager = new ActivityLogManager();
+    await flushPromises();
 
     manager.showDetail('a1');
 
@@ -704,9 +737,9 @@ describe('Activity log browser script', () => {
     expect(document.getElementById('detail-modal').classList.contains('hidden')).toBe(true);
   });
 
-  it('exports visible activities as CSV', () => {
+  it('exports visible activities as CSV', async () => {
     setupActivityLogDom();
-    localStorage.setItem('activity_logs', JSON.stringify([
+    mockActivityApi([
       {
         id: 'a1',
         type: 'created',
@@ -715,12 +748,13 @@ describe('Activity log browser script', () => {
         timestamp: new Date().toISOString(),
         metadata: {}
       }
-    ]));
+    ]);
     global.URL.createObjectURL = jest.fn().mockReturnValue('blob:activity-log');
     global.URL.revokeObjectURL = jest.fn();
     jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     const ActivityLogManager = loadActivityLogManager();
     const manager = new ActivityLogManager();
+    await flushPromises();
 
     manager.exportCSV();
 
@@ -729,10 +763,10 @@ describe('Activity log browser script', () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:activity-log');
   });
 
-  it('clears all activity when confirmed', () => {
+  it('clears all activity when confirmed', async () => {
     setupActivityLogDom();
     confirm.mockReturnValue(true);
-    localStorage.setItem('activity_logs', JSON.stringify([
+    mockActivityApi([
       {
         id: 'a1',
         type: 'created',
@@ -741,22 +775,27 @@ describe('Activity log browser script', () => {
         timestamp: new Date().toISOString(),
         metadata: {}
       }
-    ]));
+    ]);
     const ActivityLogManager = loadActivityLogManager();
     const manager = new ActivityLogManager();
+    await flushPromises();
 
-    manager.clearAll();
+    await manager.clearAll();
 
     expect(manager.activities).toEqual([]);
-    expect(localStorage.getItem('activity_logs')).toBe('[]');
+    expect(fetch).toHaveBeenCalledWith('/api/activities', expect.objectContaining({
+      method: 'DELETE'
+    }));
     expect(document.getElementById('empty-state').classList.contains('hidden')).toBe(false);
   });
 
-  it('toggles auto refresh state', () => {
+  it('toggles auto refresh state', async () => {
     jest.useFakeTimers();
     setupActivityLogDom();
+    mockActivityApi();
     const ActivityLogManager = loadActivityLogManager();
     const manager = new ActivityLogManager();
+    await flushPromises();
     const toggle = document.getElementById('auto-refresh-toggle');
 
     manager.toggleAutoRefresh();
