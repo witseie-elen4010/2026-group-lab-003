@@ -17,3 +17,9 @@ npm-debug.log*
 # OS metadata
 .DS_Store
 Thumbs.db
+
+postman
+.postman
+
+# Test coverage
+coverage/

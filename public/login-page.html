@@ -10,6 +10,25 @@
     <link rel="stylesheet" href="css/login-page.css">
 </head>
 <body>
+    <div class="auth-wrapper">
+        
+        <div>
+            <h2 class="logo">
+                <img src="images/synchro-logo.png" alt="Synchro Logo" class="logo_image">
+            </h2>
+            <p class="welcome_text">Welcome back! Please login to your account</p>
+        </div>
+        
+        <form id="loginForm" novalidate>
+            <div class="login_background">
+                <h2 class="login_text">USER LOGIN</h2>
+
+                <div class="input_container">
+                    <span class="material-symbols-outlined input_icon">mail</span>
+                    <input class="text_entry_field" type="text" id="email" placeholder="Email Address" required>
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <span id="emailError" class="inline_error"></span>
 
     <div class="container d-flex justify-content-center align-items-center min-vh-100">
         <div class="auth-wrapper w-100" style="max-width: 420px;">
