@@ -143,12 +143,13 @@ class ActivityLogManager {
     async clearAll() {
         if (confirm('Delete ALL activity logs? This cannot be undone.')) {
             try {
-            await fetch(this.apiBase, { method: 'DELETE' });
-            this.activities = [];
-            this.saveActivities();
-            this.updateStats();
-            this.updateFilterOptions();
-            this.applyFilters();
+                const response = await fetch(this.apiBase, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Failed to clear activities');
+
+                this.activities = [];
+                this.updateStats();
+                this.updateFilterOptions();
+                this.applyFilters();
             } catch (error){
                 console.error('Failed to clear activities:', error);
             }
