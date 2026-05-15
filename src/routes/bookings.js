@@ -4,7 +4,7 @@ const router = express.Router()
 const Availability = require('../models/Availability')
 const Booking = require('../models/booking')
 
-// Import your awesome middleware 
+// Import your awesome middleware
 const { validateLecturerHours } = require('../middleware/booking-validator')
 
 // GET: Fetch all available courses and lecturers for the booking form
@@ -25,7 +25,7 @@ router.get('/availability', async (req, res) => {
     const dateObj = new Date(date)
     const dayOfWeek = dateObj.getDay()
 
-    const schedule = await Schedule.findOne({ lecturerId })
+    const schedule = await Availability.findOne({ lecturerId })
 
     if (!schedule) {
       return res.status(404).json({ error: 'Lecturer availability not found.' })
@@ -46,7 +46,7 @@ router.get('/availability', async (req, res) => {
     const bookedTimes = existingBookings.map(b => b.startTime)
 
     res.json({
-      availableBlocks: daySchedule.slots, 
+      availableBlocks: daySchedule.slots,
       bookedTimes
     })
   } catch (error) {
@@ -115,11 +115,29 @@ router.get('/', async (req, res) => {
 // DELETE: Cancel a booking (ORGANIZER ONLY)
 router.delete('/:id', async (req, res) => {
   try {
-    await Booking.findByIdAndUpdate(req.params.id, { status: 'canceled' })
-    res.json({ success: true, message: 'Booking successfully canceled' })
+    const { id } = req.params
+    const { studentEmail } = req.body // The test sends { studentEmail: '...' }
+
+    // 1. Find the booking first
+    const booking = await Booking.findById(id)
+
+    // 2. If it doesn't exist, return 404
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' })
+    }
+
+    // 3. If the person deleting it isn't the owner, return 403 Unauthorized
+    if (booking.studentId !== studentEmail) {
+      return res.status(403).json({ success: false, message: 'Unauthorized to cancel this booking' })
+    }
+
+    // 4. If it passes all checks, go ahead and cancel it!
+    await Booking.findByIdAndUpdate(id, { status: 'canceled' })
+
+    res.status(200).json({ success: true, message: 'Booking successfully canceled' })
   } catch (error) {
     console.error(error)
-    res.status(500).json({ success: false, error: 'Failed to cancel booking' })
+    res.status(500).json({ success: false, message: 'Server error' })
   }
 })
 
