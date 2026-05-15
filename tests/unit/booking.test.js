@@ -1,149 +1,177 @@
-// tests/booking.test.js
-const request = require('supertest');
-const app = require('../../src/app');
-const Booking = require('../../src/models/booking');
+const request = require('supertest')
+const express = require('express')
 
-// Mock the Booking model so we can control database responses during tests
-jest.mock('../../src/models/booking', () => ({
-  countDocuments: jest.fn(),
-  findById: jest.fn(),
-  findByIdAndUpdate: jest.fn()
-}));
+// 1. MOCK MODELS
+jest.mock('../../src/models/booking')
+jest.mock('../../src/models/Availability')
+
+// 2. IMPORT MODELS AND ROUTER
+const Booking = require('../../src/models/booking')
+const Availability = require('../../src/models/Availability')
+const bookingsRouter = require('../../src/routes/bookings')
+
+// 3. SETUP APP
+const app = express()
+app.use(express.json())
+app.use('/api/bookings', bookingsRouter)
 
 describe('Booking Validation Middleware', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
 
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
+  // Test 1: Missing Data
+  it('should reject if required fields are missing', async () => {
+    const response = await request(app)
+      .post('/api/bookings')
+      .send({
+        startTime: '10:00' // Missing date, lecturerId, etc.
+      })
 
-    // Test 1: Missing Data
-    it('should reject if required fields are missing', async () => {
-        const response = await request(app)
-            .post('/api/bookings/create')
-            .send({
-                startTime: "10:00",
-                date: "2026-05-10"
-            });
+    expect(response.status).toBe(400)
+    expect(response.body.success).toBe(false)
+    expect(response.body.message).toContain('Missing required fields')
+  })
 
-        expect(response.status).toBe(400);
-        expect(response.body.success).toBe(false);
-        expect(response.body.message).toContain("Missing required fields");
-    });
+  // Test 2: Bad Format
+  it('should reject invalid time formats', async () => {
+    const response = await request(app)
+      .post('/api/bookings')
+      .send({
+        studentId: 'student@test.com',
+        lecturerId: '123',
+        date: '2026-05-11',
+        startTime: 'potato',
+        endTime: '11:00',
+        module: 'CS101'
+      })
 
-    // Test 2: Bad Format
-    it('should reject invalid time formats', async () => {
-        const response = await request(app)
-            .post('/api/bookings/create')
-            .send({
-                lecturerId: "123",
-                date: "2026-05-10",
-                startTime: "potato",
-                endTime: "11:00"
-            });
+    expect(response.status).toBe(400)
+    expect(response.body.success).toBe(false)
+    expect(response.body.message).toContain('Invalid time format')
+  })
 
-        expect(response.status).toBe(400);
-        expect(response.body.success).toBe(false);
-        expect(response.body.message).toContain("Invalid time format");
-    });
+  // Test 3: Time Traveler
+  it('should reject if end time is before start time', async () => {
+    const response = await request(app)
+      .post('/api/bookings')
+      .send({
+        studentId: 'student@test.com',
+        lecturerId: '123',
+        date: '2026-05-11',
+        startTime: '14:00',
+        endTime: '10:00', // End time is earlier!
+        module: 'CS101'
+      })
 
-    // Test 3: Time Traveler
-    it('should reject if end time is before start time', async () => {
-        const response = await request(app)
-            .post('/api/bookings/create')
-            .send({
-                lecturerId: "123",
-                date: "2026-05-10",
-                startTime: "14:00",
-                endTime: "10:00"
-            });
+    expect(response.status).toBe(400)
+    expect(response.body.success).toBe(false)
+    expect(response.body.message).toContain('end time must be after the start time')
+  })
 
-        expect(response.status).toBe(400);
-        expect(response.body.success).toBe(false);
-        expect(response.body.message).toContain("end time must be after the start time");
-    });
+  // Test 4: Max Capacity Reached
+  it('should reject if the consultation is at max capacity', async () => {
+    const testDate = '2026-05-11'
+    const dayOfWeek = new Date(testDate).getDay()
 
-    // Test 4: Max Capacity Check
-    it('should reject if the consultation is at max capacity', async () => {
-        Booking.countDocuments.mockResolvedValue(5);
+    // Mock Availability (Limit is 1 student)
+    Availability.findOne.mockResolvedValue({
+      lecturerEmail: '123',
+      weeklySchedule: [{
+        dayOfWeek,
+        slots: [{
+          start: '10:00',
+          end: '11:00',
+          course: 'CS101',
+          maxStudents: 1
+        }]
+      }]
+    })
 
-        const response = await request(app)
-            .post('/api/bookings/create')
-            .send({
-                lecturerId: "123",
-                date: "2026-05-10",
-                startTime: "10:00",
-                endTime: "11:00"
-            });
+    // Mock countDocuments so your middleware knows the slot is full
+    Booking.countDocuments.mockResolvedValue(5)
 
-        expect(response.status).toBe(400);
-        expect(response.body.success).toBe(false);
-        expect(response.body.message).toContain("maximum capacity");
-    });
+    const response = await request(app)
+      .post('/api/bookings')
+      .send({
+        studentId: 'student@test.com',
+        lecturerId: '123',
+        date: testDate,
+        startTime: '10:00',
+        endTime: '11:00',
+        module: 'CS101'
+      })
 
-    // Test 5: Daily Limit Check
-    it('should reject if the lecturer has reached their daily limit', async () => {
-        Booking.countDocuments
-            .mockResolvedValueOnce(0)   
-            .mockResolvedValueOnce(10); 
+    expect(response.status).toBe(400)
+    expect(response.body.success).toBe(false)
+    expect(response.body.message).toContain('maximum capacity')
+  })
 
-        const response = await request(app)
-            .post('/api/bookings/create')
-            .send({
-                lecturerId: "123",
-                date: "2026-05-10",
-                startTime: "10:00",
-                endTime: "11:00"
-            });
+  // Test 5: Daily Limit Check
+  it('should reject if the lecturer has reached their daily limit', async () => {
+    // First count checks slot capacity (0), second count checks daily limit (10)
+    Booking.countDocuments
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(10)
 
-        expect(response.status).toBe(400);
-        expect(response.body.success).toBe(false);
-        expect(response.body.message).toContain("daily limit");
-    });
+    const response = await request(app)
+      .post('/api/bookings')
+      .send({
+        lecturerId: '123',
+        date: '2026-05-10',
+        startTime: '10:00',
+        endTime: '11:00',
+        studentId: 'test@test.com',
+        module: 'CS101'
+      })
 
-  
-    describe('DELETE /api/bookings/:id', () => {
-        
-        // Test 6: Successful Cancellation
-        it('should allow the organizer to cancel their booking', async () => {
-            const mockBooking = { _id: 'sess_123', studentId: 'organizer@wits.ac.za' };
-            
-            Booking.findById.mockResolvedValue(mockBooking);
-            Booking.findByIdAndUpdate.mockResolvedValue(true);
+    expect(response.status).toBe(400)
+    expect(response.body.success).toBe(false)
+    expect(response.body.message).toContain('daily limit')
+  })
 
-            const response = await request(app)
-                .delete('/api/bookings/sess_123')
-                .send({ studentEmail: 'organizer@wits.ac.za' });
+  describe('DELETE /api/bookings/:id', () => {
+    // Test 6: Successful Cancellation
+    it('should allow the organizer to cancel their booking', async () => {
+      const mockBooking = { _id: 'sess_123', studentId: 'organizer@wits.ac.za' }
 
-            expect(response.status).toBe(200);
-            expect(response.body.success).toBe(true);
-            expect(response.body.message).toContain('successfully canceled');
-        });
+      Booking.findById.mockResolvedValue(mockBooking)
+      Booking.findByIdAndUpdate.mockResolvedValue(true)
 
-        // Test 7: Unauthorized Cancellation
-        it('should block a different student from canceling the booking', async () => {
-            const mockBooking = { _id: 'sess_123', studentId: 'organizer@wits.ac.za' };
-            
-            Booking.findById.mockResolvedValue(mockBooking);
+      const response = await request(app)
+        .delete('/api/bookings/sess_123')
+        .send({ studentEmail: 'organizer@wits.ac.za' })
 
-            const response = await request(app)
-                .delete('/api/bookings/sess_123')
-                .send({ studentEmail: 'intruder@student.wits.ac.za' });
+      expect(response.status).toBe(200)
+      expect(response.body.success).toBe(true)
+      expect(response.body.message).toContain('successfully canceled')
+    })
 
-            expect(response.status).toBe(403);
-            expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('Unauthorized');
-        });
+    // Test 7: Unauthorized Cancellation
+    it('should block a different student from canceling the booking', async () => {
+      const mockBooking = { _id: 'sess_123', studentId: 'organizer@wits.ac.za' }
 
-        // Test 404: Non-existent booking
-        it('should return 404 if the booking does not exist', async () => {
-            Booking.findById.mockResolvedValue(null);
+      Booking.findById.mockResolvedValue(mockBooking)
 
-            const response = await request(app)
-                .delete('/api/bookings/missing_id')
-                .send({ studentEmail: 'test@student.wits.ac.za' });
+      const response = await request(app)
+        .delete('/api/bookings/sess_123')
+        .send({ studentEmail: 'intruder@student.wits.ac.za' })
 
-            expect(response.status).toBe(404);
-            expect(response.body.message).toContain('not found');
-        });
-    });
-});
+      expect(response.status).toBe(403)
+      expect(response.body.success).toBe(false)
+      expect(response.body.message).toContain('Unauthorized')
+    })
+
+    // Test 8: Non-existent booking
+    it('should return 404 if the booking does not exist', async () => {
+      Booking.findById.mockResolvedValue(null)
+
+      const response = await request(app)
+        .delete('/api/bookings/missing_id')
+        .send({ studentEmail: 'test@student.wits.ac.za' })
+
+      expect(response.status).toBe(404)
+      expect(response.body.message).toContain('not found')
+    })
+  })
+})

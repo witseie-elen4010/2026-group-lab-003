@@ -33,6 +33,7 @@ beforeEach(() => {
             <option value="canceled">Canceled</option>
         </select>
         <select id="user-filter"><option value="all">All Users</option></select>
+        <select id="course-filter"><option value="all">All Courses</option></select>
         <select id="date-range-filter"><option value="all">All Time</option></select>
         <select id="course-filter"><option value="all">All Courses</option></select>
         <input id="search-input" type="text" />
@@ -46,6 +47,7 @@ beforeEach(() => {
         <button id="clear-all-btn"></button>
         <button id="bookmark-btn"></button>
         <button id="auto-refresh-toggle"><span></span></button>
+        <button id="bookmark-btn"></button>
         <div id="activity-timeline"></div>
         <div id="empty-state" class="hidden"></div>
         <div id="detail-modal" class="modal hidden">
@@ -58,6 +60,11 @@ beforeEach(() => {
         <button id="next-page"></button>
     `;
     
+    Object.assign(navigator, {
+        clipboard: {
+            writeText: jest.fn().mockResolvedValue()
+        }
+    });
     global.fetch.mockClear();
     global.sessionStorage.clear();
 });
