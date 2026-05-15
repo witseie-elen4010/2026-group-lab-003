@@ -28,6 +28,7 @@ beforeEach(() => {
     `;
     global.localStorage.clear();
     global.sessionStorage.clear();
+    global.alert = jest.fn();
 });
 
 const fs = require('fs');
