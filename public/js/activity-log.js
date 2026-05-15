@@ -69,8 +69,8 @@ class ActivityLogManager {
         setTimeout(() => {
             btn.innerHTML = '<i class="fas fa-bookmark"></i> Copy Link';
         }, 2000);
-         });
-      });
+    });
+});
 
         document.getElementById('close-detail-modal').addEventListener('click', () => this.closeModal());
         this.detailModal.addEventListener('click', (e) => {
@@ -159,7 +159,6 @@ class ActivityLogManager {
             try {
             await fetch(this.apiBase, { method: 'DELETE' });
             this.activities = [];
-            this.saveActivities();
             this.updateStats();
             this.updateFilterOptions();
             this.applyFilters();
