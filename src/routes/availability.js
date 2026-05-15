@@ -33,41 +33,34 @@ router.get('/', async (req, res) => {
 router.post('/slot', async (req, res) => {
     try {
         const lecturerEmail = req.headers['x-lecturer-id'];
-        const lecturerName = req.headers['x-lecturer-name'];
-
         if (!lecturerEmail) {
             return res.status(401).json({ success: false, message: 'Unauthorized' });
         }
 
         const { dayOfWeek, start, end, duration, course, maxStudents } = req.body;
 
-        // Validation
+        // Validation – dayOfWeek can be 0, so check explicitly
         if (dayOfWeek === undefined || !start || !end || !duration || !course || !maxStudents) {
             return res.status(400).json({ success: false, message: 'Missing required fields' });
         }
-
         if (dayOfWeek < 1 || dayOfWeek > 5) {
             return res.status(400).json({ success: false, message: 'Invalid day of week (must be 1-5)' });
         }
 
         let availability = await Availability.findOne({ lecturerEmail });
-
         if (!availability) {
-            availability = new Availability({
-                lecturerEmail,
-                weeklySchedule: [],
-            });
+            availability = new Availability({ lecturerEmail, weeklySchedule: [] });
         }
 
-        // Find or create the day availability
+        // Find or create the day schedule
         let daySchedule = availability.weeklySchedule.find(d => d.dayOfWeek === dayOfWeek);
-
         if (!daySchedule) {
-            daySchedule = { dayOfWeek, slots: [] };
-            availability.weeklySchedule.push(daySchedule);
+            // Push a new day and then retrieve the actual subdocument
+            availability.weeklySchedule.push({ dayOfWeek, slots: [] });
+            daySchedule = availability.weeklySchedule[availability.weeklySchedule.length - 1];
         }
 
-        // Add the new slot
+        // Add the new slot to the day's slots array
         daySchedule.slots.push({
             start,
             end,
@@ -80,9 +73,11 @@ router.post('/slot', async (req, res) => {
         const courses = [...new Set(availability.weeklySchedule.flatMap(d => d.slots.map(s => s.course)))];
         availability.courses = courses;
         availability.updatedAt = new Date();
+
+        // Save once after all modifications
         await availability.save();
 
-        res.json({ success: true, message: 'Slot added successfully', availability: availability });
+        res.json({ success: true, message: 'Slot added successfully', availability });
     } catch (error) {
         console.error('Error adding slot:', error);
         res.status(500).json({ success: false, message: 'Error adding slot' });
@@ -128,6 +123,8 @@ router.delete('/slot', async (req, res) => {
         if (daySchedule.slots.length === 0) {
             availability.weeklySchedule = availability.weeklySchedule.filter(d => d.dayOfWeek !== dayOfWeek);
         }
+
+        availability.markModified('weeklySchedule');
 
         // Update courses list
         const courses = [...new Set(availability.weeklySchedule.flatMap(d => d.slots.map(s => s.course)))];
