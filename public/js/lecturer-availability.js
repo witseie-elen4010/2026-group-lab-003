@@ -41,13 +41,13 @@ if (settingsBtn && settingsDropdown) {
 async function loadAvailability() {
   try {
     const res = await fetch('/api/availability', {
-      headers: { 
+      headers: {
         'X-Lecturer-Id': lecturerId,
         'X-Lecturer-Name': lecturerName
       }
     });
     const data = await res.json();
-    
+
     if (data.success && data.availability) {
       renderAllSlots(data.availability.weeklySchedule || []);
     }
@@ -77,7 +77,7 @@ function renderAllSlots(weeklySchedule) {
 function renderSlotsForDay(dayOfWeek, slots) {
   const dayName = dayNames[dayOfWeek];
   const slotsList = document.getElementById(`slots-${dayName}`);
-  
+
   if (!slotsList) return;
 
   if (!slots || slots.length === 0) {
@@ -86,12 +86,12 @@ function renderSlotsForDay(dayOfWeek, slots) {
   }
 
   slotsList.innerHTML = '';
-  
+
   slots.forEach(slot => {
     const slotItem = document.createElement('div');
     slotItem.className = 'slot-item';
     slotItem.dataset.slotId = slot._id;
-    
+
     slotItem.innerHTML = `
       <div class="slot-info">
         <div class="slot-time">${formatTime(slot.start)} - ${formatTime(slot.end)}</div>
@@ -101,7 +101,7 @@ function renderSlotsForDay(dayOfWeek, slots) {
       </div>
       <button class="cancel-slot-btn" data-day="${dayOfWeek}" data-slot-id="${slot._id}">Cancel</button>
     `;
-    
+
     slotsList.appendChild(slotItem);
   });
 
@@ -131,7 +131,7 @@ function calculateDuration(start, end) {
 async function handleAddSlot(e) {
   const dayOfWeek = parseInt(e.target.dataset.day);
   const dayCard = e.target.closest('.day-card');
-  
+
   const start = dayCard.querySelector('.slot-start').value;
   const end = dayCard.querySelector('.slot-end').value;
   const course = dayCard.querySelector('.slot-course').value.trim();
@@ -174,7 +174,7 @@ async function handleAddSlot(e) {
     });
 
     const data = await res.json();
-    
+
     if (data.success) {
       showMessage('Slot added successfully', 'success');
       // Clear the form
@@ -215,7 +215,7 @@ async function handleCancelSlot(e) {
     });
 
     const data = await res.json();
-    
+
     if (data.success) {
       showMessage('Slot cancelled successfully', 'success');
       loadAvailability();
