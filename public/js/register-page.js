@@ -108,6 +108,7 @@ registrationForm.addEventListener('submit', async (event) => {
     isValid = false
   } else if (passwordValue.length <= 7 && passwordValue !== '') {
     passwordError.textContent = 'Weak Password. Password has to contain 8 or more characters.'
+    isValid = false
   }
 
   // The Final Decision: If anything was wrong, stop everything right here.

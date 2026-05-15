@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "jest --runInBand --detectOpenHandles",
-    "test:coverage": "jest --coverage --runInBand", 
+    "test:coverage": "jest --coverage --runInBand",
     "dev": "nodemon src/server.js"
   },
   "repository": {
@@ -25,10 +25,7 @@
     "bcrypt": "^6.0.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-<<<<<<< Updated upstream
-=======
     "express-session": "^1.19.0",
->>>>>>> Stashed changes
     "helmet": "^8.1.0",
     "mongodb": "^7.2.0",
     "mongoose": "^9.5.0"

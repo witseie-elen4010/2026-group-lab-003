@@ -188,7 +188,7 @@ describe('StudentScheduleManager', () => {
 
       expect(modal.classList.contains('hidden')).toBe(false)
       expect(content.innerHTML).toContain('CS101')
-      expect(content.innerHTML).toContain('Cancel Consultation')
+      expect(content.innerHTML).toContain('Leave Consultation')
       expect(content.innerHTML).toContain('upcoming')
     })
 
