@@ -1,23 +1,67 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+
+const mockAvailabilityStore = [];
+
+class MockAvailability {
+  constructor(data = {}) {
+    this.lecturerEmail = data.lecturerEmail;
+    this.weeklySchedule = (data.weeklySchedule || []).map(MockAvailability.cloneDay);
+    this.courses = [...(data.courses || [])];
+    this.updatedAt = data.updatedAt;
+  }
+
+  static cloneSlot(slot) {
+    return {
+      _id: slot._id || new mongoose.Types.ObjectId(),
+      start: slot.start,
+      end: slot.end,
+      duration: slot.duration,
+      course: slot.course,
+      maxStudents: slot.maxStudents,
+    };
+  }
+
+  static cloneDay(day) {
+    return {
+      dayOfWeek: day.dayOfWeek,
+      slots: (day.slots || []).map(MockAvailability.cloneSlot),
+    };
+  }
+
+  static async findOne(query) {
+    return mockAvailabilityStore.find(item => item.lecturerEmail === query.lecturerEmail) || null;
+  }
+
+  static async create(data) {
+    const availability = new MockAvailability(data);
+    await availability.save();
+    return availability;
+  }
+
+  static async deleteMany() {
+    mockAvailabilityStore.length = 0;
+  }
+
+  async save() {
+    const existingIndex = mockAvailabilityStore.findIndex(item => item.lecturerEmail === this.lecturerEmail);
+    if (existingIndex === -1) {
+      mockAvailabilityStore.push(this);
+    } else {
+      mockAvailabilityStore[existingIndex] = this;
+    }
+    return this;
+  }
+
+  markModified() {}
+}
+
+jest.mock('../../src/models/Availability', () => MockAvailability);
 
 const app = require('../../src/app');
 const Availability = require('../../src/models/Availability');
 
-let mongoServer;
 const testLecturerEmail = 'lecturer@integration.test';
-
-beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
-  await mongoose.connect(uri);
-});
-
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
-});
 
 beforeEach(async () => {
   await Availability.deleteMany({});

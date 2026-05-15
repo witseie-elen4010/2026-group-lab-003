@@ -598,6 +598,7 @@ describe('Activity log browser script', () => {
         <option value="canceled">Canceled</option>
       </select>
       <select id="user-filter"></select>
+      <select id="course-filter"><option value="all">All Courses</option></select>
       <select id="date-range-filter"><option value="all">All</option><option value="custom">Custom</option></select>
       <input id="search-input" />
       <div id="custom-date-range" class="hidden"></div>
@@ -615,8 +616,14 @@ describe('Activity log browser script', () => {
       <button id="export-activity-btn"></button>
       <button id="clear-all-btn"></button>
       <button id="auto-refresh-toggle"><span>Auto-refresh</span></button>
+      <button id="bookmark-btn"></button>
       <button id="close-detail-modal"></button>
     `;
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: jest.fn().mockResolvedValue()
+      }
+    });
   }
 
   function mockActivityApi(initialActivities = []) {
