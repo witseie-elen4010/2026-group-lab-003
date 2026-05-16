@@ -9,9 +9,9 @@ class StudentSessionJoiner {
         this.init();
     }
 
-    init() {
+    async init() {
         this.loadCurrentStudent();
-        this.loadSessions();
+        await this.loadSessions();
         this.setupEventListeners();
         this.updateFilterOptions();
         this.render();
@@ -24,8 +24,8 @@ class StudentSessionJoiner {
     get searchInput() { return document.getElementById('search-input'); }
 
     setupEventListeners() {
-        document.getElementById('refresh-btn').addEventListener('click', () => {
-            this.loadSessions();
+        document.getElementById('refresh-btn').addEventListener('click', async () => {
+            await this.loadSessions();
             this.updateFilterOptions();
             this.render();
         });
@@ -44,11 +44,18 @@ class StudentSessionJoiner {
         }
     }
 
-    loadSessions() {
-        const stored = localStorage.getItem(this.storageKey);
-        const allSessions = stored ? JSON.parse(stored) : [];
-        // Show only upcoming/ongoing sessions, not canceled/completed
-        this.sessions = allSessions.filter(s => s.status === 'upcoming' || s.status === 'ongoing');
+    async loadSessions() {
+        try {
+            const response = await fetch('/api/bookings?status=upcoming,ongoing');
+            if (response.ok) {
+                this.sessions = await response.json();
+            } else {
+                this.sessions = [];
+            }
+        } catch (error) {
+            console.error('Failed to load sessions:', error);
+            this.sessions = [];
+        }
     }
 
     filterAndRender() {
@@ -56,9 +63,9 @@ class StudentSessionJoiner {
         const searchTerm = this.searchInput.value.toLowerCase().trim();
 
         this.filteredSessions = this.sessions.filter(session => {
-            if (course !== 'all' && session.courseCode !== course) return false;
+            if (course !== 'all' && session.module !== course) return false;
             if (searchTerm) {
-                const searchStr = `${session.studentName} ${session.topic} ${session.courseCode}`.toLowerCase();
+                const searchStr = `${session.studentName} ${session.topic} ${session.module}`.toLowerCase();
                 if (!searchStr.includes(searchTerm)) return false;
             }
             return true;
@@ -69,7 +76,7 @@ class StudentSessionJoiner {
     }
 
     updateFilterOptions() {
-        const courses = [...new Set(this.sessions.map(s => s.courseCode).filter(Boolean))].sort();
+        const courses = [...new Set(this.sessions.map(s => s.module).filter(Boolean))].sort();
         this.courseFilter.innerHTML = '<option value="all">All Courses</option>';
         courses.forEach(course => {
             const option = document.createElement('option');
@@ -90,28 +97,28 @@ class StudentSessionJoiner {
     }
 
     renderCard(session) {
-        const dateObj = new Date(`${session.date}T${session.time}`);
+        const dateObj = new Date(`${session.date}T${session.startTime}`);
         const dateDisplay = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         const timeDisplay = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        const joinedStudents = session.joinedStudents || [];
+        const joinedStudents = session.participantIDs || [];
         const totalJoined = joinedStudents.length;
 
         // Check if current student already joined
-        const alreadyJoined = this.currentStudent && joinedStudents.includes(this.currentStudent.fullName);
+        const alreadyJoined = this.currentStudent && joinedStudents.includes(this.currentStudent.email);
 
         return `
             <div class="session-card">
                 <div class="session-time">
                     <div class="date">${dateDisplay}</div>
                     <div class="time">${timeDisplay}</div>
-                    <div style="font-size:12px;color:rgba(255,255,255,0.5)">${session.duration}min</div>
+                    <div style="font-size:12px;color:rgba(255,255,255,0.5)">${this.escape(session.module || 'No module')}</div>
                 </div>
                 <div class="session-info">
-                    <div class="session-course">${this.escape(session.courseCode)}</div>
+                    <div class="session-course">${this.escape(session.module || 'No module')}</div>
                     <div class="session-topic">${this.escape(session.topic || 'No topic')}</div>
                     <div class="session-owner">
-                        <i class="fas fa-user-circle"></i> Created by ${this.escape(session.studentName)}
-                        ${session.lecturerName ? ` with ${this.escape(session.lecturerName)}` : ''}
+                        <i class="fas fa-user-circle"></i> Created by ${this.escape(session.studentId)}
+                        ${session.lecturerId ? ` with ${this.escape(session.lecturerId)}` : ''}
                     </div>
                     <div class="attendees">
                         ${joinedStudents.slice(0, 4).map(name => 
@@ -124,38 +131,36 @@ class StudentSessionJoiner {
                 <div class="join-btn">
                     ${alreadyJoined ? 
                         `<button class="btn btn-success btn-sm" disabled><i class="fas fa-check"></i> Joined</button>` :
-                        `<button class="btn btn-sm" onclick="studentJoiner.joinSession('${session.id}')"><i class="fas fa-plus"></i> Join</button>`
+                        `<button class="btn btn-sm" onclick="studentJoiner.joinSession('${session._id}')"><i class="fas fa-plus"></i> Join</button>`
                     }
                 </div>
             </div>
         `;
     }
 
-    joinSession(sessionId) {
-        const allStored = localStorage.getItem(this.storageKey);
-        if (!allStored) return;
-        const allSessions = JSON.parse(allStored);
-
-        const session = allSessions.find(s => s.id === sessionId);
-        if (!session) return;
-
-        if (!this.currentStudent || !this.currentStudent.fullName) {
+    async joinSession(sessionId) {
+        if (!this.currentStudent || !this.currentStudent.email) {
             alert('You must be logged in to join a session.');
             return;
         }
 
-        // Initialize joinedStudents if missing
-        if (!session.joinedStudents) session.joinedStudents = [];
+        try {
+            const response = await fetch(`/api/bookings/${sessionId}/join`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: this.currentStudent.email })
+            });
 
-        if (session.joinedStudents.includes(this.currentStudent.fullName)) {
-            alert('You are already in this session.');
-            return;
+            if (response.ok) {
+                await this.loadSessions();
+                this.filterAndRender();
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Failed to join session');
+            }
+        } catch (error) {
+            console.error('Failed to join session:', error);
         }
-
-        session.joinedStudents.push(this.currentStudent.fullName);
-        localStorage.setItem(this.storageKey, JSON.stringify(allSessions));
-        this.loadSessions();
-        this.filterAndRender();
     }
 
     escape(str) {
