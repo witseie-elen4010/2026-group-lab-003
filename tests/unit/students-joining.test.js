@@ -18,6 +18,39 @@ global.localStorage = {
     clear() { this.store = {}; }
 };
 
+const testSessions = [
+    {
+        _id: '1',
+        module: 'ELEN4010',
+        date: new Date().toISOString().split('T')[0],
+        startTime: '10:00',
+        status: 'upcoming',
+        studentId: 'alice@uni.edu',
+        topic: 'Arrays',
+        participantIDs: [],
+        lecturerId: 'dr.smith@uni.edu'
+    },
+    {
+        _id: '2',
+        module: 'ELEN4006',
+        date: new Date().toISOString().split('T')[0],
+        startTime: '11:00',
+        status: 'ongoing',
+        studentId: 'bob@uni.edu',
+        topic: 'Sorting',
+        participantIDs: ['bob@uni.edu'],
+        lecturerId: 'dr.jones@uni.edu'
+    }
+];
+
+global.fetch = jest.fn(() =>
+    Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(testSessions)
+    })
+);
+
+
 beforeEach(() => {
     document.body.innerHTML = `
         <div id="sessions-list"></div>
@@ -54,63 +87,61 @@ afterAll(() => {
 });
 
 describe('Join Peer Session - Epic #4', () => {
-    const testSessions = [
-        {
-            id: '1',
-            courseCode: 'ELEN4010',
-            date: new Date().toISOString().split('T')[0],
-            time: '10:00',
-            duration: 30,
-            status: 'upcoming',
-            studentName: 'Alice',
-            topic: 'Arrays',
-            joinedStudents: [],
-            lecturerName: 'Dr. Smith'
-        },
-        {
-            id: '2',
-            courseCode: 'ELEN4006',
-            date: new Date().toISOString().split('T')[0],
-            time: '11:00',
-            duration: 45,
-            status: 'ongoing',
-            studentName: 'Bob',
-            topic: 'Sorting',
-            joinedStudents: ['Bob'],
-            lecturerName: 'Dr. Jones'
-        }
-    ];
-
     beforeEach(() => {
-        global.localStorage.setItem('sychro_consultations', JSON.stringify(testSessions));
         global.sessionStorage.setItem('sychro_current_user', JSON.stringify({
             fullName: 'Carol',
             email: 'carol@uni.edu'
         }));
     });
 
-    test('should add student name to joinedStudents on join', () => {
-        const joiner = new StudentSessionJoiner();
-        joiner.joinSession('1');
+    test('should call API to join session', async () => {
+        global.fetch.mockClear();
+        // First call: loadSessions on init
+        // Second call: join request
+        // Third call: reload sessions after join
+        global.fetch
+            .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(testSessions) })
+            .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ success: true }) })
+            .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(testSessions) });
 
-        const stored = JSON.parse(global.localStorage.getItem('sychro_consultations'));
-        expect(stored[0].joinedStudents).toContain('Carol');
+        const joiner = new StudentSessionJoiner();
+        await joiner.init();
+
+        await joiner.joinSession('1');
+
+        expect(global.fetch).toHaveBeenCalledWith('/api/bookings/1/join', expect.objectContaining({
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'carol@uni.edu' })
+        }));
     });
 
-    test('should not add duplicate entry', () => {
-        const joiner = new StudentSessionJoiner();
-        joiner.joinSession('1');
-        joiner.joinSession('1');
+    test('should reload sessions after joining', async () => {
+        global.fetch
+            .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(testSessions) })
+            .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ success: true }) })
+            .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(testSessions) });
 
-        const stored = JSON.parse(global.localStorage.getItem('sychro_consultations'));
-        expect(stored[0].joinedStudents.filter(n => n === 'Carol').length).toBe(1);
+        const joiner = new StudentSessionJoiner();
+        await joiner.init();
+        await joiner.joinSession('1');
+
+        // Should have called GET /api/bookings twice (init + reload after join)
+        const getCalls = global.fetch.mock.calls.filter(call => 
+            call[0] === '/api/bookings?status=upcoming,ongoing'
+        );
+        expect(getCalls.length).toBeGreaterThanOrEqual(2);
     });
 
-    test('should show "Joined" button after joining', () => {
+    test('should show alert if not logged in', async () => {
+        global.sessionStorage.clear();
+        global.fetch
+            .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(testSessions) });
+
         const joiner = new StudentSessionJoiner();
-        joiner.joinSession('1');
-        joiner.filterAndRender(); // re-render
-        const html = document.getElementById('sessions-list').innerHTML;
-        expect(html).toContain('Joined');
+        await joiner.init();
+        await joiner.joinSession('1');
+
+        expect(global.alert).toHaveBeenCalledWith('You must be logged in to join a session.');
     });
 });
