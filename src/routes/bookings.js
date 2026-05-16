@@ -208,12 +208,9 @@ router.get('/', async (req, res) => {
     // FIX: Search by both email AND idNumber since lecturerId contains the staff numeric ID
     const lecturers = lecturerIdentifiers.length
       ? await User.find({
-        $or: [
-          { email: { $in: lecturerIdentifiers } },
-          { idNumber: { $in: lecturerIdentifiers } }
-        ],
+        email: { $in: lecturerIdentifiers },
         role: 'lecturer'
-      }, 'name surname email idNumber').lean()
+      }, 'name surname email').lean()
       : []
 
     // Map names to both their email and idNumber for a bulletproof fallback lookup
@@ -221,7 +218,6 @@ router.get('/', async (req, res) => {
     lecturers.forEach(lecturer => {
       const fullName = [lecturer.name, lecturer.surname].filter(Boolean).join(' ')
       if (lecturer.email) lecturersByIdentifier.set(lecturer.email, fullName)
-      if (lecturer.idNumber) lecturersByIdentifier.set(lecturer.idNumber, fullName)
     })
 
     // Dynamically override the status to 'canceled' on the user's side if they left

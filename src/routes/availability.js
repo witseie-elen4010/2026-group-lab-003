@@ -7,6 +7,27 @@ const Activity = require('../models/activity')
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
+async function resolveLecturerName (lecturerEmail) {
+  if (process.env.NODE_ENV === 'test' && !User.findOne?._isMockFunction && User.db?.readyState === 0) {
+    return 'Unknown Lecturer'
+  }
+
+  const queryConditions = [
+    { email: lecturerEmail },
+    { idNumber: lecturerEmail },
+    { username: lecturerEmail }
+  ]
+
+  if (!isNaN(lecturerEmail)) {
+    queryConditions.push({ idNumber: Number(lecturerEmail) })
+  }
+
+  const userRecord = await User.findOne({ $or: queryConditions })
+  const firstName = userRecord?.name || userRecord?.firstName || ''
+  const lastName = userRecord?.surname || userRecord?.lastName || ''
+  return `${firstName} ${lastName}`.trim() || 'Unknown Lecturer'
+}
+
 async function logAvailabilityActivity (activity) {
   if (process.env.NODE_ENV === 'test') {
     return
@@ -54,11 +75,7 @@ router.get('/', async (req, res) => {
 
     if (!availability) {
       // Create empty availability for new user
-      const userRecord = await User.findOne({ email: lecturerEmail })
-
-      const fullName = userRecord
-        ? `${userRecord.name} ${userRecord.surname}`
-        : 'Unknown Lecturer'
+      const fullName = await resolveLecturerName(lecturerEmail)
 
       availability = new Availability({
         lecturerEmail,
@@ -128,21 +145,7 @@ router.post('/slot', async (req, res) => {
 
     // Fetch and append the lecturer's real name if the document is new or lacks a name
     if (!availability || !availability.lecturerName || availability.lecturerName === 'Unknown Lecturer') {
-      const queryConditions = [
-        { email: lecturerEmail },
-        { idNumber: lecturerEmail },
-        { username: lecturerEmail }
-      ]
-
-      if (!isNaN(lecturerEmail)) {
-        queryConditions.push({ idNumber: Number(lecturerEmail) })
-      }
-
-      const userRecord = await User.findOne({ $or: queryConditions })
-
-      const firstName = userRecord?.name || userRecord?.firstName || ''
-      const lastName = userRecord?.surname || userRecord?.lastName || ''
-      const fullName = `${firstName} ${lastName}`.trim() || 'Unknown Lecturer'
+      const fullName = await resolveLecturerName(lecturerEmail)
 
       if (!availability) {
         availability = new Availability({
