@@ -83,6 +83,31 @@ async function createBooking(req, res) {
 router.post('/', validateLecturerHours, createBooking)
 router.post('/create', validateLecturerHours, createBooking)
 
+// PUT: Cancel every booking that belongs to the same grouped lecturer session
+router.put('/session/cancel', async (req, res) => {
+  try {
+    const { bookingIds } = req.body
+
+    if (!Array.isArray(bookingIds) || bookingIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'bookingIds are required' })
+    }
+
+    const result = await Booking.updateMany(
+      { _id: { $in: bookingIds } },
+      { $set: { status: 'canceled' } }
+    )
+
+    res.json({
+      success: true,
+      message: 'Session canceled for all participants',
+      modifiedCount: result.modifiedCount || 0
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ success: false, message: 'Failed to cancel session' })
+  }
+})
+
 // GET: Fetch ONLY the logged-in student's bookings (RESTORED GROUP LOGIC)
 router.get('/', async (req, res) => {
   try {
@@ -194,8 +219,7 @@ router.get('/lecturer/bookings', async (req, res) => {
   try {
     const { email } = req.query
     const bookings = await Booking.find({
-      lecturerId: email,
-      status: 'upcoming'
+      lecturerId: email
     }).sort({ date: 1, startTime: 1 })
 
     res.json(bookings)

@@ -11,6 +11,7 @@ jest.mock('../../src/models/booking', () => {
   Booking.find = jest.fn();
   Booking.findById = jest.fn();
   Booking.findByIdAndUpdate = jest.fn();
+  Booking.updateMany = jest.fn();
   Booking.prototype.save = save;
 
   return Booking;
@@ -220,5 +221,23 @@ describe('Booking Integration Tests', () => {
     expect(response.status).toBe(403);
     expect(response.body.message).toContain('Unauthorized');
     expect(Booking.findByIdAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('cancels every booking in a grouped lecturer session', async () => {
+    Booking.updateMany.mockResolvedValue({ modifiedCount: 2 });
+
+    const response = await request(app)
+      .put('/api/bookings/session/cancel')
+      .send({ bookingIds: ['booking-1', 'booking-2'] });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      success: true,
+      modifiedCount: 2
+    });
+    expect(Booking.updateMany).toHaveBeenCalledWith(
+      { _id: { $in: ['booking-1', 'booking-2'] } },
+      { $set: { status: 'canceled' } }
+    );
   });
 });

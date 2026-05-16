@@ -9,14 +9,14 @@ class LecturerScheduleManager {
         this.init();
     }
 
-    init() {
+    async init() {
         this.loadCurrentLecturer();
-        this.loadSessions();
+        await this.loadSessions();
         this.setupEventListeners();
         this.displayCurrentDate();
         this.updateStats();
         this.updateFilterOptions();
-        this.render();
+        this.applyFilters();
     }
 
     // DOM GETTERS
@@ -43,16 +43,31 @@ class LecturerScheduleManager {
         this.dateFilter.addEventListener('change', () => this.handleFilterChange());
         this.searchInput.addEventListener('input', this.debounce(() => this.handleFilterChange(), 300));
 
-        document.getElementById('refresh-btn').addEventListener('click', () => {
-            this.loadSessions();
+        document.getElementById('refresh-btn').addEventListener('click', async () => {
+            await this.loadSessions();
             this.updateStats();
             this.updateFilterOptions();
-            this.render();
+            this.applyFilters();
+        });
+
+        this.scheduleList.addEventListener('click', (e) => {
+            const button = e.target.closest('[data-session-action]');
+            if (!button) return;
+
+            const sessionId = button.dataset.sessionId;
+            if (button.dataset.sessionAction === 'details') this.showDetail(sessionId);
+            if (button.dataset.sessionAction === 'cancel') this.cancelSession(sessionId);
+            if (button.dataset.sessionAction === 'complete') this.completeSession(sessionId);
         });
 
         document.getElementById('close-session-modal').addEventListener('click', () => this.closeModal());
         this.sessionModal.addEventListener('click', (e) => {
             if (e.target === this.sessionModal) this.closeModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !this.sessionModal.classList.contains('hidden')) {
+                this.closeModal();
+            }
         });
     }
 
@@ -78,26 +93,85 @@ class LecturerScheduleManager {
         this.currentLecturer = null;
     }
  ///Running sessions from the databse
+    getCurrentLecturerId() {
+        return this.currentLecturer?.idNumber || this.currentLecturer?.email || '';
+    }
+
     async loadSessions() {
-    const email = this.currentLecturer?.email || '';
-    const response = await fetch(`/api/bookings/lecturer/bookings?email=${encodeURIComponent(email)}`);
+    const lecturerId = this.getCurrentLecturerId();
+    if (!lecturerId) {
+        this.sessions = [];
+        this.filteredSessions = [];
+        return;
+    }
+
+    const response = await fetch(`/api/bookings/lecturer/bookings?email=${encodeURIComponent(lecturerId)}`);
 
     if (response.ok) {
         const bookings = await response.json();
-        this.sessions = bookings.map(b => ({
+        this.sessions = this.groupBookingsBySession(bookings).map(b => ({
             id: b._id,
+            bookingIds: b.bookingIds || [b._id],
             courseCode: b.module || '',
-            studentName: b.studentId || 'Unknown',
+            studentName: b.joinedStudents.length === 1 ? b.joinedStudents[0] : `${b.joinedStudents.length} students`,
             date: b.date ? b.date.split('T')[0] : '',
             time: b.startTime || '',
             duration: this.calculateDuration(b.startTime, b.endTime),
             status: b.status || 'upcoming',
             topic: b.topic || '',
-            joinedStudents: b.participantIDs || [],
+            joinedStudents: b.joinedStudents,
             
     }));
     }
 }
+    groupBookingsBySession(bookings) {
+        const grouped = new Map();
+
+        bookings.forEach(booking => {
+            const date = booking.date ? booking.date.split('T')[0] : '';
+            const key = [
+                booking.module || '',
+                date,
+                booking.startTime || '',
+                booking.endTime || '',
+                booking.status || 'upcoming'
+            ].join('|');
+
+            if (!grouped.has(key)) {
+                grouped.set(key, {
+                    ...booking,
+                    date,
+                    bookingIds: [],
+                    joinedStudents: [],
+                    firstBookingAt: booking.createdAt || ''
+                });
+            }
+
+            const session = grouped.get(key);
+            session.bookingIds.push(booking._id);
+
+            const sessionTime = session.firstBookingAt ? new Date(session.firstBookingAt).getTime() : Number.MAX_SAFE_INTEGER;
+            const bookingTime = booking.createdAt ? new Date(booking.createdAt).getTime() : Number.MAX_SAFE_INTEGER;
+            if (booking.topic && (!session.topic || bookingTime < sessionTime)) {
+                session.topic = booking.topic;
+                session.firstBookingAt = booking.createdAt || session.firstBookingAt;
+            }
+
+            const students = [
+                booking.studentId,
+                ...(Array.isArray(booking.participantIDs) ? booking.participantIDs : [])
+            ].filter(Boolean);
+
+            students.forEach(student => {
+                if (!session.joinedStudents.includes(student)) {
+                    session.joinedStudents.push(student);
+                }
+            });
+
+        });
+
+        return Array.from(grouped.values());
+    }
     async updateSessionStatus(session) {
     await fetch(`/api/bookings/${session._id || session.id}`, {
         method: 'PUT',
@@ -130,7 +204,7 @@ class LecturerScheduleManager {
             }
 
             if (searchTerm) {
-                const searchStr = `${session.studentName || ''} ${session.courseCode || ''} ${session.topic || ''}`.toLowerCase();
+                const searchStr = `${session.studentName || ''} ${session.courseCode || ''} ${session.topic || ''} ${(session.joinedStudents || []).join(' ')}`.toLowerCase();
                 if (!searchStr.includes(searchTerm)) return false;
             }
 
@@ -216,16 +290,16 @@ class LecturerScheduleManager {
                 </div>
                 <span class="session-status ${statusClass}">${session.status || 'unknown'}</span>
                 <div class="session-actions">
-                    <button class="btn btn-sm btn-outline" onclick="scheduleManager.showDetail('${session.id}')">
+                    <button class="btn btn-sm btn-outline" data-session-action="details" data-session-id="${this.escape(session.id)}">
                         <i class="fas fa-info-circle"></i> Details
                     </button>
                     ${session.status === 'upcoming' ? `
-                        <button class="btn btn-sm btn-danger" onclick="scheduleManager.cancelSession('${session.id}')">
+                        <button class="btn btn-sm btn-danger" data-session-action="cancel" data-session-id="${this.escape(session.id)}">
                             <i class="fas fa-times"></i> Cancel
                         </button>
                     ` : ''}
                     ${session.status === 'ongoing' ? `
-                        <button class="btn btn-sm btn-success" onclick="scheduleManager.completeSession('${session.id}')">
+                        <button class="btn btn-sm btn-success" data-session-action="complete" data-session-id="${this.escape(session.id)}">
                             <i class="fas fa-check"></i> Complete
                         </button>
                     ` : ''}
@@ -280,19 +354,39 @@ class LecturerScheduleManager {
             </div>
         `;
 
+        this.openModal();
+    }
+
+    openModal() {
         this.sessionModal.classList.remove('hidden');
+        this.sessionModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('session-modal-open');
     }
 
     closeModal() {
         this.sessionModal.classList.add('hidden');
+        this.sessionModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('session-modal-open');
     }
 
-    cancelSession(id) {
+    async cancelSession(id) {
         if (confirm('Cancel this session?')) {
             const session = this.sessions.find(s => s.id === id);
             if (session) {
+                const bookingIds = session.bookingIds && session.bookingIds.length > 0 ? session.bookingIds : [session.id];
+                const response = await fetch('/api/bookings/session/cancel', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bookingIds })
+                });
+
+                if (!response.ok) {
+                    alert('Failed to cancel session. Please try again.');
+                    return;
+                }
+
                 session.status = 'canceled';
-                this.saveSessions();
+                this.closeModal();
                 this.updateStats();
                 this.applyFilters();
             }
@@ -377,11 +471,13 @@ class LecturerScheduleManager {
 const settingsBtn = document.getElementById('settings-btn');
 const settingsDropdown = document.getElementById('settings-dropdown');
 
-document.addEventListener('click', function(e) {
-    if (!settingsBtn.contains(e.target) && !settingsDropdown.contains(e.target)) {
-        settingsDropdown.classList.add('hidden');
-    }
-});
+if (settingsBtn && settingsDropdown) {
+    document.addEventListener('click', function(e) {
+        if (!settingsBtn.contains(e.target) && !settingsDropdown.contains(e.target)) {
+            settingsDropdown.classList.add('hidden');
+        }
+    });
+}
 
 
 // INITIALIZE
