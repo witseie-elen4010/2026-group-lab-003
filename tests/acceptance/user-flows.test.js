@@ -6,12 +6,14 @@ const app = require('../../src/app');
 const User = require('../../src/models/user');
 const Booking = require('../../src/models/booking');
 const Schedule = require('../../src/models/Schedule');
+const Availability = require('../../src/models/Availability');
 const PasswordResetToken = require('../../src/models/passwordResetToken');
 const { sendPasswordResetEmail, sendNotification } = require('../../src/utils/emailService');
 
 jest.mock('../../src/models/user');
 jest.mock('../../src/models/booking');
 jest.mock('../../src/models/Schedule');
+jest.mock('../../src/models/Availability');
 jest.mock('../../src/models/passwordResetToken');
 jest.mock('../../src/utils/emailService', () => ({
   sendPasswordResetEmail: jest.fn(),
@@ -189,15 +191,14 @@ describe('User Acceptance Flows', () => {
   });
 
   it('allows a student to see available consultation blocks before booking', async () => {
-    const schedule = {
-      lecturerId: 'lecturer@wits.ac.za',
-      defaultDuration: 30,
+    const availability = {
+      lecturerEmail: 'lecturer@wits.ac.za',
       weeklySchedule: [
-        { dayOfWeek: 2, slots: [{ start: '10:00', end: '11:00' }] }
+        { dayOfWeek: 2, slots: [{ start: '10:00', end: '11:00', duration: 30 }] }
       ]
     };
 
-    Schedule.findOne.mockResolvedValue(schedule);
+    Availability.findOne.mockResolvedValue(availability);
     Booking.find.mockResolvedValue([
       { startTime: '10:00', status: 'upcoming' }
     ]);
@@ -205,17 +206,16 @@ describe('User Acceptance Flows', () => {
     const response = await request(app)
       .get('/api/bookings/availability')
       .query({
-        lecturerId: schedule.lecturerId,
+        lecturerId: availability.lecturerEmail,
         date: '2026-05-05'
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.duration).toBe(schedule.defaultDuration);
-    expect(response.body.availableBlocks).toEqual(schedule.weeklySchedule[0].slots);
+    expect(response.body.availableBlocks).toEqual(availability.weeklySchedule[0].slots);
     expect(response.body.bookedTimes).toEqual(['10:00']);
-    expect(Schedule.findOne).toHaveBeenCalledWith({ lecturerId: schedule.lecturerId });
+    expect(Availability.findOne).toHaveBeenCalledWith({ lecturerEmail: availability.lecturerEmail });
     expect(Booking.find).toHaveBeenCalledWith({
-      lecturerId: schedule.lecturerId,
+      lecturerId: availability.lecturerEmail,
       date: '2026-05-05',
       status: { $ne: 'canceled' }
     });

@@ -25,7 +25,7 @@ router.get('/availability', async (req, res) => {
     const dateObj = new Date(date)
     const dayOfWeek = dateObj.getDay()
 
-    const schedule = await Availability.findOne({ lecturerId })
+    const schedule = await Availability.findOne({ lecturerEmail: lecturerId })
 
     if (!schedule) {
       return res.status(404).json({ error: 'Lecturer availability not found.' })
@@ -55,9 +55,7 @@ router.get('/availability', async (req, res) => {
   }
 })
 
-// POST: Save a new booking (MERGED AND FIXED!)
-// Notice how it uses your middleware AND saves the data properly now
-router.post('/', validateLecturerHours, async (req, res) => {
+async function createBooking(req, res) {
   try {
     const newBooking = new Booking({
       studentId: req.body.studentId,
@@ -78,7 +76,12 @@ router.post('/', validateLecturerHours, async (req, res) => {
     console.error(error)
     res.status(500).json({ error: 'Failed to create booking' })
   }
-})
+}
+
+// POST: Save a new booking (MERGED AND FIXED!)
+// Notice how it uses your middleware AND saves the data properly now
+router.post('/', validateLecturerHours, createBooking)
+router.post('/create', validateLecturerHours, createBooking)
 
 // GET: Fetch ONLY the logged-in student's bookings (RESTORED GROUP LOGIC)
 router.get('/', async (req, res) => {

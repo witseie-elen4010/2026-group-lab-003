@@ -195,6 +195,13 @@ class StudentScheduleManager {
   renderSessionCard (session) {
     const timeDisplay = this.formatTime(session.time)
     const location = session.location || 'Online'
+    const statusConfig = {
+      upcoming: { border: 'border-warning', badge: 'bg-warning text-dark' },
+      ongoing: { border: 'border-info', badge: 'bg-info text-dark' },
+      completed: { border: 'border-success', badge: 'bg-success' },
+      canceled: { border: 'border-danger', badge: 'bg-danger' }
+    }
+    const config = statusConfig[session.status] || { border: 'border-secondary', badge: 'bg-secondary' }
 
     const isOrganizer = this.currentStudent && this.currentStudent.email === session.organizerEmail
 
@@ -286,8 +293,14 @@ class StudentScheduleManager {
         `
 : ''}
     `
+    document.getElementById('session-modal').classList.remove('hidden')
     // Use the Bootstrap instance to show the modal
     this.bsModal.show()
+  }
+
+  closeModal () {
+    document.getElementById('session-modal').classList.add('hidden')
+    this.bsModal.hide()
   }
 
   async cancelBooking (sessionId) {
