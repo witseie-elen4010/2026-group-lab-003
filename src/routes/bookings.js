@@ -66,6 +66,65 @@ function bookingActivityMetadata (booking, extra = {}) {
   }
 }
 
+function getBookingObject (booking) {
+  return typeof booking.toObject === 'function' ? booking.toObject() : booking
+}
+
+function getBookingDayOfWeek (booking) {
+  const date = new Date(`${booking.date}T00:00:00`)
+  return date.getDay()
+}
+
+function findMatchingSlot (availability, booking) {
+  if (!availability || !Array.isArray(availability.weeklySchedule)) return null
+
+  const bookingDayOfWeek = getBookingDayOfWeek(booking)
+  const daySchedule = availability.weeklySchedule.find(day => day.dayOfWeek === bookingDayOfWeek)
+  if (!daySchedule || !Array.isArray(daySchedule.slots)) return null
+
+  return daySchedule.slots.find(slot => {
+    const sameTime = slot.start === booking.startTime && slot.end === booking.endTime
+    const sameCourse = !booking.module || !slot.course || slot.course === booking.module
+    return sameTime && sameCourse
+  }) || null
+}
+
+async function getEffectiveMaxStudents (booking) {
+  const bookingObject = getBookingObject(booking)
+
+  const availability = await Availability.findOne({ lecturerEmail: bookingObject.lecturerId })
+  const matchingSlot = findMatchingSlot(availability, bookingObject)
+  const slotMaxStudents = Number(matchingSlot?.maxStudents)
+
+  if (slotMaxStudents > 0) {
+    return slotMaxStudents
+  }
+
+  return Number(bookingObject.maxStudents) || 1
+}
+
+async function enrichBookingsWithCapacity (bookings) {
+  const lecturerIds = [...new Set(bookings.map(booking => booking.lecturerId).filter(Boolean))]
+  const availabilities = await Promise.all(
+    lecturerIds.map(async lecturerId => [
+      lecturerId,
+      await Availability.findOne({ lecturerEmail: lecturerId })
+    ])
+  )
+  const availabilityByLecturer = new Map(availabilities)
+
+  return bookings.map(booking => {
+    const bookingObject = getBookingObject(booking)
+    const matchingSlot = findMatchingSlot(availabilityByLecturer.get(bookingObject.lecturerId), bookingObject)
+    const maxStudents = Number(matchingSlot?.maxStudents) || Number(bookingObject.maxStudents) || 1
+    return {
+      ...bookingObject,
+      maxStudents,
+      spacesLeft: Math.max(maxStudents - (bookingObject.participantIDs || []).length, 0)
+    }
+  })
+}
+
 // GET: Fetch all available courses and lecturers for the booking form
 router.get('/form-data', async (req, res) => {
   try {
@@ -130,6 +189,7 @@ async function createBooking (req, res) {
       module: req.body.module,
       venue: req.body.venue || '',
       topic: req.body.topic.trim(),
+      maxStudents: Number(req.body.maxStudents) || 1,
       status: 'upcoming',
       participantIDs: [req.body.studentId], // CRITICAL for your "leave" feature
       leftParticipantIDs: []
@@ -190,18 +250,29 @@ router.put('/session/cancel', async (req, res) => {
 // GET: Fetch ONLY the logged-in student's bookings (RESTORED GROUP LOGIC)
 router.get('/', async (req, res) => {
   try {
-    const { studentId } = req.query
+    const { studentId, status } = req.query
 
-    if (!studentId) {
+    if (!studentId && !status) {
       return res.status(400).json({ error: 'Student ID is required.' })
     }
 
-    const rawBookings = await Booking.find({
-      $or: [
+    const query = {}
+    if (status) {
+      query.status = { $in: status.split(',').map(s => s.trim()).filter(Boolean) }
+    }
+    if (studentId) {
+      query.$or = [
         { participantIDs: studentId },
         { leftParticipantIDs: studentId }
       ]
-    }).sort({ date: 1, startTime: 1 }).lean()
+    }
+
+    const rawBookings = await Booking.find(query).sort({ date: 1, startTime: 1 }).lean()
+
+    if (!studentId) {
+      const bookings = await enrichBookingsWithCapacity(rawBookings)
+      return res.json(bookings)
+    }
 
     const lecturerIdentifiers = [...new Set(rawBookings.map(b => b.lecturerId).filter(Boolean))]
 
@@ -331,6 +402,37 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+// JOIN: Add a student to a peer session if there is capacity
+router.put('/:id/join', async (req, res) => {
+  try {
+    const { email } = req.body
+    const booking = await Booking.findById(req.params.id)
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Session not found' })
+    }
+
+    const participants = Array.isArray(booking.participantIDs) ? booking.participantIDs : []
+    if (participants.includes(email)) {
+      return res.status(400).json({ success: false, message: 'Already joined this session' })
+    }
+
+    const maxStudents = await getEffectiveMaxStudents(booking)
+    if (participants.length >= maxStudents) {
+      return res.status(400).json({ success: false, message: 'This session is already full' })
+    }
+
+    await Booking.findByIdAndUpdate(req.params.id, {
+      $addToSet: { participantIDs: email }
+    })
+
+    res.json({ success: true, message: 'Successfully joined the session.' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ success: false, error: 'Failed to join session' })
   }
 })
 

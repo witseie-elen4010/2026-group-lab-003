@@ -38,6 +38,10 @@ const bookingSchema = new mongoose.Schema({
     default: '',
     trim: true
   },
+  maxStudents: {
+    type: Number,
+    default: 1
+  },
   createdAt: {
     type: Date,
     default: Date.now

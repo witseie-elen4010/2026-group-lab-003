@@ -107,6 +107,42 @@ function activityMatchesRequester(activity, requester) {
     return requester.values.some(value => searchableValues.includes(String(value)));
 }
 
+function getActivityCourse(activity) {
+    const metadata = activity.metadata || {};
+    return metadata.course || metadata.module || null;
+}
+
+function getLecturerCourseSet(availabilities, bookings, requester) {
+    if (requester.role !== 'lecturer') return null;
+
+    const lecturerAvailabilities = availabilities.filter(availability =>
+        requester.values.includes(String(availability.lecturerEmail))
+    );
+    const lecturerBookings = bookings.filter(booking =>
+        requester.values.includes(String(booking.lecturerId))
+    );
+
+    const courses = [
+        ...lecturerAvailabilities.flatMap(availability => [
+        ...(Array.isArray(availability.courses) ? availability.courses : []),
+        ...(availability.weeklySchedule || []).flatMap(day =>
+            (day.slots || []).map(slot => slot.course)
+        )
+        ]),
+        ...lecturerBookings.map(booking => booking.module)
+    ];
+
+    const courseSet = new Set(courses.filter(Boolean).map(String));
+    return courseSet.size > 0 ? courseSet : null;
+}
+
+function activityMatchesLecturerCourses(activity, lecturerCourses) {
+    if (!lecturerCourses) return true;
+
+    const course = getActivityCourse(activity);
+    return !course || lecturerCourses.has(String(course));
+}
+
 function bookingToActivity(booking) {
     const participants = Array.isArray(booking.participantIDs) ? booking.participantIDs : [];
     const canceled = booking.status === 'canceled';
@@ -193,12 +229,14 @@ router.get('/', async (req, res) => {
             Availability.find().lean()
         ]);
 
+        const lecturerCourses = getLecturerCourseSet(availabilities, bookings, requester);
         const combinedActivities = [
             ...activities.map(activity => enrichActivityIdentity(toPlainActivity(activity))),
             ...bookings.map(bookingToActivity),
             ...availabilities.flatMap(availabilityToActivities)
         ]
             .filter(activity => activityMatchesRequester(activity, requester))
+            .filter(activity => activityMatchesLecturerCourses(activity, lecturerCourses))
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
             .slice(0, 500);
 

@@ -196,37 +196,36 @@ class StudentScheduleManager {
       return true
     })
 
-    // NEW SORTING LOGIC: Priority by Status, then by Date
+    this.filteredSessions.sort((a, b) => this.compareDashboardSessions(a, b))
+
+    this.render()
+  }
+
+  compareDashboardSessions (a, b) {
     const statusPriority = {
       ongoing: 1,
       upcoming: 2,
       completed: 3,
       canceled: 4
     }
+    const priorityA = statusPriority[a.status] || 99
+    const priorityB = statusPriority[b.status] || 99
 
-    this.filteredSessions.sort((a, b) => {
-      const priorityA = statusPriority[a.status] || 99
-      const priorityB = statusPriority[b.status] || 99
+    if (priorityA !== priorityB) return priorityA - priorityB
 
-      // If statuses are different, sort by priority
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB
-      }
+    const timeA = this.getSessionStartTime(a)
+    const timeB = this.getSessionStartTime(b)
 
-      // If statuses are the same, sort by date/time
-      const dateA = new Date(`${a.date}T${a.time}`)
-      const dateB = new Date(`${b.date}T${b.time}`)
+    if (a.status === 'completed' || a.status === 'canceled') {
+      return timeB - timeA
+    }
 
-      // For completed/canceled things, show the newest ones first
-      if (a.status === 'completed' || a.status === 'canceled') {
-        return dateB - dateA
-      }
+    return timeA - timeB
+  }
 
-      // For upcoming things, show the nearest ones first
-      return dateA - dateB
-    })
-
-    this.render()
+  getSessionStartTime (session) {
+    const timestamp = new Date(`${session.date}T${session.time}`).getTime()
+    return Number.isNaN(timestamp) ? Number.MAX_SAFE_INTEGER : timestamp
   }
 
   updateFilterOptions () {
@@ -287,9 +286,6 @@ class StudentScheduleManager {
                 </div>
                 <span class="session-status ${statusClass}">${session.status || 'unknown'}</span>
                 <div class="session-actions">
-                    <button class="btn btn-sm btn-outline" onclick="scheduleManager.showDetail('${session.id}')">
-                        <i class="fas fa-info-circle"></i> Details
-                    </button>
                     ${session.status === 'upcoming'
 ? `
                         <button class="btn btn-sm btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')">

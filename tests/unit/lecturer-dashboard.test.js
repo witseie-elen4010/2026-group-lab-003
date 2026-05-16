@@ -340,6 +340,48 @@ describe('Lecturer Dashboard', () => {
     });
 
 
+    describe('Filtering and Sorting', () => {
+        test('should order ongoing sessions first then upcoming soonest', async () => {
+            const manager = new LecturerScheduleManager();
+            await waitForInit();
+
+            manager.sessions = [
+                {
+                    id: 'later',
+                    status: 'upcoming',
+                    date: '2026-05-20',
+                    time: '14:00',
+                    courseCode: 'ELEN4010',
+                    studentName: 'Later Student',
+                    joinedStudents: []
+                },
+                {
+                    id: 'soon',
+                    status: 'upcoming',
+                    date: '2026-05-18',
+                    time: '09:00',
+                    courseCode: 'ELEN4010',
+                    studentName: 'Soon Student',
+                    joinedStudents: []
+                },
+                {
+                    id: 'now',
+                    status: 'ongoing',
+                    date: '2026-05-18',
+                    time: '08:00',
+                    courseCode: 'ELEN4010',
+                    studentName: 'Now Student',
+                    joinedStudents: []
+                }
+            ];
+
+            manager.applyFilters();
+
+            expect(manager.filteredSessions.map(session => session.id)).toEqual(['now', 'soon', 'later']);
+        });
+    });
+
+
     describe('Rendering',() => {
         test('should show empty state when no sessions', () => {
             const manager = new LecturerScheduleManager();
