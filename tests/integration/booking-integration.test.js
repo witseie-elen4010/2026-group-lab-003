@@ -21,9 +21,14 @@ jest.mock('../../src/models/Availability', () => ({
   findOne: jest.fn()
 }));
 
+jest.mock('../../src/models/user', () => ({
+  find: jest.fn()
+}));
+
 const app = require('../../src/app');
 const Booking = require('../../src/models/booking');
 const Availability = require('../../src/models/Availability');
+const User = require('../../src/models/user');
 
 describe('Booking Integration Tests', () => {
   beforeEach(() => {
@@ -37,6 +42,7 @@ describe('Booking Integration Tests', () => {
       startTime: '10:00',
       endTime: '11:00',
       module: 'ELEN4010',
+      venue: 'Room 101',
       studentId: 'student@wits.ac.za',
       topic: 'First student topic'
     };
@@ -108,7 +114,7 @@ describe('Booking Integration Tests', () => {
     Availability.findOne.mockResolvedValue({
       lecturerEmail: 'lecturer@wits.ac.za',
       weeklySchedule: [
-        { dayOfWeek: 1, slots: [{ start: '09:00', end: '10:00', duration: 30 }] }
+        { dayOfWeek: 1, slots: [{ start: '09:00', end: '10:00', duration: 30, venue: 'Room 101' }] }
       ]
     });
     Booking.find.mockResolvedValue([
@@ -124,7 +130,7 @@ describe('Booking Integration Tests', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      availableBlocks: [{ start: '09:00', end: '10:00', duration: 30 }],
+      availableBlocks: [{ start: '09:00', end: '10:00', duration: 30, venue: 'Room 101' }],
       bookedTimes: ['09:00']
     });
     expect(Availability.findOne).toHaveBeenCalledWith({ lecturerEmail: 'lecturer@wits.ac.za' });
@@ -186,6 +192,7 @@ describe('Booking Integration Tests', () => {
       {
         _id: 'b1',
         studentId: 'student@wits.ac.za',
+        lecturerId: 'lecturer@wits.ac.za',
         participantIDs: ['student@wits.ac.za'],
         leftParticipantIDs: [],
         date: '2026-06-01',
@@ -195,13 +202,20 @@ describe('Booking Integration Tests', () => {
     const lean = jest.fn().mockResolvedValue(bookings);
     const sort = jest.fn().mockReturnValue({ lean });
     Booking.find.mockReturnValue({ sort });
+    User.find.mockReturnValue({
+      lean: jest.fn().mockResolvedValue([
+        { email: 'lecturer@wits.ac.za', name: 'Jane', surname: 'Smith' }
+      ])
+    });
 
     const response = await request(app)
       .get('/api/bookings')
       .query({ studentId: 'student@wits.ac.za' });
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual(bookings);
+    expect(response.body).toEqual([
+      { ...bookings[0], lecturerName: 'Jane Smith' }
+    ]);
     expect(Booking.find).toHaveBeenCalledWith({
       $or: [
         { participantIDs: 'student@wits.ac.za' },
@@ -210,6 +224,10 @@ describe('Booking Integration Tests', () => {
     });
     expect(sort).toHaveBeenCalledWith({ date: 1, startTime: 1 });
     expect(lean).toHaveBeenCalled();
+    expect(User.find).toHaveBeenCalledWith(
+      { email: { $in: ['lecturer@wits.ac.za'] }, role: 'lecturer' },
+      'name surname email'
+    );
   });
 
   it('soft-cancels a booking when the requester owns it', async () => {

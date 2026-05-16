@@ -106,8 +106,9 @@ class StudentScheduleManager {
           time: b.startTime,
           duration: 30,
           courseCode: b.module,
-          lecturerName: b.lecturerId === 'lecturer_1' ? 'Dr. Smith' : 'Prof. Jones',
+          lecturerName: b.lecturerName || b.lecturerId || 'Unknown Lecturer',
           topic: b.topic || 'No topic specified',
+          location: b.venue || 'Online',
           status: b.status || 'upcoming',
           organizerEmail: b.studentId,
           participantsCount: participantCount

@@ -119,6 +119,7 @@ class LecturerScheduleManager {
             duration: this.calculateDuration(b.startTime, b.endTime),
             status: b.status || 'upcoming',
             topic: b.topic || '',
+            location: b.venue || 'Not specified',
             joinedStudents: b.joinedStudents,
             studentTopics: b.studentTopics || {},
             

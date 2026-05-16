@@ -239,8 +239,9 @@ body {
     border-radius: 20px;
     padding: 15px;
     display: flex;
+    flex-direction: column;
     gap: 15px;
-    align-items: center;
+    align-items: stretch;
     transition: background 0.2s ease;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -250,7 +251,7 @@ body {
 }
 
 .slot-info {
-    flex: 1;
+    width: 100%;
     min-width: 0;
 }
 
@@ -259,17 +260,243 @@ body {
     font-weight: 700;
     color: white;
     margin-bottom: 5px;
+    white-space: nowrap;
 }
 
 .slot-details {
     font-size: 13px;
     color: rgba(255, 255, 255, 0.7);
     margin-bottom: 3px;
+    overflow-wrap: anywhere;
 }
 
 .slot-details span {
     color: #FFC107;
     font-weight: 600;
+}
+
+/* Slot actions container - Copy button + Cancel button */
+.slot-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+/* Copy button */
+.copy-slot-btn {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    height: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0 12px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    min-width: max-content;
+}
+
+.copy-slot-btn:hover {
+    background: rgba(255, 193, 7, 0.2);
+    border-color: #FFC107;
+    color: #FFC107;
+}
+
+.copy-slot-btn:active {
+    opacity: 0.6;
+}
+
+/* Copy dropdown menu - attached to <body> to float above all stacking contexts */
+.copy-dropdown-menu {
+    background: rgba(30, 30, 40, 0.98);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    min-width: 320px;
+    max-width: 380px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    padding: 10px 0;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+}
+
+/* Copy dropdown wrapper - no longer used inline but kept for reference */
+
+.copy-dropdown-header {
+    padding: 8px 16px 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #FFC107;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 4px;
+}
+
+.copy-dropdown-sub {
+    padding: 4px 16px 10px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 4px;
+}
+
+.copy-day-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+    transition: background 0.15s;
+    flex-wrap: wrap;
+}
+
+.copy-day-option:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.copy-day-option i {
+    color: #FFC107;
+    font-size: 14px;
+    width: 18px;
+    text-align: center;
+}
+
+.copy-day-time {
+    display: inline-flex;
+    align-items: center;
+    margin-left: auto;
+    gap: 2px;
+}
+
+.copy-time-start,
+.copy-time-end {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 3px 6px;
+    font-size: 12px;
+    color: white;
+    width: 80px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.copy-time-start:focus,
+.copy-time-end:focus {
+    border-color: #FFC107;
+}
+
+.copy-apply-btn {
+    background: #FFC107;
+    color: black;
+    border: none;
+    border-radius: 20px;
+    height: 26px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0 12px;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+}
+
+.copy-apply-btn:hover {
+    opacity: 0.85;
+}
+
+.copy-apply-btn:active {
+    opacity: 0.6;
+}
+
+/* Day card highlight animation when slot details are copied */
+.day-card-highlight {
+    animation: highlightPulse 1.5s ease;
+    border-color: #FFC107 !important;
+}
+
+@keyframes highlightPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
+    50% { box-shadow: 0 0 20px 5px rgba(255, 193, 7, 0.25); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+}
+
+/* Copy fill message inside day card */
+.copy-fill-msg {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-align: center;
+    animation: fadeInUp 0.3s ease;
+}
+
+/* Conflict warning variant of the copy fill message */
+.copy-fill-msg.conflict {
+    background: rgba(255, 77, 77, 0.2);
+    color: #ff6b6b;
+    border-color: rgba(255, 77, 77, 0.3);
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Close bar inside dropdown */
+.copy-dropdown-close-bar {
+    padding: 6px 16px 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    margin-top: 4px;
+    text-align: center;
+}
+
+.copy-dropdown-close-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 20px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.copy-dropdown-close-btn:hover {
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Backdrop overlay to catch outside clicks for the floating dropdown */
+.copy-dropdown-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999998;
+    background: transparent;
 }
 
 .cancel-slot-btn {
@@ -284,6 +511,7 @@ body {
     padding: 0 15px;
     transition: opacity 0.2s ease;
     flex-shrink: 0;
+    min-width: max-content;
 }
 
 .cancel-slot-btn:active {
@@ -354,11 +582,240 @@ body {
     }
 
     .slot-item {
-        flex-direction: column;
         align-items: flex-start;
     }
 
-    .cancel-slot-btn {
-        width: 100%;
+    .slot-actions {
+        align-items: stretch;
     }
+
+    .edit-slot-btn {
+        width: auto;
+        min-width: 30px;
+    }
+
+    .copy-slot-btn,
+    .cancel-slot-btn {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+}
+
+/* ─── Edit Button ─────────────────────────────────────────────────────────── */
+
+.edit-slot-btn {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.edit-slot-btn:hover {
+    background: rgba(88, 166, 255, 0.25);
+    border-color: #58A6FF;
+    color: #58A6FF;
+}
+
+.edit-slot-btn:active {
+    opacity: 0.6;
+}
+
+/* Disabled state — slot has bookings, cannot be edited */
+.edit-slot-btn.disabled,
+.edit-slot-btn:disabled {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.25);
+    cursor: not-allowed;
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+/* ─── Edit Modal ──────────────────────────────────────────────────────────── */
+
+.edit-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.edit-modal-overlay.visible {
+    opacity: 1;
+}
+
+.edit-modal {
+    background: rgba(25, 25, 35, 0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+    width: 90%;
+    max-width: 420px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalSlideIn 0.25s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.edit-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px 0;
+}
+
+.edit-modal-header h3 {
+    margin: 0;
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.edit-modal-header h3 i {
+    color: #FFC107;
+}
+
+.edit-modal-close-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.edit-modal-close-btn:hover {
+    color: white;
+}
+
+.edit-modal-body {
+    padding: 16px 24px;
+}
+
+.edit-modal-day {
+    color: #FFC107;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.edit-modal-body label {
+    display: block;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    margin-top: 12px;
+}
+
+.edit-modal-body label:first-of-type {
+    margin-top: 0;
+}
+
+.edit-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: white;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: 'Inter', sans-serif;
+}
+
+.edit-input:focus {
+    border-color: #58A6FF;
+    box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.15);
+}
+
+.edit-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 24px 20px;
+}
+
+.edit-modal-cancel-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 25px;
+    height: 38px;
+    padding: 0 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.edit-modal-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: white;
+}
+
+.edit-modal-save-btn {
+    background: #FFC107;
+    color: black;
+    border: none;
+    border-radius: 25px;
+    height: 38px;
+    padding: 0 24px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: opacity 0.2s;
+}
+
+.edit-modal-save-btn:hover {
+    opacity: 0.85;
+}
+
+.edit-modal-save-btn:active {
+    opacity: 0.6;
 }

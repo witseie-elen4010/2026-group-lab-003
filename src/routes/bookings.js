@@ -3,6 +3,7 @@ const express = require('express')
 const router = express.Router()
 const Availability = require('../models/Availability')
 const Booking = require('../models/booking')
+const User = require('../models/user')
 
 // Import your awesome middleware
 const { validateLecturerHours } = require('../middleware/booking-validator')
@@ -68,6 +69,7 @@ async function createBooking(req, res) {
       startTime: req.body.startTime,
       endTime: req.body.endTime,
       module: req.body.module,
+      venue: req.body.venue || '',
       topic: req.body.topic.trim(),
       status: 'upcoming',
       participantIDs: [req.body.studentId], // CRITICAL for your "leave" feature
@@ -129,12 +131,26 @@ router.get('/', async (req, res) => {
       ]
     }).sort({ date: 1, startTime: 1 }).lean()
 
+    const lecturerEmails = [...new Set(rawBookings.map(b => b.lecturerId).filter(Boolean))]
+    const lecturers = lecturerEmails.length
+      ? await User.find({ email: { $in: lecturerEmails }, role: 'lecturer' }, 'name surname email').lean()
+      : []
+    const lecturersByEmail = new Map(lecturers.map(lecturer => [
+      lecturer.email,
+      [lecturer.name, lecturer.surname].filter(Boolean).join(' ')
+    ]))
+
     // Dynamically override the status to 'canceled' on the user's side if they left
     const bookings = rawBookings.map(b => {
-      if (b.leftParticipantIDs && b.leftParticipantIDs.includes(studentId)) {
-        return { ...b, status: 'canceled' }
+      const booking = {
+        ...b,
+        lecturerName: lecturersByEmail.get(b.lecturerId) || b.lecturerId || 'Unknown Lecturer'
       }
-      return b
+
+      if (b.leftParticipantIDs && b.leftParticipantIDs.includes(studentId)) {
+        return { ...booking, status: 'canceled' }
+      }
+      return booking
     })
 
     res.json(bookings)

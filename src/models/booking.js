@@ -28,6 +28,11 @@ const bookingSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  venue: {
+    type: String,
+    default: '',
+    trim: true
+  },
   topic: {
     type: String,
     default: '',

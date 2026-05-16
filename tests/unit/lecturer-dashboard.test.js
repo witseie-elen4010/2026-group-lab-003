@@ -165,6 +165,7 @@ describe('Lecturer Dashboard', () => {
                         endTime: '09:00',
                         status: 'upcoming',
                         topic: 'Arrays',
+                        venue: 'Room 101',
                         participantIDs: ['student@wits.ac.za']
                     }
                 ])
@@ -199,6 +200,7 @@ describe('Lecturer Dashboard', () => {
                         endTime: '09:00',
                         status: 'upcoming',
                         topic: 'First student topic',
+                        venue: 'Room 101',
                         createdAt: '2026-05-01T08:00:00.000Z',
                         participantIDs: ['alice@wits.ac.za']
                     },
@@ -212,6 +214,7 @@ describe('Lecturer Dashboard', () => {
                         endTime: '09:00',
                         status: 'upcoming',
                         topic: 'Second student topic',
+                        venue: 'Room 101',
                         createdAt: '2026-05-01T08:05:00.000Z',
                         participantIDs: ['bob@wits.ac.za']
                     }
@@ -231,6 +234,7 @@ describe('Lecturer Dashboard', () => {
             expect(document.querySelectorAll('.session-card')).toHaveLength(1);
             expect(document.getElementById('schedule-list').textContent).toContain('2 joined');
             expect(document.getElementById('schedule-list').textContent).toContain('First student topic');
+            expect(document.getElementById('schedule-list').textContent).toContain('Room 101');
             expect(document.getElementById('schedule-list').textContent).not.toContain('Second student topic');
 
             document.querySelector('[data-session-action="details"]').click();
@@ -270,9 +274,10 @@ describe('Lecturer Dashboard', () => {
                             date: '2026-05-18',
                             startTime: '08:00',
                             endTime: '09:00',
-                            status: 'upcoming',
-                            topic: 'Arrays',
-                            participantIDs: ['alice@wits.ac.za']
+                        status: 'upcoming',
+                        topic: 'Arrays',
+                        venue: 'Room 101',
+                        participantIDs: ['alice@wits.ac.za']
                         },
                         {
                             _id: 'booking-2',
@@ -282,9 +287,10 @@ describe('Lecturer Dashboard', () => {
                             date: '2026-05-18',
                             startTime: '08:00',
                             endTime: '09:00',
-                            status: 'upcoming',
-                            topic: 'Arrays',
-                            participantIDs: ['bob@wits.ac.za']
+                        status: 'upcoming',
+                        topic: 'Arrays',
+                        venue: 'Room 101',
+                        participantIDs: ['bob@wits.ac.za']
                         }
                     ])
                 })
