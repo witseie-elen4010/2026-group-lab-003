@@ -188,6 +188,19 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Booking not found' })
     }
 
+    if (!Array.isArray(booking.participantIDs)) {
+      if (booking.studentId !== studentEmail) {
+        return res.status(403).json({ success: false, message: 'Unauthorized to cancel this booking' })
+      }
+
+      await Booking.findByIdAndUpdate(id, { status: 'canceled' })
+      return res.status(200).json({ success: true, message: 'Booking successfully canceled' })
+    }
+
+    if (!booking.participantIDs.includes(studentEmail)) {
+      return res.status(403).json({ success: false, message: 'Unauthorized to cancel this booking' })
+    }
+
     // 3. Remove this student from the participants array
     const updatedParticipants = booking.participantIDs.filter(email => email !== studentEmail)
 

@@ -151,8 +151,9 @@ class StudentScheduleManager {
           time: b.startTime,
           duration,
           courseCode: b.module,
-          lecturerName: b.lecturerId === 'lecturer_1' ? 'Dr. Smith' : 'Prof. Jones',
+          lecturerName: b.lecturerName || b.lecturerId || 'Unknown Lecturer',
           topic: b.topic || 'No topic specified',
+          location: b.venue || 'Online',
           status: calculatedStatus, // Uses our new dynamic status
           organizerEmail: b.studentId,
           participantsCount: participantCount
@@ -328,8 +329,8 @@ class StudentScheduleManager {
         ${session.status === 'upcoming'
 ? `
             <div style="margin-top: 20px; text-align: center;">
-                <button class="btn btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
-                    <i class="fas fa-trash-alt"></i> Cancel Consultation
+                    <button class="btn btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
+                    <i class="fas fa-trash-alt"></i> Leave Consultation
                 </button>
             </div>
         `
