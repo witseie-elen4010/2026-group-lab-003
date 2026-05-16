@@ -25,7 +25,7 @@ router.get('/availability', async (req, res) => {
     const dateObj = new Date(date)
     const dayOfWeek = dateObj.getDay()
 
-    const schedule = await Availability.findOne({ lecturerId })
+    const schedule = await Availability.findOne({ lecturerEmail: lecturerId })
 
     if (!schedule) {
       return res.status(404).json({ error: 'Lecturer availability not found.' })
@@ -55,10 +55,12 @@ router.get('/availability', async (req, res) => {
   }
 })
 
-// POST: Save a new booking (MERGED AND FIXED!)
-// Notice how it uses your middleware AND saves the data properly now
-router.post('/', validateLecturerHours, async (req, res) => {
+async function createBooking(req, res) {
   try {
+    if (!req.body.topic || !req.body.topic.trim()) {
+      return res.status(400).json({ success: false, message: 'Topic is required' })
+    }
+
     const newBooking = new Booking({
       studentId: req.body.studentId,
       lecturerId: req.body.lecturerId,
@@ -66,7 +68,7 @@ router.post('/', validateLecturerHours, async (req, res) => {
       startTime: req.body.startTime,
       endTime: req.body.endTime,
       module: req.body.module,
-      topic: req.body.topic,
+      topic: req.body.topic.trim(),
       status: 'upcoming',
       participantIDs: [req.body.studentId], // CRITICAL for your "leave" feature
       leftParticipantIDs: []
@@ -77,6 +79,36 @@ router.post('/', validateLecturerHours, async (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Failed to create booking' })
+  }
+}
+
+// POST: Save a new booking (MERGED AND FIXED!)
+// Notice how it uses your middleware AND saves the data properly now
+router.post('/', validateLecturerHours, createBooking)
+router.post('/create', validateLecturerHours, createBooking)
+
+// PUT: Cancel every booking that belongs to the same grouped lecturer session
+router.put('/session/cancel', async (req, res) => {
+  try {
+    const { bookingIds } = req.body
+
+    if (!Array.isArray(bookingIds) || bookingIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'bookingIds are required' })
+    }
+
+    const result = await Booking.updateMany(
+      { _id: { $in: bookingIds } },
+      { $set: { status: 'canceled' } }
+    )
+
+    res.json({
+      success: true,
+      message: 'Session canceled for all participants',
+      modifiedCount: result.modifiedCount || 0
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ success: false, message: 'Failed to cancel session' })
   }
 })
 
@@ -191,8 +223,7 @@ router.get('/lecturer/bookings', async (req, res) => {
   try {
     const { email } = req.query
     const bookings = await Booking.find({
-      lecturerId: email,
-      status: 'upcoming'
+      lecturerId: email
     }).sort({ date: 1, startTime: 1 })
 
     res.json(bookings)

@@ -32,6 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadFormData () {
     try {
       const response = await fetch('/api/bookings/form-data')
+      if (!response.ok) throw new Error(`Failed to load form data: ${response.status}`)
+
       availabilityData = await response.json()
 
       const uniqueCourses = new Set()

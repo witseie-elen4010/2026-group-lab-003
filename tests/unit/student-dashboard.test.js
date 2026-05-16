@@ -15,6 +15,12 @@ global.fetch = jest.fn(() =>
 
 global.confirm = jest.fn(() => true)
 global.alert = jest.fn()
+global.bootstrap = {
+  Modal: jest.fn().mockImplementation(() => ({
+    show: jest.fn(),
+    hide: jest.fn()
+  }))
+}
 
 const { StudentScheduleManager } = require('../../public/js/student-dashboard.js')
 
