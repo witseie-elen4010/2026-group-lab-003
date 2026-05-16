@@ -5,12 +5,10 @@ class StudentScheduleManager {
     this.filteredSessions = []
     this.currentStudent = null
 
-    // Initialize Bootstrap Modal instance once
-    this.bsModal = new bootstrap.Modal(document.getElementById('session-modal'))
-
     this.init()
   }
 
+  // 1. Make init async so we can wait for the database fetch
   async init () {
     this.loadCurrentStudent()
     await this.loadSessions()
@@ -33,14 +31,17 @@ class StudentScheduleManager {
   get searchInput () { return document.getElementById('search-input') }
   get scheduleList () { return document.getElementById('schedule-list') }
   get emptyState () { return document.getElementById('empty-state') }
+  get sessionModal () { return document.getElementById('session-modal') }
   get sessionDetailContent () { return document.getElementById('session-detail-content') }
 
+  // EVENT LISTENERS
   setupEventListeners () {
     this.statusFilter.addEventListener('change', () => this.handleFilterChange())
     this.courseFilter.addEventListener('change', () => this.handleFilterChange())
     this.dateFilter.addEventListener('change', () => this.handleFilterChange())
     this.searchInput.addEventListener('input', this.debounce(() => this.handleFilterChange(), 300))
 
+    // 2. Make the refresh button async
     document.getElementById('refresh-btn').addEventListener('click', async () => {
       await this.loadSessions()
       this.updateStats()
@@ -48,15 +49,32 @@ class StudentScheduleManager {
       this.applyFilters()
     })
 
-    /* NOTE: We removed the menu-toggle and closeModal listeners.
-       Bootstrap handles the dropdown and modal closing via data-bs attributes.
-    */
+    document.getElementById('close-session-modal').addEventListener('click', () => this.closeModal())
+    this.sessionModal.addEventListener('click', (e) => {
+      if (e.target === this.sessionModal) this.closeModal()
+    })
 
-    // Sign Out functionality
+    const menuBtn = document.getElementById('menu-toggle')
+    const sideMenu = document.getElementById('side-menu')
+
+    if (menuBtn && sideMenu) {
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        sideMenu.classList.toggle('hidden')
+      })
+
+      document.addEventListener('click', (e) => {
+        if (!sideMenu.contains(e.target) && !menuBtn.contains(e.target)) {
+          sideMenu.classList.add('hidden')
+        }
+      })
+    }
+
     const signOutBtn = document.querySelector('.sign-out')
     if (signOutBtn) {
       signOutBtn.addEventListener('click', (e) => {
         e.preventDefault()
+        console.log('Clearing session and redirecting...')
         sessionStorage.removeItem(this.userStorageKey)
         localStorage.removeItem(this.userStorageKey)
         window.location.href = 'login-page.html'
@@ -66,6 +84,10 @@ class StudentScheduleManager {
 
   handleFilterChange () {
     this.applyFilters()
+  }
+
+  closeModal () {
+    this.sessionModal.classList.add('hidden')
   }
 
   // DATA MANAGEMENT
@@ -85,30 +107,54 @@ class StudentScheduleManager {
 
   async loadSessions () {
     try {
-      this.scheduleList.innerHTML = '<div class="text-center p-4 text-white">Loading your bookings...</div>'
+      this.scheduleList.innerHTML = '<div class="text-center p-4">Loading your bookings...</div>'
 
+      // 1. Grab the user EXACTLY like we did on the booking page
       const user = JSON.parse(sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user'))
 
+      // 2. Safety check
       if (!user || !user.email) {
         this.scheduleList.innerHTML = '<div class="text-center p-4 text-danger">Please log in to view your sessions.</div>'
         return
       }
 
+      // 3. Fetch ONLY this student's bookings using their email
       const studentEmail = user.email
       const response = await fetch(`/api/bookings?studentId=${studentEmail}`)
       const dbBookings = await response.json()
+      console.log('Bookings from Database:', dbBookings)
 
+      const now = new Date()
+
+      // 4. Map the data to the UI
       this.sessions = dbBookings.map(b => {
         const participantCount = Array.isArray(b.participantIDs) ? b.participantIDs.length : 1
+
+        // Dynamic Status Logic
+        let calculatedStatus = b.status || 'upcoming'
+        const duration = 30 // assumed 30 mins
+
+        if (b.date && b.startTime && calculatedStatus !== 'canceled') {
+          const sessionStart = new Date(`${b.date}T${b.startTime}`)
+          const sessionEnd = new Date(sessionStart.getTime() + duration * 60000)
+
+          if (now > sessionEnd) {
+            calculatedStatus = 'completed'
+          } else if (now >= sessionStart && now <= sessionEnd) {
+            calculatedStatus = 'ongoing'
+          }
+        }
+
         return {
           id: b._id,
           date: b.date,
           time: b.startTime,
-          duration: 30,
+          duration,
           courseCode: b.module,
-          lecturerName: b.lecturerId === 'lecturer_1' ? 'Dr. Smith' : 'Prof. Jones',
+          lecturerName: b.lecturerName || b.lecturerId || 'Unknown Lecturer',
           topic: b.topic || 'No topic specified',
-          status: b.status || 'upcoming',
+          location: b.venue || 'Online',
+          status: calculatedStatus, // Uses our new dynamic status
           organizerEmail: b.studentId,
           participantsCount: participantCount
         }
@@ -120,6 +166,7 @@ class StudentScheduleManager {
     }
   }
 
+  // FILTERING
   applyFilters () {
     const status = this.statusFilter.value
     const course = this.courseFilter.value
@@ -149,9 +196,33 @@ class StudentScheduleManager {
       return true
     })
 
+    // NEW SORTING LOGIC: Priority by Status, then by Date
+    const statusPriority = {
+      ongoing: 1,
+      upcoming: 2,
+      completed: 3,
+      canceled: 4
+    }
+
     this.filteredSessions.sort((a, b) => {
+      const priorityA = statusPriority[a.status] || 99
+      const priorityB = statusPriority[b.status] || 99
+
+      // If statuses are different, sort by priority
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB
+      }
+
+      // If statuses are the same, sort by date/time
       const dateA = new Date(`${a.date}T${a.time}`)
       const dateB = new Date(`${b.date}T${b.time}`)
+
+      // For completed/canceled things, show the newest ones first
+      if (a.status === 'completed' || a.status === 'canceled') {
+        return dateB - dateA
+      }
+
+      // For upcoming things, show the nearest ones first
       return dateA - dateB
     })
 
@@ -169,14 +240,17 @@ class StudentScheduleManager {
     })
   }
 
+  // STATISTICS
   updateStats () {
     const today = new Date().toISOString().split('T')[0]
+
     this.todayBookingsEl.textContent = this.sessions.filter(s => s.date === today && s.status !== 'canceled').length
     this.upcomingWeekEl.textContent = this.sessions.filter(s => (s.status === 'upcoming' || s.status === 'ongoing') && this.isThisWeek(s.date)).length
     this.totalCompletedEl.textContent = this.sessions.filter(s => s.status === 'completed').length
     this.canceledCountEl.textContent = this.sessions.filter(s => s.status === 'canceled').length
   }
 
+  // RENDERING
   displayCurrentDate () {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
     this.currentDateEl.textContent = new Date().toLocaleDateString('en-US', options)
@@ -194,106 +268,92 @@ class StudentScheduleManager {
 
   renderSessionCard (session) {
     const timeDisplay = this.formatTime(session.time)
+    const statusClass = `status-${session.status}`
     const location = session.location || 'Online'
 
-    const isOrganizer = this.currentStudent && this.currentStudent.email === session.organizerEmail
-
-    let actionButtons = ''
-    if (session.status === 'upcoming') {
-      if (isOrganizer) {
-        actionButtons = `
-          <button class="btn btn-sm btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')">
-            <i class="fas fa-times"></i> Cancel
-          </button>
-        `
-      } else {
-        actionButtons = `
-          <button class="btn btn-sm btn-warning" onclick="scheduleManager.leaveBooking('${session.id}')">
-            <i class="fas fa-sign-out-alt"></i> Leave
-          </button>
-        `
-      }
-    }
-
     return `
-      <div class="session-card d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3 border-start border-4 ${config.border}">
-          <div class="session-time text-center" style="min-width: 80px;">
-              <div class="h4 fw-bold text-white mb-0">${timeDisplay}</div>
-              <div class="small text-warning">${session.duration || 0} min</div>
-          </div>
-          <div class="session-info flex-grow-1">
-              <div class="small text-warning fw-bold text-uppercase tracking-wider mb-1">${this.escape(session.courseCode || '')}</div>
-              <div class="h5 text-white mb-2">${this.escape(session.topic)}</div>
-              <div class="d-flex gap-3 small text-white-50">
-                  <span><i class="fas fa-chalkboard-teacher me-1"></i> ${this.escape(session.lecturerName)}</span>
-                  <span><i class="fas fa-map-marker-alt me-1"></i> ${this.escape(location)}</span>
-              </div>
-          </div>
-          <div class="d-flex align-items-center gap-3">
-              <span class="badge ${config.badge} rounded-pill px-3 py-2 text-uppercase" style="font-size: 0.7rem;">
-                ${session.status}
-              </span>
-              <div class="btn-group">
-                  <button class="btn btn-sm btn-outline-light rounded-pill" onclick="scheduleManager.showDetail('${session.id}')">
-                      Details
-                  </button>
-              </div>
-          </div>
-      </div>
-    `
+            <div class="session-card">
+                <div class="session-time">
+                    <div class="time">${timeDisplay}</div>
+                    <div class="duration">${session.duration || 0}min</div>
+                </div>
+                <div class="session-info">
+                    <div class="session-course">${this.escape(session.courseCode || '')}</div>
+                    <div class="session-title">${this.escape(session.topic)}</div>
+                    <div class="session-meta">
+                        <span><i class="fas fa-chalkboard-teacher"></i> ${this.escape(session.lecturerName || 'Unknown Lecturer')}</span>
+                        <span><i class="fas fa-map-marker-alt"></i> ${this.escape(location)}</span>
+                    </div>
+                </div>
+                <span class="session-status ${statusClass}">${session.status || 'unknown'}</span>
+                <div class="session-actions">
+                    <button class="btn btn-sm btn-outline" onclick="scheduleManager.showDetail('${session.id}')">
+                        <i class="fas fa-info-circle"></i> Details
+                    </button>
+                    ${session.status === 'upcoming'
+? `
+                        <button class="btn btn-sm btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    `
+: ''}
+                </div>
+            </div>
+        `
   }
 
   showDetail (sessionId) {
     const session = this.sessions.find(s => s.id === sessionId)
     if (!session) return
 
-    const isOrganizer = this.currentStudent && this.currentStudent.email === session.organizerEmail
     const content = document.getElementById('session-detail-content')
 
-    this.sessionDetailContent.innerHTML = `
-        <div class="detail-row d-flex justify-content-between py-2 border-bottom">
-            <span class="fw-bold">Module:</span>
-            <span>${this.escape(session.courseCode)}</span>
+    content.innerHTML = `
+        <div class="detail-row">
+            <span class="detail-label">Module:</span>
+            <span class="detail-value">${this.escape(session.courseCode || session.module)}</span>
         </div>
-        <div class="detail-row d-flex justify-content-between py-2 border-bottom">
-            <span class="fw-bold">Date:</span>
-            <span>${this.escape(session.date)}</span>
+        <div class="detail-row">
+            <span class="detail-label">Date:</span>
+            <span class="detail-value">${this.escape(session.date)}</span>
         </div>
-        <div class="detail-row d-flex justify-content-between py-2 border-bottom">
-            <span class="fw-bold">Time:</span>
-            <span>${this.escape(session.time)}</span>
+        <div class="detail-row">
+            <span class="detail-label">Time:</span>
+            <span class="detail-value">${this.escape(session.startTime || session.time)} - ${this.escape(session.endTime || '')}</span>
         </div>
-        <div class="detail-row d-flex justify-content-between py-2 mb-4">
-            <span class="fw-bold">Status:</span>
-            <span class="badge status-${session.status}">${session.status}</span>
+        <div class="detail-row">
+            <span class="detail-label">Status:</span>
+            <span class="detail-value status-badge status-${session.status}">${session.status}</span>
         </div>
 
         ${session.status === 'upcoming'
 ? `
             <div style="margin-top: 20px; text-align: center;">
-                ${isOrganizer
-? `
-                  <button class="btn btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
-                      <i class="fas fa-trash-alt"></i> Cancel Consultation
-                  </button>
-                `
-: `
-                  <button class="btn btn-warning" onclick="scheduleManager.leaveBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
-                      <i class="fas fa-sign-out-alt"></i> Leave Consultation
-                  </button>
-                `}
+                    <button class="btn btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
+                    <i class="fas fa-trash-alt"></i> Leave Consultation
+                </button>
             </div>
         `
 : ''}
     `
-    // Use the Bootstrap instance to show the modal
-    this.bsModal.show()
+    this.sessionModal.classList.remove('hidden')
+  }
+
+  closeModal () {
+    this.sessionModal.classList.add('hidden')
   }
 
   async cancelBooking (sessionId) {
-    if (!confirm('Are you sure you want to cancel?')) return
+    if (!confirm('Are you sure you want to cancel or leave this consultation?')) {
+      return
+    }
 
     const currentUser = JSON.parse(sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user'))
+
+    if (!currentUser || !currentUser.email) {
+      alert('Error: You must be logged in to cancel a booking.')
+      return
+    }
 
     try {
       const response = await fetch(`/api/bookings/${sessionId}`, {
@@ -302,46 +362,19 @@ class StudentScheduleManager {
         body: JSON.stringify({ studentEmail: currentUser.email })
       })
 
-      if (response.ok) {
-        this.bsModal.hide() // Use Bootstrap instance to hide
-        await this.loadSessions()
-        this.applyFilters()
-        this.updateStats()
-      }
-    } catch (error) {
-      console.error('Cancellation Error:', error)
-    }
-  }
-
-  async leaveBooking (sessionId) {
-    if (!confirm('Are you sure you want to leave this consultation? Your space will be freed up, and this session will show as canceled for you.')) {
-      return
-    }
-
-    if (!this.currentStudent || !this.currentStudent.email) {
-      alert('Error: You must be logged in to leave a booking.')
-      return
-    }
-
-    try {
-      const response = await fetch(`/api/bookings/leave/${sessionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: this.currentStudent.email })
-      })
-
       const result = await response.json()
 
       if (response.ok && result.success) {
-        alert('You have successfully left the consultation.')
+        // UPDATE HERE: Use the dynamic message from the backend!
+        alert(result.message)
         this.closeModal()
         await this.init()
       } else {
-        alert('Failed to leave: ' + (result.message || 'Unknown error'))
+        alert('Failed: ' + (result.message || 'Unknown error'))
       }
     } catch (error) {
-      console.error('Leave Error:', error)
-      alert('An error occurred while trying to leave the booking.')
+      console.error('Cancellation Error:', error)
+      alert('An error occurred while trying to process this request.')
     }
   }
 
@@ -367,9 +400,11 @@ class StudentScheduleManager {
     const today = new Date()
     const day = today.getDay()
     const diffToMonday = day === 0 ? 6 : day - 1
+    // Set to midnight so the comparison works regardless of current time
     const startOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - diffToMonday, 0, 0, 0, 0)
     const endOfWeek = new Date(startOfWeek)
     endOfWeek.setDate(startOfWeek.getDate() + 6)
+    endOfWeek.setHours(23, 59, 59, 999)
     return date >= startOfWeek && date <= endOfWeek
   }
 
@@ -381,6 +416,7 @@ class StudentScheduleManager {
     startOfNextWeek.setDate(today.getDate() - today.getDay() + 7)
     const endOfNextWeek = new Date(startOfNextWeek)
     endOfNextWeek.setDate(startOfNextWeek.getDate() + 6)
+    endOfNextWeek.setHours(23, 59, 59, 999)
     return date >= startOfNextWeek && date <= endOfNextWeek
   }
 
@@ -400,7 +436,6 @@ class StudentScheduleManager {
   }
 }
 
-// INITIALIZE
 if (typeof module === 'undefined') {
   const scheduleManager = new StudentScheduleManager()
   window.scheduleManager = scheduleManager

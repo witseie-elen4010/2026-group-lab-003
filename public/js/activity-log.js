@@ -69,8 +69,8 @@ class ActivityLogManager {
         setTimeout(() => {
             btn.innerHTML = '<i class="fas fa-bookmark"></i> Copy Link';
         }, 2000);
-         });
-      });
+    });
+});
 
         document.getElementById('close-detail-modal').addEventListener('click', () => this.closeModal());
         this.detailModal.addEventListener('click', (e) => {
@@ -157,6 +157,11 @@ class ActivityLogManager {
     async clearAll() {
         if (confirm('Delete ALL activity logs? This cannot be undone.')) {
             try {
+            await fetch(this.apiBase, { method: 'DELETE' });
+            this.activities = [];
+            this.updateStats();
+            this.updateFilterOptions();
+            this.applyFilters();
                 const response = await fetch(this.apiBase, { method: 'DELETE' });
                 if (!response.ok) throw new Error('Failed to clear activities');
 
