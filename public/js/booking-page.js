@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectedStartInput = document.getElementById('selectedStartTime')
   const selectedEndInput = document.getElementById('selectedEndTime')
   const newBookingForm = document.getElementById('newBookingForm')
+  let selectedVenue = ''
 
   // Set minimum date to today to prevent past bookings
   const today = new Date().toISOString().split('T')[0]
@@ -32,6 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadFormData () {
     try {
       const response = await fetch('/api/bookings/form-data')
+      if (!response.ok) throw new Error(`Failed to load form data: ${response.status}`)
+
       availabilityData = await response.json()
 
       const uniqueCourses = new Set()
@@ -153,10 +156,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // 4. RENDER UTILITIES
   // ==========================================
-  function renderSlotsToUI (slotsArray) {
-    slotsContainer.innerHTML = ''
-    selectedStartInput.value = ''
-    selectedEndInput.value = ''
+  function renderSlotsToUI(slotsArray) {
+    slotsContainer.innerHTML = '';
+    selectedStartInput.value = '';
+    selectedEndInput.value = '';
+    selectedVenue = '';
 
     if (slotsArray.length === 0) {
       slotsContainer.innerHTML = '<div class="text-danger small">No available slots for this module on this date.</div>'
@@ -169,16 +173,18 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.className = 'btn btn-outline-primary m-1 slot-btn'
 
       // Safe check for duration
-      const durationText = slot.duration ? `<br><small class="text-muted">${slot.duration} min</small>` : ''
-      btn.innerHTML = `${slot.start} - ${slot.end} ${durationText}`
+      const durationText = slot.duration ? `<br><small class="text-muted">${slot.duration} min</small>` : '';
+      const venueText = slot.venue ? `<br><small class="text-muted">${slot.venue}</small>` : '';
+      btn.innerHTML = `${slot.start} - ${slot.end} ${durationText}${venueText}`;
 
       btn.onclick = () => {
         document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'))
         btn.classList.add('active')
 
-        selectedStartInput.value = slot.start
-        selectedEndInput.value = slot.end
-      }
+        selectedStartInput.value = slot.start;
+        selectedEndInput.value = slot.end;
+        selectedVenue = slot.venue || '';
+      };
 
       slotsContainer.appendChild(btn)
     })
@@ -211,6 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
         date: dateInput.value,
         startTime: selectedStartInput.value,
         endTime: selectedEndInput.value,
+        venue: selectedVenue,
         participantIDs: [user.email],
         topic: document.getElementById('topic') ? document.getElementById('topic').value : ''
       }

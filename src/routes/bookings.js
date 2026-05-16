@@ -3,9 +3,24 @@ const express = require('express')
 const router = express.Router()
 const Availability = require('../models/Availability')
 const Booking = require('../models/booking')
+const User = require('../models/user')
 
 // Import your awesome middleware
 const { validateLecturerHours } = require('../middleware/booking-validator')
+
+function formatStudentDisplayName(student) {
+  const firstName = student.name ? student.name.trim() : ''
+  const surname = student.surname ? student.surname.trim() : ''
+  const displayNameParts = (student.displayName || '').trim().split(/\s+/)
+  const displayFirstName = displayNameParts.length > 1 ? displayNameParts[0] : ''
+  const displaySurname = displayNameParts.length > 1 ? displayNameParts.slice(1).join(' ') : ''
+  const resolvedFirstName = firstName || displayFirstName
+  const resolvedSurname = surname || displaySurname
+  const initial = resolvedFirstName ? `${resolvedFirstName.charAt(0).toUpperCase()}.` : ''
+  const idNumber = student.idNumber ? `-${student.idNumber}` : ''
+  const displayName = `${initial}${resolvedSurname}${idNumber}`
+  return displayName || student.email
+}
 
 // GET: Fetch all available courses and lecturers for the booking form
 router.get('/form-data', async (req, res) => {
@@ -25,7 +40,7 @@ router.get('/availability', async (req, res) => {
     const dateObj = new Date(date)
     const dayOfWeek = dateObj.getDay()
 
-    const schedule = await Availability.findOne({ lecturerId })
+    const schedule = await Availability.findOne({ lecturerEmail: lecturerId })
 
     if (!schedule) {
       return res.status(404).json({ error: 'Lecturer availability not found.' })
@@ -55,10 +70,12 @@ router.get('/availability', async (req, res) => {
   }
 })
 
-// POST: Save a new booking (MERGED AND FIXED!)
-// Notice how it uses your middleware AND saves the data properly now
-router.post('/', validateLecturerHours, async (req, res) => {
+async function createBooking(req, res) {
   try {
+    if (!req.body.topic || !req.body.topic.trim()) {
+      return res.status(400).json({ success: false, message: 'Topic is required' })
+    }
+
     const newBooking = new Booking({
       studentId: req.body.studentId,
       lecturerId: req.body.lecturerId,
@@ -66,7 +83,8 @@ router.post('/', validateLecturerHours, async (req, res) => {
       startTime: req.body.startTime,
       endTime: req.body.endTime,
       module: req.body.module,
-      topic: req.body.topic,
+      venue: req.body.venue || '',
+      topic: req.body.topic.trim(),
       status: 'upcoming',
       participantIDs: [req.body.studentId], // CRITICAL for your "leave" feature
       leftParticipantIDs: []
@@ -77,6 +95,36 @@ router.post('/', validateLecturerHours, async (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Failed to create booking' })
+  }
+}
+
+// POST: Save a new booking (MERGED AND FIXED!)
+// Notice how it uses your middleware AND saves the data properly now
+router.post('/', validateLecturerHours, createBooking)
+router.post('/create', validateLecturerHours, createBooking)
+
+// PUT: Cancel every booking that belongs to the same grouped lecturer session
+router.put('/session/cancel', async (req, res) => {
+  try {
+    const { bookingIds } = req.body
+
+    if (!Array.isArray(bookingIds) || bookingIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'bookingIds are required' })
+    }
+
+    const result = await Booking.updateMany(
+      { _id: { $in: bookingIds } },
+      { $set: { status: 'canceled' } }
+    )
+
+    res.json({
+      success: true,
+      message: 'Session canceled for all participants',
+      modifiedCount: result.modifiedCount || 0
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ success: false, message: 'Failed to cancel session' })
   }
 })
 
@@ -97,12 +145,26 @@ router.get('/', async (req, res) => {
       ]
     }).sort({ date: 1, startTime: 1 }).lean()
 
+    const lecturerEmails = [...new Set(rawBookings.map(b => b.lecturerId).filter(Boolean))]
+    const lecturers = lecturerEmails.length
+      ? await User.find({ email: { $in: lecturerEmails }, role: 'lecturer' }, 'name surname email').lean()
+      : []
+    const lecturersByEmail = new Map(lecturers.map(lecturer => [
+      lecturer.email,
+      [lecturer.name, lecturer.surname].filter(Boolean).join(' ')
+    ]))
+
     // Dynamically override the status to 'canceled' on the user's side if they left
     const bookings = rawBookings.map(b => {
-      if (b.leftParticipantIDs && b.leftParticipantIDs.includes(studentId)) {
-        return { ...b, status: 'canceled' }
+      const booking = {
+        ...b,
+        lecturerName: lecturersByEmail.get(b.lecturerId) || b.lecturerId || 'Unknown Lecturer'
       }
-      return b
+
+      if (b.leftParticipantIDs && b.leftParticipantIDs.includes(studentId)) {
+        return { ...booking, status: 'canceled' }
+      }
+      return booking
     })
 
     res.json(bookings)
@@ -191,11 +253,42 @@ router.get('/lecturer/bookings', async (req, res) => {
   try {
     const { email } = req.query
     const bookings = await Booking.find({
-      lecturerId: email,
-      status: 'upcoming'
+      lecturerId: email
     }).sort({ date: 1, startTime: 1 })
 
-    res.json(bookings)
+    const studentIdentifiers = [...new Set(bookings.flatMap(booking => [
+      booking.studentId,
+      ...(Array.isArray(booking.participantIDs) ? booking.participantIDs : [])
+    ]).filter(Boolean))]
+
+    const students = studentIdentifiers.length
+      ? await User.find({
+        $or: [
+          { email: { $in: studentIdentifiers } },
+          { idNumber: { $in: studentIdentifiers } }
+        ]
+      }, 'name surname displayName idNumber email').lean()
+      : []
+    const studentsByIdentifier = new Map()
+    students.forEach(student => {
+      const displayName = formatStudentDisplayName(student)
+      if (student.email) studentsByIdentifier.set(student.email, displayName)
+      if (student.idNumber) studentsByIdentifier.set(student.idNumber, displayName)
+    })
+
+    const enrichedBookings = bookings.map(booking => {
+      const bookingObject = typeof booking.toObject === 'function' ? booking.toObject() : booking
+      const participantNames = (bookingObject.participantIDs || [])
+        .map(studentId => studentsByIdentifier.get(studentId) || studentId)
+
+      return {
+        ...bookingObject,
+        studentName: studentsByIdentifier.get(bookingObject.studentId) || bookingObject.studentId,
+        participantNames
+      }
+    })
+
+    res.json(enrichedBookings)
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
