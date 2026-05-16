@@ -187,6 +187,100 @@ describe('Booking Integration Tests', () => {
     expect(Booking.find).not.toHaveBeenCalled();
   });
 
+  it('returns upcoming peer sessions when listing by status without a studentId', async () => {
+    const bookings = [
+      {
+        _id: 'b1',
+        studentId: 'owner@wits.ac.za',
+        lecturerId: 'lecturer@wits.ac.za',
+        participantIDs: ['owner@wits.ac.za'],
+        date: '2026-06-01',
+        startTime: '10:00',
+        endTime: '11:00',
+        module: 'ELEN50',
+        status: 'upcoming'
+      }
+    ];
+    const lean = jest.fn().mockResolvedValue(bookings);
+    const sort = jest.fn().mockReturnValue({ lean });
+    Booking.find.mockReturnValue({ sort });
+    Availability.findOne.mockResolvedValue({
+      weeklySchedule: [
+        {
+          dayOfWeek: 1,
+          slots: [
+            {
+              start: '10:00',
+              end: '11:00',
+              course: 'ELEN50',
+              maxStudents: 10
+            }
+          ]
+        }
+      ]
+    });
+
+    const response = await request(app)
+      .get('/api/bookings')
+      .query({ status: 'upcoming,ongoing' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([
+      {
+        ...bookings[0],
+        maxStudents: 10,
+        spacesLeft: 9
+      }
+    ]);
+    expect(Booking.find).toHaveBeenCalledWith({
+      status: { $in: ['upcoming', 'ongoing'] }
+    });
+    expect(sort).toHaveBeenCalledWith({ date: 1, startTime: 1 });
+    expect(lean).toHaveBeenCalled();
+    expect(Availability.findOne).toHaveBeenCalledWith({ lecturerEmail: 'lecturer@wits.ac.za' });
+    expect(User.find).not.toHaveBeenCalled();
+  });
+
+  it('allows students to join while the matching availability slot still has space', async () => {
+    const participantIDs = Array.from({ length: 9 }, (_, index) => `student${index}@wits.ac.za`);
+    Booking.findById.mockResolvedValue({
+      _id: 'booking-1',
+      lecturerId: 'lecturer@wits.ac.za',
+      date: '2026-06-01',
+      startTime: '10:00',
+      endTime: '11:00',
+      module: 'ELEN50',
+      maxStudents: 1,
+      participantIDs
+    });
+    Availability.findOne.mockResolvedValue({
+      weeklySchedule: [
+        {
+          dayOfWeek: 1,
+          slots: [
+            {
+              start: '10:00',
+              end: '11:00',
+              course: 'ELEN50',
+              maxStudents: 10
+            }
+          ]
+        }
+      ]
+    });
+    Booking.findByIdAndUpdate.mockResolvedValue({});
+
+    const response = await request(app)
+      .put('/api/bookings/booking-1/join')
+      .send({ email: 'newstudent@wits.ac.za' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(Booking.findByIdAndUpdate).toHaveBeenCalledWith('booking-1', {
+      $addToSet: { participantIDs: 'newstudent@wits.ac.za' }
+    });
+  });
+
   it('returns sorted bookings for the requested student', async () => {
     const bookings = [
       {

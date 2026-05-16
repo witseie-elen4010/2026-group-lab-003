@@ -282,6 +282,7 @@ describe('Booking page browser script', () => {
         startTime: '09:30',
         endTime: '10:00',
         venue: 'Room 101',
+        maxStudents: 5,
         participantIDs: ['student@wits.ac.za'],
         topic: 'Project planning'
       })

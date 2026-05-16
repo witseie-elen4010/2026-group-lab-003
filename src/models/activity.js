@@ -5,6 +5,8 @@ const activitySchema = new mongoose.Schema({
     description: String,
     user: String,
     userId: String,
+    userEmail: String,
+    userRole: String,
     metadata: Object,
     timestamp: { type: Date, default: Date.now }
 });

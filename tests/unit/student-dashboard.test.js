@@ -165,6 +165,18 @@ describe('StudentScheduleManager', () => {
       expect(manager.filteredSessions.length).toBe(1)
       expect(manager.filteredSessions[0].status).toBe('completed')
     })
+
+    test('applyFilters orders ongoing first then upcoming soonest', () => {
+      manager.sessions = [
+        { id: 'later', status: 'upcoming', date: '2026-05-20', time: '14:00', courseCode: 'CS101', topic: 'Later' },
+        { id: 'soon', status: 'upcoming', date: '2026-05-18', time: '09:00', courseCode: 'CS101', topic: 'Soon' },
+        { id: 'now', status: 'ongoing', date: '2026-05-18', time: '08:00', courseCode: 'CS101', topic: 'Now' }
+      ]
+
+      manager.applyFilters()
+
+      expect(manager.filteredSessions.map(session => session.id)).toEqual(['now', 'soon', 'later'])
+    })
   })
 
   describe('DOM Rendering & Actions', () => {

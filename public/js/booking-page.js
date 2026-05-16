@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectedEndInput = document.getElementById('selectedEndTime')
   const newBookingForm = document.getElementById('newBookingForm')
   let selectedVenue = ''
+  let selectedMaxStudents = 1
 
   // Set minimum date to today to prevent past bookings
   const today = new Date().toISOString().split('T')[0]
@@ -101,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       matchingLecturers.forEach(lecturer => {
         const option = document.createElement('option')
-        option.value = lecturer.lecturerName
+        option.value = lecturer.lecturerEmail || lecturer.lecturerName
         option.textContent = lecturer.lecturerName || lecturer.lecturerEmail
         lecturerSelect.appendChild(option)
       })
@@ -140,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // Calculate how many bookings currently exist for this exact start time
           const currentBookingsCount = data.bookedTimes.filter(time => time === slot.start).length
 
-          const hasSpace = currentBookingsCount === 0
+          const hasSpace = currentBookingsCount < (Number(slot.maxStudents) || 1)
 
           return isCorrectModule && hasSpace
         })
@@ -161,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedStartInput.value = '';
     selectedEndInput.value = '';
     selectedVenue = '';
+    selectedMaxStudents = 1;
 
     if (slotsArray.length === 0) {
       slotsContainer.innerHTML = '<div class="text-danger small">No available slots for this module on this date.</div>'
@@ -175,7 +177,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Safe check for duration
       const durationText = slot.duration ? `<br><small class="text-muted">${slot.duration} min</small>` : '';
       const venueText = slot.venue ? `<br><small class="text-muted">${slot.venue}</small>` : '';
-      btn.innerHTML = `${slot.start} - ${slot.end} ${durationText}${venueText}`;
+      const capacityText = slot.maxStudents ? `<br><small class="text-muted">${slot.maxStudents} max students</small>` : '';
+      btn.innerHTML = `${slot.start} - ${slot.end} ${durationText}${venueText}${capacityText}`;
 
       btn.onclick = () => {
         document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'))
@@ -184,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedStartInput.value = slot.start;
         selectedEndInput.value = slot.end;
         selectedVenue = slot.venue || '';
+        selectedMaxStudents = Number(slot.maxStudents) || 1;
       };
 
       slotsContainer.appendChild(btn)
@@ -218,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         startTime: selectedStartInput.value,
         endTime: selectedEndInput.value,
         venue: selectedVenue,
+        maxStudents: selectedMaxStudents,
         participantIDs: [user.email],
         topic: document.getElementById('topic') ? document.getElementById('topic').value : ''
       }

@@ -4,6 +4,7 @@ const router = express.Router()
 const Availability = require('../models/Availability')
 const Booking = require('../models/booking')
 const User = require('../models/user')
+const Activity = require('../models/activity')
 
 // Import your awesome middleware
 const { validateLecturerHours } = require('../middleware/booking-validator')
@@ -20,6 +21,108 @@ function formatStudentDisplayName (student) {
   const idNumber = student.idNumber ? `-${student.idNumber}` : ''
   const displayName = `${initial}${resolvedSurname}${idNumber}`
   return displayName || student.email
+}
+
+async function logBookingActivity (activity) {
+  if (process.env.NODE_ENV === 'test') {
+    return
+  }
+
+  try {
+    await Activity.create({
+      ...activity,
+      timestamp: activity.timestamp || new Date()
+    })
+  } catch (error) {
+    console.error('Failed to log booking activity:', error.message)
+  }
+}
+
+function uniqueValues (values) {
+  return [...new Set(values.filter(Boolean).map(String))]
+}
+
+function bookingActivityMetadata (booking, extra = {}) {
+  const bookingObject = typeof booking.toObject === 'function' ? booking.toObject() : booking
+  const participants = Array.isArray(bookingObject.participantIDs) ? bookingObject.participantIDs : []
+
+  return {
+    course: bookingObject.module,
+    module: bookingObject.module,
+    date: bookingObject.date,
+    startTime: bookingObject.startTime,
+    endTime: bookingObject.endTime,
+    venue: bookingObject.venue,
+    topic: bookingObject.topic,
+    studentId: bookingObject.studentId,
+    studentEmail: bookingObject.studentId,
+    lecturerId: bookingObject.lecturerId,
+    lecturerEmail: bookingObject.lecturerId,
+    participantIDs: participants,
+    participantEmails: participants,
+    audienceIds: uniqueValues([bookingObject.studentId, bookingObject.lecturerId, ...participants]),
+    audienceEmails: uniqueValues([bookingObject.studentId, bookingObject.lecturerId, ...participants]),
+    ...extra
+  }
+}
+
+function getBookingObject (booking) {
+  return typeof booking.toObject === 'function' ? booking.toObject() : booking
+}
+
+function getBookingDayOfWeek (booking) {
+  const date = new Date(`${booking.date}T00:00:00`)
+  return date.getDay()
+}
+
+function findMatchingSlot (availability, booking) {
+  if (!availability || !Array.isArray(availability.weeklySchedule)) return null
+
+  const bookingDayOfWeek = getBookingDayOfWeek(booking)
+  const daySchedule = availability.weeklySchedule.find(day => day.dayOfWeek === bookingDayOfWeek)
+  if (!daySchedule || !Array.isArray(daySchedule.slots)) return null
+
+  return daySchedule.slots.find(slot => {
+    const sameTime = slot.start === booking.startTime && slot.end === booking.endTime
+    const sameCourse = !booking.module || !slot.course || slot.course === booking.module
+    return sameTime && sameCourse
+  }) || null
+}
+
+async function getEffectiveMaxStudents (booking) {
+  const bookingObject = getBookingObject(booking)
+
+  const availability = await Availability.findOne({ lecturerEmail: bookingObject.lecturerId })
+  const matchingSlot = findMatchingSlot(availability, bookingObject)
+  const slotMaxStudents = Number(matchingSlot?.maxStudents)
+
+  if (slotMaxStudents > 0) {
+    return slotMaxStudents
+  }
+
+  return Number(bookingObject.maxStudents) || 1
+}
+
+async function enrichBookingsWithCapacity (bookings) {
+  const lecturerIds = [...new Set(bookings.map(booking => booking.lecturerId).filter(Boolean))]
+  const availabilities = await Promise.all(
+    lecturerIds.map(async lecturerId => [
+      lecturerId,
+      await Availability.findOne({ lecturerEmail: lecturerId })
+    ])
+  )
+  const availabilityByLecturer = new Map(availabilities)
+
+  return bookings.map(booking => {
+    const bookingObject = getBookingObject(booking)
+    const matchingSlot = findMatchingSlot(availabilityByLecturer.get(bookingObject.lecturerId), bookingObject)
+    const maxStudents = Number(matchingSlot?.maxStudents) || Number(bookingObject.maxStudents) || 1
+    return {
+      ...bookingObject,
+      maxStudents,
+      spacesLeft: Math.max(maxStudents - (bookingObject.participantIDs || []).length, 0)
+    }
+  })
 }
 
 // GET: Fetch all available courses and lecturers for the booking form
@@ -86,12 +189,26 @@ async function createBooking (req, res) {
       module: req.body.module,
       venue: req.body.venue || '',
       topic: req.body.topic.trim(),
+      maxStudents: Number(req.body.maxStudents) || 1,
       status: 'upcoming',
       participantIDs: [req.body.studentId], // CRITICAL for your "leave" feature
       leftParticipantIDs: []
     })
 
     const savedBooking = await newBooking.save()
+    await logBookingActivity({
+      type: 'created',
+      description: `Booked ${savedBooking.module || 'consultation'} consultation`,
+      user: req.body.studentId,
+      userId: req.body.studentId,
+      userEmail: req.body.studentId,
+      userRole: 'student',
+      metadata: bookingActivityMetadata(savedBooking, {
+        actorId: req.body.studentId,
+        actorEmail: req.body.studentId,
+        userRole: 'student'
+      })
+    })
     res.status(201).json({ message: 'Booking successful!', booking: savedBooking })
   } catch (error) {
     console.error(error)
@@ -133,30 +250,38 @@ router.put('/session/cancel', async (req, res) => {
 // GET: Fetch ONLY the logged-in student's bookings (RESTORED GROUP LOGIC)
 router.get('/', async (req, res) => {
   try {
-    const { studentId } = req.query
+    const { studentId, status } = req.query
 
-    if (!studentId) {
+    if (!studentId && !status) {
       return res.status(400).json({ error: 'Student ID is required.' })
     }
 
-    const rawBookings = await Booking.find({
-      $or: [
+    const query = {}
+    if (status) {
+      query.status = { $in: status.split(',').map(s => s.trim()).filter(Boolean) }
+    }
+    if (studentId) {
+      query.$or = [
         { participantIDs: studentId },
         { leftParticipantIDs: studentId }
       ]
-    }).sort({ date: 1, startTime: 1 }).lean()
+    }
+
+    const rawBookings = await Booking.find(query).sort({ date: 1, startTime: 1 }).lean()
+
+    if (!studentId) {
+      const bookings = await enrichBookingsWithCapacity(rawBookings)
+      return res.json(bookings)
+    }
 
     const lecturerIdentifiers = [...new Set(rawBookings.map(b => b.lecturerId).filter(Boolean))]
 
     // FIX: Search by both email AND idNumber since lecturerId contains the staff numeric ID
     const lecturers = lecturerIdentifiers.length
       ? await User.find({
-        $or: [
-          { email: { $in: lecturerIdentifiers } },
-          { idNumber: { $in: lecturerIdentifiers } }
-        ],
+        email: { $in: lecturerIdentifiers },
         role: 'lecturer'
-      }, 'name surname email idNumber').lean()
+      }, 'name surname email').lean()
       : []
 
     // Map names to both their email and idNumber for a bulletproof fallback lookup
@@ -164,7 +289,6 @@ router.get('/', async (req, res) => {
     lecturers.forEach(lecturer => {
       const fullName = [lecturer.name, lecturer.surname].filter(Boolean).join(' ')
       if (lecturer.email) lecturersByIdentifier.set(lecturer.email, fullName)
-      if (lecturer.idNumber) lecturersByIdentifier.set(lecturer.idNumber, fullName)
     })
 
     // Dynamically override the status to 'canceled' on the user's side if they left
@@ -208,6 +332,19 @@ router.delete('/:id', async (req, res) => {
       }
 
       await Booking.findByIdAndUpdate(id, { status: 'canceled' })
+      await logBookingActivity({
+        type: 'canceled',
+        description: `Canceled ${booking.module || 'consultation'} booking`,
+        user: studentEmail,
+        userId: studentEmail,
+        userEmail: studentEmail,
+        userRole: 'student',
+        metadata: bookingActivityMetadata(booking, {
+          actorId: studentEmail,
+          actorEmail: studentEmail,
+          userRole: 'student'
+        })
+      })
       return res.status(200).json({ success: true, message: 'Booking successfully canceled' })
     }
 
@@ -226,6 +363,19 @@ router.delete('/:id', async (req, res) => {
         participantIDs: updatedParticipants,
         $addToSet: { leftParticipantIDs: studentEmail } // Optional: Keep track of who left
       })
+      await logBookingActivity({
+        type: 'canceled',
+        description: `Canceled ${booking.module || 'consultation'} booking`,
+        user: studentEmail,
+        userId: studentEmail,
+        userEmail: studentEmail,
+        userRole: 'student',
+        metadata: bookingActivityMetadata(booking, {
+          actorId: studentEmail,
+          actorEmail: studentEmail,
+          userRole: 'student'
+        })
+      })
       return res.status(200).json({ success: true, message: 'Booking successfully canceled (no students remaining).' })
     }
 
@@ -234,11 +384,55 @@ router.delete('/:id', async (req, res) => {
       participantIDs: updatedParticipants,
       $addToSet: { leftParticipantIDs: studentEmail }
     })
+    await logBookingActivity({
+      type: 'canceled',
+      description: `Left ${booking.module || 'consultation'} booking`,
+      user: studentEmail,
+      userId: studentEmail,
+      userEmail: studentEmail,
+      userRole: 'student',
+      metadata: bookingActivityMetadata(booking, {
+        actorId: studentEmail,
+        actorEmail: studentEmail,
+        userRole: 'student'
+      })
+    })
 
     res.status(200).json({ success: true, message: 'You have left the booking. It remains active for other students.' })
   } catch (error) {
     console.error(error)
     res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+// JOIN: Add a student to a peer session if there is capacity
+router.put('/:id/join', async (req, res) => {
+  try {
+    const { email } = req.body
+    const booking = await Booking.findById(req.params.id)
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Session not found' })
+    }
+
+    const participants = Array.isArray(booking.participantIDs) ? booking.participantIDs : []
+    if (participants.includes(email)) {
+      return res.status(400).json({ success: false, message: 'Already joined this session' })
+    }
+
+    const maxStudents = await getEffectiveMaxStudents(booking)
+    if (participants.length >= maxStudents) {
+      return res.status(400).json({ success: false, message: 'This session is already full' })
+    }
+
+    await Booking.findByIdAndUpdate(req.params.id, {
+      $addToSet: { participantIDs: email }
+    })
+
+    res.json({ success: true, message: 'Successfully joined the session.' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ success: false, error: 'Failed to join session' })
   }
 })
 
@@ -263,6 +457,19 @@ router.put('/leave/:id', async (req, res) => {
         participantIDs: updatedParticipants,
         $addToSet: { leftParticipantIDs: email }
       })
+      await logBookingActivity({
+        type: 'canceled',
+        description: `Canceled ${booking.module || 'consultation'} session`,
+        user: email,
+        userId: email,
+        userEmail: email,
+        userRole: 'student',
+        metadata: bookingActivityMetadata(booking, {
+          actorId: email,
+          actorEmail: email,
+          userRole: 'student'
+        })
+      })
       return res.json({ success: true, message: 'Session canceled completely (no students remaining).' })
     }
 
@@ -270,6 +477,19 @@ router.put('/leave/:id', async (req, res) => {
     await Booking.findByIdAndUpdate(id, {
       participantIDs: updatedParticipants,
       $addToSet: { leftParticipantIDs: email }
+    })
+    await logBookingActivity({
+      type: 'canceled',
+      description: `Left ${booking.module || 'consultation'} session`,
+      user: email,
+      userId: email,
+      userEmail: email,
+      userRole: 'student',
+      metadata: bookingActivityMetadata(booking, {
+        actorId: email,
+        actorEmail: email,
+        userRole: 'student'
+      })
     })
 
     res.json({ success: true, message: 'Successfully left the session.' })

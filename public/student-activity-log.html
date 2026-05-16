@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Activity Log</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/activity-log.css">
+</head>
+<body data-log-role="student">
+    <div class="activity-container">
+        <header class="activity-header">
+            <div class="header-left">
+                <h1>
+                    <i class="fas fa-history"></i><span id="activity-log-title">Student Activity Log</span>
+                </h1>
+                <p class="header-subtitle" id="activity-log-subtitle">Your booking and consultation activity</p>
+            </div>
+            <div class="header-right">
+                <button id="auto-refresh-toggle" class="btn btn-outline" title="Auto-refresh every 10 seconds">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Auto-refresh</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <i class="fas fa-list"></i>
+                <span>Total Activities: <strong id="total-activities">0</strong></span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-clock"></i>
+                <span>Today: <strong id="today-activities">0</strong></span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-plus-circle"></i>
+                <span>Created: <strong id="created-count">0</strong></span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-times-circle"></i>
+                <span>Canceled: <strong id="canceled-count">0</strong></span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-user"></i>
+                <span>Users Active: <strong id="active-users">0</strong></span>
+            </div>
+        </div>
+
+        <div class="filters-section">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="action-type-filter"><i class="fas fa-tag"></i> Action Type</label>
+                    <select id="action-type-filter" class="filter-select">
+                        <option value="all">All Actions</option>
+                        <option value="created">Created</option>
+                        <option value="joined">Joined</option>
+                        <option value="updated">Updated</option>
+                        <option value="canceled">Canceled</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="user-filter"><i class="fas fa-user"></i> User</label>
+                    <select id="user-filter" class="filter-select">
+                        <option value="all">All Relevant People</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="date-range-filter"><i class="fas fa-calendar"></i> Date Range</label>
+                    <select id="date-range-filter" class="filter-select">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="last7">Last 7 Days</option>
+                        <option value="last30">Last 30 Days</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                </div>
+
+                <div class="filter-group custom-date-range hidden" id="custom-date-range">
+                    <input type="date" id="start-date" class="date-input">
+                    <span>to</span>
+                    <input type="date" id="end-date" class="date-input">
+                    <button id="apply-date-range" class="btn btn-sm btn-primary">Apply</button>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label for="course-filter"><i class="fas fa-book"></i> Course</label>
+                <select id="course-filter" class="filter-select">
+                    <option value="all">All Courses</option>
+                </select>
+            </div>
+
+            <div class="filter-row">
+                <div class="filter-group flex-grow">
+                    <label for="search-input"><i class="fas fa-search"></i> Search</label>
+                    <input type="text" id="search-input" class="search-input" placeholder="Search by course, venue, topic, lecturer, or description...">
+                </div>
+
+                <div class="filter-actions">
+                    <button id="clear-filters-btn" class="btn btn-outline btn-sm"><i class="fas fa-times"></i> Clear Filters</button>
+                    <button id="export-activity-btn" class="btn btn-secondary btn-sm"><i class="fas fa-download"></i> Export CSV</button>
+                    <button id="bookmark-btn" class="btn btn-outline btn-sm" title="Copy shareable link"><i class="fas fa-bookmark"></i> Copy Link</button>
+                    <button id="clear-all-btn" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Clear My Logs</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="activity-timeline-container">
+            <div id="activity-timeline" class="activity-timeline"></div>
+            <div id="empty-state" class="empty-state hidden">
+                <i class="fas fa-clipboard-list"></i>
+                <h3>No Student Activity Recorded</h3>
+                <p id="empty-state-message">Bookings and consultation changes involving you will appear here.</p>
+            </div>
+            <div id="loading-indicator" class="loading-indicator hidden">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Loading activities...</span>
+            </div>
+        </div>
+
+        <div class="pagination" id="pagination">
+            <button id="prev-page" class="btn btn-outline btn-sm" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+            <span class="page-info">Page <strong id="current-page">1</strong> of <strong id="total-pages">1</strong></span>
+            <button id="next-page" class="btn btn-outline btn-sm" disabled>Next <i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+
+    <div id="detail-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Activity Details</h2>
+                <button class="close-btn" id="close-detail-modal">&times;</button>
+            </div>
+            <div id="detail-content" class="detail-body"></div>
+        </div>
+    </div>
+
+    <script src="js/activity-log.js"></script>
+</body>
+</html>

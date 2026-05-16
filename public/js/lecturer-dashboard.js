@@ -233,13 +233,36 @@ class LecturerScheduleManager {
             return true;
         });
 
-        this.filteredSessions.sort((a, b) => {
-            const dateA = new Date(`${a.date}T${a.time}`);
-            const dateB = new Date(`${b.date}T${b.time}`);
-            return dateA - dateB;
-        });
+        this.filteredSessions.sort((a, b) => this.compareDashboardSessions(a, b));
 
         this.render();
+    }
+
+    compareDashboardSessions(a, b) {
+        const statusPriority = {
+            ongoing: 1,
+            upcoming: 2,
+            completed: 3,
+            canceled: 4
+        };
+        const priorityA = statusPriority[a.status] || 99;
+        const priorityB = statusPriority[b.status] || 99;
+
+        if (priorityA !== priorityB) return priorityA - priorityB;
+
+        const timeA = this.getSessionStartTime(a);
+        const timeB = this.getSessionStartTime(b);
+
+        if (a.status === 'completed' || a.status === 'canceled') {
+            return timeB - timeA;
+        }
+
+        return timeA - timeB;
+    }
+
+    getSessionStartTime(session) {
+        const timestamp = new Date(`${session.date}T${session.time}`).getTime();
+        return Number.isNaN(timestamp) ? Number.MAX_SAFE_INTEGER : timestamp;
     }
 
     updateFilterOptions() {
