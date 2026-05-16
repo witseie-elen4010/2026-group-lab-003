@@ -236,7 +236,7 @@ describe('Booking page browser script', () => {
         return Promise.resolve({
         ok: true,
         json: jest.fn().mockResolvedValue({
-          availableBlocks: [{ start: '09:30', end: '10:00', course: 'ELEN4010', maxStudents: 5 }],
+          availableBlocks: [{ start: '09:30', end: '10:00', course: 'ELEN4010', venue: 'Room 101', maxStudents: 5 }],
           bookedTimes: []
         })
       })
@@ -257,7 +257,8 @@ describe('Booking page browser script', () => {
     await flushPromises();
 
     const slotButton = document.querySelector('.slot-btn');
-    expect(slotButton.textContent.trim()).toBe('09:30 - 10:00');
+    expect(slotButton.textContent).toContain('09:30 - 10:00');
+    expect(slotButton.textContent).toContain('Room 101');
 
     slotButton.click();
     expect(document.getElementById('selectedStartTime').value).toBe('09:30');
@@ -280,6 +281,7 @@ describe('Booking page browser script', () => {
         date: '2026-06-01',
         startTime: '09:30',
         endTime: '10:00',
+        venue: 'Room 101',
         participantIDs: ['student@wits.ac.za'],
         topic: 'Project planning'
       })
@@ -318,6 +320,7 @@ describe('Lecturer availability browser script', () => {
               <input type="time" class="slot-start" placeholder="Start Time" required>
               <input type="time" class="slot-end" placeholder="End Time" required>
               <input type="text" class="slot-course" placeholder="Course Code" required>
+              <input type="text" class="slot-venue" placeholder="Venue" required>
               <input type="number" class="slot-max-students" placeholder="Max Students" min="1" required>
               <button class="add-slot-btn" data-day="1"><i class="bi bi-plus-circle-fill"></i> Add Slot</button>
             </div>
@@ -330,6 +333,7 @@ describe('Lecturer availability browser script', () => {
               <input type="time" class="slot-start" placeholder="Start Time" required>
               <input type="time" class="slot-end" placeholder="End Time" required>
               <input type="text" class="slot-course" placeholder="Course Code" required>
+              <input type="text" class="slot-venue" placeholder="Venue" required>
               <input type="number" class="slot-max-students" placeholder="Max Students" min="1" required>
               <button class="add-slot-btn" data-day="2"><i class="bi bi-plus-circle-fill"></i> Add Slot</button>
             </div>
@@ -342,6 +346,7 @@ describe('Lecturer availability browser script', () => {
               <input type="time" class="slot-start" placeholder="Start Time" required>
               <input type="time" class="slot-end" placeholder="End Time" required>
               <input type="text" class="slot-course" placeholder="Course Code" required>
+              <input type="text" class="slot-venue" placeholder="Venue" required>
               <input type="number" class="slot-max-students" placeholder="Max Students" min="1" required>
               <button class="add-slot-btn" data-day="3"><i class="bi bi-plus-circle-fill"></i> Add Slot</button>
             </div>
@@ -373,6 +378,7 @@ describe('Lecturer availability browser script', () => {
             end: '10:00',
             duration: 60,
             course: 'MATH101',
+            venue: 'Room 101',
             maxStudents: 5
           }
         ]
@@ -386,6 +392,7 @@ describe('Lecturer availability browser script', () => {
             end: '15:00',
             duration: 60,
             course: 'PHYS101',
+            venue: 'Lab 2',
             maxStudents: 3
           }
         ]
@@ -407,12 +414,14 @@ describe('Lecturer availability browser script', () => {
     expect(mondaySlots.innerHTML).toContain('slot1');
     expect(mondaySlots.innerHTML).toContain('9:00 AM - 10:00 AM');
     expect(mondaySlots.innerHTML).toContain('MATH101');
+    expect(mondaySlots.innerHTML).toContain('Room 101');
 
     // Check Tuesday slots
     const tuesdaySlots = document.getElementById('slots-tuesday');
     expect(tuesdaySlots.innerHTML).toContain('slot2');
     expect(tuesdaySlots.innerHTML).toContain('2:00 PM - 3:00 PM');
     expect(tuesdaySlots.innerHTML).toContain('PHYS101');
+    expect(tuesdaySlots.innerHTML).toContain('Lab 2');
   });
 
   it('adds a new slot successfully', async () => {
@@ -450,6 +459,7 @@ describe('Lecturer availability browser script', () => {
     dayCard.querySelector('.slot-start').value = '10:00';
     dayCard.querySelector('.slot-end').value = '11:00';
     dayCard.querySelector('.slot-course').value = 'CS101';
+    dayCard.querySelector('.slot-venue').value = 'Room 101';
     dayCard.querySelector('.slot-max-students').value = '10';
 
     const addBtn = dayCard.querySelector('.add-slot-btn');
@@ -469,11 +479,58 @@ describe('Lecturer availability browser script', () => {
         end: '11:00',
         duration: 60,
         course: 'CS101',
+        venue: 'Room 101',
         maxStudents: 10
       })
     }));
     expect(document.getElementById('message').classList).toContain('success');
     expect(document.getElementById('message').textContent).toBe('Slot added successfully');
+  });
+
+  it('opens the edit modal from a slot edit button', async () => {
+    setupAvailabilityDom();
+    sessionStorage.setItem('sychro_current_user', JSON.stringify({
+      name: 'Prof',
+      surname: 'Smith',
+      idNumber: 'STAFF123',
+      email: 'lecturer@wits.ac.za'
+    }));
+
+    fetch.mockResolvedValueOnce({
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        availability: {
+          weeklySchedule: [
+            {
+              dayOfWeek: 1,
+              slots: [
+                {
+                  _id: 'slot-to-edit',
+                  start: '09:00',
+                  end: '10:00',
+                  duration: 60,
+                  course: 'MATH101',
+                  venue: 'Room 101',
+                  maxStudents: 5
+                }
+              ]
+            }
+          ]
+        }
+      })
+    });
+
+    loadFreshScript('lecturer-availability.js');
+    await flushPromises();
+
+    document.querySelector('.edit-slot-btn').click();
+    await flushPromises();
+
+    const modal = document.getElementById('edit-modal-overlay');
+    expect(modal).toBeTruthy();
+    expect(modal.querySelector('.edit-course').value).toBe('MATH101');
+    expect(modal.querySelector('.edit-venue').value).toBe('Room 101');
+    expect(modal.querySelector('.edit-max').value).toBe('5');
   });
 
   it('cancels a slot after confirmation', async () => {
@@ -495,6 +552,7 @@ describe('Lecturer availability browser script', () => {
             end: '10:00',
             duration: 60,
             course: 'MATH101',
+            venue: 'Room 101',
             maxStudents: 5
           }
         ]

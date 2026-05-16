@@ -119,12 +119,14 @@ class LecturerScheduleManager {
             duration: this.calculateDuration(b.startTime, b.endTime),
             status: b.status || 'upcoming',
             topic: b.topic || '',
+            location: b.venue || 'Not specified',
             joinedStudents: b.joinedStudents,
             studentTopics: b.studentTopics || {},
             
     }));
     }
 }
+
     groupBookingsBySession(bookings) {
         const grouped = new Map();
 
@@ -159,10 +161,7 @@ class LecturerScheduleManager {
                 session.firstBookingAt = booking.createdAt || session.firstBookingAt;
             }
 
-            const students = [
-                booking.studentId,
-                ...(Array.isArray(booking.participantIDs) ? booking.participantIDs : [])
-            ].filter(Boolean);
+            const students = this.getBookingStudentDisplayNames(booking);
 
             students.forEach(student => {
                 if (!session.joinedStudents.includes(student)) {
@@ -177,6 +176,24 @@ class LecturerScheduleManager {
 
         return Array.from(grouped.values());
     }
+
+    getBookingStudentDisplayNames(booking) {
+        const studentIds = [
+            booking.studentId,
+            ...(Array.isArray(booking.participantIDs) ? booking.participantIDs : [])
+        ].filter(Boolean);
+        const studentNames = [
+            booking.studentName,
+            ...(Array.isArray(booking.participantNames) ? booking.participantNames : [])
+        ].filter(Boolean);
+
+        if (studentNames.length === 0) {
+            return [...new Set(studentIds)];
+        }
+
+        return [...new Set(studentIds.map((studentId, index) => studentNames[index] || studentId))];
+    }
+
     async updateSessionStatus(session) {
     await fetch(`/api/bookings/${session._id || session.id}`, {
         method: 'PUT',

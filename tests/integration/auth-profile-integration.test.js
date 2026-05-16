@@ -136,6 +136,26 @@ describe('Auth and Profile Integration Tests', () => {
     expect(User.findOne).toHaveBeenCalledWith({ email: user.email });
   });
 
+  it('uses the explicit profile email header over an existing session user', async () => {
+    const student = {
+      name: 'Nkosinathi',
+      surname: 'Mjiyako',
+      idNumber: '2357649',
+      email: '12345@gmail.com',
+      notificationsEnabled: true
+    };
+    User.findOne.mockReturnValue(selectedUser(student));
+
+    const agent = request.agent(app);
+    const response = await agent
+      .get('/api/profile')
+      .set('X-User-Email', student.email);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ success: true, user: student });
+    expect(User.findOne).toHaveBeenCalledWith({ email: student.email });
+  });
+
   it('updates the legacy /api/profile payload for an existing user', async () => {
     const user = {
       name: 'Jane',
