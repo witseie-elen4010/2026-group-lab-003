@@ -159,6 +159,7 @@ describe('Lecturer Dashboard', () => {
                         _id: 'booking-1',
                         lecturerId: '2540701',
                         studentId: 'student@wits.ac.za',
+                        studentName: 'N.Mjiyako-2357649',
                         module: 'ELEN4010',
                         date: '2026-05-18',
                         startTime: '08:00',
@@ -166,7 +167,8 @@ describe('Lecturer Dashboard', () => {
                         status: 'upcoming',
                         topic: 'Arrays',
                         venue: 'Room 101',
-                        participantIDs: ['student@wits.ac.za']
+                        participantIDs: ['student@wits.ac.za'],
+                        participantNames: ['N.Mjiyako-2357649']
                     }
                 ])
             });
@@ -176,6 +178,8 @@ describe('Lecturer Dashboard', () => {
 
             expect(fetch).toHaveBeenCalledWith('/api/bookings/lecturer/bookings?email=2540701');
             expect(manager.sessions).toHaveLength(1);
+            expect(document.getElementById('schedule-list').textContent).toContain('N.Mjiyako-2357649');
+            expect(document.getElementById('schedule-list').textContent).not.toContain('student@wits.ac.za');
             expect(document.getElementById('schedule-list').textContent).toContain('ELEN4010');
             expect(document.getElementById('schedule-list').textContent).toContain('Arrays');
             expect(document.getElementById('empty-state').classList.contains('hidden')).toBe(true);
@@ -194,6 +198,7 @@ describe('Lecturer Dashboard', () => {
                         _id: 'booking-1',
                         lecturerId: '2540701',
                         studentId: 'alice@wits.ac.za',
+                        studentName: 'A.Ndlovu-1111111',
                         module: 'ELEN4010',
                         date: '2026-05-18',
                         startTime: '08:00',
@@ -202,12 +207,14 @@ describe('Lecturer Dashboard', () => {
                         topic: 'First student topic',
                         venue: 'Room 101',
                         createdAt: '2026-05-01T08:00:00.000Z',
-                        participantIDs: ['alice@wits.ac.za']
+                        participantIDs: ['alice@wits.ac.za'],
+                        participantNames: ['A.Ndlovu-1111111']
                     },
                     {
                         _id: 'booking-2',
                         lecturerId: '2540701',
                         studentId: 'bob@wits.ac.za',
+                        studentName: 'B.Mokoena-2222222',
                         module: 'ELEN4010',
                         date: '2026-05-18',
                         startTime: '08:00',
@@ -216,7 +223,8 @@ describe('Lecturer Dashboard', () => {
                         topic: 'Second student topic',
                         venue: 'Room 101',
                         createdAt: '2026-05-01T08:05:00.000Z',
-                        participantIDs: ['bob@wits.ac.za']
+                        participantIDs: ['bob@wits.ac.za'],
+                        participantNames: ['B.Mokoena-2222222']
                     }
                 ])
             });
@@ -225,11 +233,11 @@ describe('Lecturer Dashboard', () => {
             await waitForInit();
 
             expect(manager.sessions).toHaveLength(1);
-            expect(manager.sessions[0].joinedStudents).toEqual(['alice@wits.ac.za', 'bob@wits.ac.za']);
+            expect(manager.sessions[0].joinedStudents).toEqual(['A.Ndlovu-1111111', 'B.Mokoena-2222222']);
             expect(manager.sessions[0].topic).toBe('First student topic');
             expect(manager.sessions[0].studentTopics).toEqual({
-                'alice@wits.ac.za': 'First student topic',
-                'bob@wits.ac.za': 'Second student topic'
+                'A.Ndlovu-1111111': 'First student topic',
+                'B.Mokoena-2222222': 'Second student topic'
             });
             expect(document.querySelectorAll('.session-card')).toHaveLength(1);
             expect(document.getElementById('schedule-list').textContent).toContain('2 joined');
@@ -243,8 +251,10 @@ describe('Lecturer Dashboard', () => {
             expect(document.querySelector('.student-list-heading').textContent).toContain('Topic');
             expect(document.getElementById('session-detail-content').textContent).toContain('First student topic');
             expect(document.getElementById('session-detail-content').textContent).toContain('Second student topic');
-            expect(document.getElementById('session-detail-content').textContent).toContain('alice@wits.ac.za');
-            expect(document.getElementById('session-detail-content').textContent).toContain('bob@wits.ac.za');
+            expect(document.getElementById('session-detail-content').textContent).toContain('A.Ndlovu-1111111');
+            expect(document.getElementById('session-detail-content').textContent).toContain('B.Mokoena-2222222');
+            expect(document.getElementById('session-detail-content').textContent).not.toContain('alice@wits.ac.za');
+            expect(document.getElementById('session-detail-content').textContent).not.toContain('bob@wits.ac.za');
             expect(document.getElementById('session-modal').classList.contains('hidden')).toBe(false);
             expect(document.getElementById('session-modal').getAttribute('aria-hidden')).toBe('false');
 

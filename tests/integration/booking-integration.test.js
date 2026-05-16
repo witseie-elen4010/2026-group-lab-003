@@ -230,6 +230,57 @@ describe('Booking Integration Tests', () => {
     );
   });
 
+  it('returns formatted student names for lecturer bookings', async () => {
+    const bookings = [
+      {
+        _id: 'booking-1',
+        studentId: 'student@wits.ac.za',
+        lecturerId: '2540701',
+        participantIDs: ['student@wits.ac.za'],
+        date: '2026-06-01',
+        startTime: '10:00',
+        endTime: '11:00',
+        module: 'ELEN4010'
+      }
+    ];
+    const sort = jest.fn().mockResolvedValue(bookings);
+    Booking.find.mockReturnValue({ sort });
+    User.find.mockReturnValue({
+      lean: jest.fn().mockResolvedValue([
+        {
+          email: 'student@wits.ac.za',
+          name: 'Nkosinathi',
+          surname: 'Mjiyako',
+          idNumber: '2357649'
+        }
+      ])
+    });
+
+    const response = await request(app)
+      .get('/api/bookings/lecturer/bookings')
+      .query({ email: '2540701' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([
+      {
+        ...bookings[0],
+        studentName: 'N.Mjiyako-2357649',
+        participantNames: ['N.Mjiyako-2357649']
+      }
+    ]);
+    expect(Booking.find).toHaveBeenCalledWith({ lecturerId: '2540701' });
+    expect(sort).toHaveBeenCalledWith({ date: 1, startTime: 1 });
+    expect(User.find).toHaveBeenCalledWith(
+      {
+        $or: [
+          { email: { $in: ['student@wits.ac.za'] } },
+          { idNumber: { $in: ['student@wits.ac.za'] } }
+        ]
+      },
+      'name surname displayName idNumber email'
+    );
+  });
+
   it('soft-cancels a booking when the requester owns it', async () => {
     Booking.findById.mockResolvedValue({
       _id: 'session_123',

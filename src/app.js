@@ -133,14 +133,14 @@ app.post('/api/login', async (req, res) => {
 
 // --- Profile Routes ---
 app.get('/api/profile', async (req, res) => {
-  const email = req.session?.userEmail || req.headers['x-user-email']
-  const user = await User.findOne({ email }).select('name surname email notificationsEnabled')
+  const email = req.headers['x-user-email'] || req.session?.userEmail
+  const user = await User.findOne({ email }).select('name surname idNumber email notificationsEnabled')
   if (!user) return res.status(404).json({ success: false, message: 'User not found.' })
   res.json({ success: true, user })
 })
 
 app.put('/api/profile', async (req, res) => {
-  const email = req.session?.userEmail || req.headers['x-user-email']
+  const email = req.headers['x-user-email'] || req.session?.userEmail
   const { name, surname, notificationsEnabled } = req.body
   const user = await User.findOneAndUpdate(
     { email },
