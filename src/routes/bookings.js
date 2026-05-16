@@ -25,7 +25,8 @@ function formatStudentDisplayName (student) {
 // GET: Fetch all available courses and lecturers for the booking form
 router.get('/form-data', async (req, res) => {
   try {
-    const availabilities = await Availability.find({}, 'lecturerEmail courses weeklySchedule')
+    // ADDED 'lecturerName' TO THE SELECT LIST BELOW
+    const availabilities = await Availability.find({}, 'lecturerEmail lecturerName courses weeklySchedule')
     res.json(availabilities)
   } catch (error) {
     console.error('Error fetching form data:', error)
@@ -129,6 +130,7 @@ router.put('/session/cancel', async (req, res) => {
 })
 
 // GET: Fetch ONLY the logged-in student's bookings (RESTORED GROUP LOGIC)
+// GET: Fetch ONLY the logged-in student's bookings (RESTORED GROUP LOGIC)
 router.get('/', async (req, res) => {
   try {
     const { studentId } = req.query
@@ -137,7 +139,6 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ error: 'Student ID is required.' })
     }
 
-    // Fetch bookings where the student is currently active OR where they previously left
     const rawBookings = await Booking.find({
       $or: [
         { participantIDs: studentId },
@@ -145,20 +146,33 @@ router.get('/', async (req, res) => {
       ]
     }).sort({ date: 1, startTime: 1 }).lean()
 
-    const lecturerEmails = [...new Set(rawBookings.map(b => b.lecturerId).filter(Boolean))]
-    const lecturers = lecturerEmails.length
-      ? await User.find({ email: { $in: lecturerEmails }, role: 'lecturer' }, 'name surname email').lean()
+    const lecturerIdentifiers = [...new Set(rawBookings.map(b => b.lecturerId).filter(Boolean))]
+
+    // FIX: Search by both email AND idNumber since lecturerId contains the staff numeric ID
+    const lecturers = lecturerIdentifiers.length
+      ? await User.find({
+        $or: [
+          { email: { $in: lecturerIdentifiers } },
+          { idNumber: { $in: lecturerIdentifiers } }
+        ],
+        role: 'lecturer'
+      }, 'name surname email idNumber').lean()
       : []
-    const lecturersByEmail = new Map(lecturers.map(lecturer => [
-      lecturer.email,
-      [lecturer.name, lecturer.surname].filter(Boolean).join(' ')
-    ]))
+
+    // Map names to both their email and idNumber for a bulletproof fallback lookup
+    const lecturersByIdentifier = new Map()
+    lecturers.forEach(lecturer => {
+      const fullName = [lecturer.name, lecturer.surname].filter(Boolean).join(' ')
+      if (lecturer.email) lecturersByIdentifier.set(lecturer.email, fullName)
+      if (lecturer.idNumber) lecturersByIdentifier.set(lecturer.idNumber, fullName)
+    })
 
     // Dynamically override the status to 'canceled' on the user's side if they left
     const bookings = rawBookings.map(b => {
       const booking = {
         ...b,
-        lecturerName: lecturersByEmail.get(b.lecturerId) || b.lecturerId || 'Unknown Lecturer'
+        // FIX: Grab the mapped name using the identifier map
+        lecturerName: lecturersByIdentifier.get(b.lecturerId) || b.lecturerId || 'Unknown Lecturer'
       }
 
       if (b.leftParticipantIDs && b.leftParticipantIDs.includes(studentId)) {
@@ -178,7 +192,7 @@ router.get('/', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const { studentEmail } = req.body 
+    const { studentEmail } = req.body
 
     // 1. Find the booking
     const booking = await Booking.findById(id)
@@ -220,9 +234,8 @@ router.delete('/:id', async (req, res) => {
       participantIDs: updatedParticipants,
       $addToSet: { leftParticipantIDs: studentEmail }
     })
-    
-    res.status(200).json({ success: true, message: 'You have left the booking. It remains active for other students.' })
 
+    res.status(200).json({ success: true, message: 'You have left the booking. It remains active for other students.' })
   } catch (error) {
     console.error(error)
     res.status(500).json({ success: false, message: 'Server error' })
@@ -234,7 +247,7 @@ router.put('/leave/:id', async (req, res) => {
   try {
     const { id } = req.params
     const { email } = req.body
-    
+
     const booking = await Booking.findById(id)
 
     if (!booking) {
