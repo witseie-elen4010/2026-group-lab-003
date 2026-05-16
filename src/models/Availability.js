@@ -17,6 +17,7 @@ const dayScheduleSchema = new mongoose.Schema({
 
 const availabilitySchema = new mongoose.Schema({
   lecturerEmail: { type: String, required: true, unique: true },
+  lecturerName: { type: String },
   weeklySchedule: [dayScheduleSchema],
   courses: { type: [String], default: [] },   
   updatedAt: { type: Date, default: Date.now }
