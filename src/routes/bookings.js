@@ -129,8 +129,7 @@ router.put('/session/cancel', async (req, res) => {
   }
 })
 
-// GET: Fetch ONLY the logged-in student's bookings (RESTORED GROUP LOGIC)
-// GET: Fetch ONLY the logged-in student's bookings (RESTORED GROUP LOGIC)
+// GET: Fetch ONLY the logged-in student's bookings 
 router.get('/', async (req, res) => {
     try {
         const { studentId, status } = req.query;
@@ -150,71 +149,47 @@ router.get('/', async (req, res) => {
 
         const bookings = await Booking.find(query).sort({ date: 1, startTime: 1 }).lean();
 
-        if (studentId) {
-            const mapped = bookings.map(b => {
-                if (b.leftParticipantIDs && b.leftParticipantIDs.includes(studentId)) {
-                    return { ...b, status: 'canceled' };
-                }
-                return b;
-            });
-            return res.json(mapped);
+        if (!studentId) {
+            return res.json(bookings);
         }
 
-        res.json(bookings);
+        const lecturerIdentifiers = [...new Set(bookings.map(b => b.lecturerId).filter(Boolean))];
+
+        const lecturers = lecturerIdentifiers.length
+            ? await User.find({
+                $or: [
+                    { email: { $in: lecturerIdentifiers } },
+                    { idNumber: { $in: lecturerIdentifiers } }
+                ],
+                role: 'lecturer'
+            }, 'name surname email idNumber').lean()
+            : [];
+
+        const lecturersByIdentifier = new Map();
+        lecturers.forEach(lecturer => {
+            const fullName = [lecturer.name, lecturer.surname].filter(Boolean).join(' ');
+            if (lecturer.email) lecturersByIdentifier.set(lecturer.email, fullName);
+            if (lecturer.idNumber) lecturersByIdentifier.set(lecturer.idNumber, fullName);
+        });
+
+        const mapped = bookings.map(b => {
+            const booking = {
+                ...b,
+                lecturerName: lecturersByIdentifier.get(b.lecturerId) || b.lecturerId || 'Unknown Lecturer'
+            };
+
+            if (b.leftParticipantIDs && b.leftParticipantIDs.includes(studentId)) {
+                return { ...booking, status: 'canceled' };
+            }
+            return booking;
+        });
+
+        res.json(mapped);
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed to fetch bookings' });
     }
-});
-
-    const rawBookings = await Booking.find({
-      $or: [
-        { participantIDs: studentId },
-        { leftParticipantIDs: studentId }
-      ]
-    }).sort({ date: 1, startTime: 1 }).lean()
-
-    const lecturerIdentifiers = [...new Set(rawBookings.map(b => b.lecturerId).filter(Boolean))]
-
-    // FIX: Search by both email AND idNumber since lecturerId contains the staff numeric ID
-    const lecturers = lecturerIdentifiers.length
-      ? await User.find({
-        $or: [
-          { email: { $in: lecturerIdentifiers } },
-          { idNumber: { $in: lecturerIdentifiers } }
-        ],
-        role: 'lecturer'
-      }, 'name surname email idNumber').lean()
-      : []
-
-    // Map names to both their email and idNumber for a bulletproof fallback lookup
-    const lecturersByIdentifier = new Map()
-    lecturers.forEach(lecturer => {
-      const fullName = [lecturer.name, lecturer.surname].filter(Boolean).join(' ')
-      if (lecturer.email) lecturersByIdentifier.set(lecturer.email, fullName)
-      if (lecturer.idNumber) lecturersByIdentifier.set(lecturer.idNumber, fullName)
-    })
-
-    // Dynamically override the status to 'canceled' on the user's side if they left
-    const bookings = rawBookings.map(b => {
-      const booking = {
-        ...b,
-        // FIX: Grab the mapped name using the identifier map
-        lecturerName: lecturersByIdentifier.get(b.lecturerId) || b.lecturerId || 'Unknown Lecturer'
-      }
-
-      if (b.leftParticipantIDs && b.leftParticipantIDs.includes(studentId)) {
-        return { ...booking, status: 'canceled' }
-      }
-      return booking
-    })
-
-    res.json(bookings)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Failed to fetch bookings' })
-  }
-})
+}); 
 
 // DELETE: Cancel a booking (Now handles smart cancellation)
 router.delete('/:id', async (req, res) => {
