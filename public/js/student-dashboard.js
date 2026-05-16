@@ -229,6 +229,13 @@ class StudentScheduleManager {
     const timeDisplay = this.formatTime(session.time)
     const statusClass = `status-${session.status}`
     const location = session.location || 'Online'
+    const statusConfig = {
+      upcoming: { border: 'border-warning', badge: 'bg-warning text-dark' },
+      ongoing: { border: 'border-info', badge: 'bg-info text-dark' },
+      completed: { border: 'border-success', badge: 'bg-success' },
+      canceled: { border: 'border-danger', badge: 'bg-danger' }
+    }
+    const config = statusConfig[session.status] || { border: 'border-secondary', badge: 'bg-secondary' }
 
     return `
             <div class="session-card">
@@ -296,6 +303,27 @@ class StudentScheduleManager {
         `
 : ''}
     `
+    document.getElementById('session-modal').classList.remove('hidden')
+    // Use the Bootstrap instance to show the modal
+    this.bsModal.show()
+  }
+
+  closeModal () {
+    document.getElementById('session-modal').classList.add('hidden')
+    this.bsModal.hide()
+  }
+
+  async cancelBooking (sessionId) {
+    if (!confirm('Are you sure you want to cancel?')) return
+
+    const currentUser = JSON.parse(sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user'))
+
+    try {
+      const response = await fetch(`/api/bookings/${sessionId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentEmail: currentUser.email })
+      })
 
     document.getElementById('session-modal').classList.remove('hidden')
   }

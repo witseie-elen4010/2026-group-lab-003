@@ -424,8 +424,8 @@ body {
     color: rgba(255, 255, 255, 0.6);
 }
 
-/* Modal */
-.modal {
+/* Session Detail Modal */
+.session-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -439,11 +439,15 @@ body {
     backdrop-filter: blur(4px);
 }
 
-.modal.hidden {
+.session-modal-overlay.hidden {
     display: none;
 }
 
-.modal-content {
+body.session-modal-open {
+    overflow: hidden;
+}
+
+.session-modal-panel {
     background-color: rgba(255, 255, 255, 0.95);
     border-radius: 25px;
     width: 90%;
@@ -453,7 +457,7 @@ body {
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
-.modal-header {
+.session-modal-header {
     padding: 20px 25px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     display: flex;
@@ -465,7 +469,7 @@ body {
     border-radius: 25px 25px 0 0;
 }
 
-.modal-header h2 {
+.session-modal-header h2 {
     font-size: 20px;
     margin: 0;
     color: #333;
@@ -521,14 +525,45 @@ body {
     padding: 0;
 }
 
+.student-list-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 0 6px;
+    color: #333;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.student-list-heading span:last-child {
+    max-width: 45%;
+    text-align: right;
+}
+
 .student-list li {
     padding: 8px 0;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
     font-size: 14px;
     color: #555;
     border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.student-list-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.student-list-topic {
+    color: #555;
+    max-width: 45%;
+    text-align: right;
+    overflow-wrap: anywhere;
 }
 
 /* Responsive */
