@@ -8,7 +8,7 @@ const User = require('../models/user')
 // Import your awesome middleware
 const { validateLecturerHours } = require('../middleware/booking-validator')
 
-function formatStudentDisplayName(student) {
+function formatStudentDisplayName (student) {
   const firstName = student.name ? student.name.trim() : ''
   const surname = student.surname ? student.surname.trim() : ''
   const displayNameParts = (student.displayName || '').trim().split(/\s+/)
@@ -70,7 +70,7 @@ router.get('/availability', async (req, res) => {
   }
 })
 
-async function createBooking(req, res) {
+async function createBooking (req, res) {
   try {
     if (!req.body.topic || !req.body.topic.trim()) {
       return res.status(400).json({ success: false, message: 'Topic is required' })
@@ -174,13 +174,13 @@ router.get('/', async (req, res) => {
   }
 })
 
-// DELETE: Cancel a booking (ORGANIZER ONLY)
+// DELETE: Cancel a booking (Now handles smart cancellation)
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const { studentEmail } = req.body // The test sends { studentEmail: '...' }
+    const { studentEmail } = req.body 
 
-    // 1. Find the booking first
+    // 1. Find the booking
     const booking = await Booking.findById(id)
 
     // 2. If it doesn't exist, return 404
@@ -188,56 +188,61 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Booking not found' })
     }
 
-    // 3. If the person deleting it isn't the owner, return 403 Unauthorized
-    if (booking.studentId !== studentEmail) {
-      return res.status(403).json({ success: false, message: 'Unauthorized to cancel this booking' })
+    // 3. Remove this student from the participants array
+    const updatedParticipants = booking.participantIDs.filter(email => email !== studentEmail)
+
+    // 4. Check if the booking is now empty
+    if (updatedParticipants.length === 0) {
+      // No one left -> Cancel the booking completely
+      await Booking.findByIdAndUpdate(id, {
+        status: 'canceled',
+        participantIDs: updatedParticipants,
+        $addToSet: { leftParticipantIDs: studentEmail } // Optional: Keep track of who left
+      })
+      return res.status(200).json({ success: true, message: 'Booking successfully canceled (no students remaining).' })
     }
 
-    // 4. If it passes all checks, go ahead and cancel it!
-    await Booking.findByIdAndUpdate(id, { status: 'canceled' })
+    // 5. Others are still in the booking -> Just remove this student, keep it active
+    await Booking.findByIdAndUpdate(id, {
+      participantIDs: updatedParticipants,
+      $addToSet: { leftParticipantIDs: studentEmail }
+    })
+    
+    res.status(200).json({ success: true, message: 'You have left the booking. It remains active for other students.' })
 
-    res.status(200).json({ success: true, message: 'Booking successfully canceled' })
   } catch (error) {
     console.error(error)
     res.status(500).json({ success: false, message: 'Server error' })
   }
 })
 
-// LEAVE: Leave a booking (Joiners only)
+// LEAVE: Leave a booking (Using the exact same smart logic for consistency)
 router.put('/leave/:id', async (req, res) => {
   try {
+    const { id } = req.params
     const { email } = req.body
-    const booking = await Booking.findById(req.params.id)
+    
+    const booking = await Booking.findById(id)
 
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' })
     }
 
-    // Reduces participant count by pulling from participantIDs, and records the leave
-    await Booking.findByIdAndUpdate(req.params.id, {
-      $pull: { participantIDs: email },
-      $addToSet: { leftParticipantIDs: email }
-    })
+    const updatedParticipants = booking.participantIDs.filter(p => p !== email)
 
-    res.json({ success: true, message: 'Successfully left the session.' })
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ success: false, error: 'Failed to leave session' })
-  }
-})
-
-// LEAVE: Leave a booking (Joiners only)
-router.put('/leave/:id', async (req, res) => {
-  try {
-    const { email } = req.body
-    const booking = await Booking.findById(req.params.id)
-
-    if (!booking) {
-      return res.status(404).json({ success: false, message: 'Booking not found' })
+    // If the last joiner leaves, cancel the booking
+    if (updatedParticipants.length === 0) {
+      await Booking.findByIdAndUpdate(id, {
+        status: 'canceled',
+        participantIDs: updatedParticipants,
+        $addToSet: { leftParticipantIDs: email }
+      })
+      return res.json({ success: true, message: 'Session canceled completely (no students remaining).' })
     }
 
-    await Booking.findByIdAndUpdate(req.params.id, {
-      $pull: { participantIDs: email },
+    // Otherwise, just remove them
+    await Booking.findByIdAndUpdate(id, {
+      participantIDs: updatedParticipants,
       $addToSet: { leftParticipantIDs: email }
     })
 
