@@ -82,35 +82,40 @@ router.post('/', validateLecturerHours, async (req, res) => {
 
 // GET: Fetch ONLY the logged-in student's bookings (RESTORED GROUP LOGIC)
 router.get('/', async (req, res) => {
-  try {
-    const { studentId } = req.query
+    try {
+        const { studentId, status } = req.query;
+        const query = {};
 
-    if (!studentId) {
-      return res.status(400).json({ error: 'Student ID is required.' })
+        if (status) {
+            const statuses = status.split(',');
+            query.status = { $in: statuses };
+        }
+
+        if (studentId) {
+            query.$or = [
+                { participantIDs: studentId },
+                { leftParticipantIDs: studentId }
+            ];
+        }
+
+        const bookings = await Booking.find(query).sort({ date: 1, startTime: 1 }).lean();
+
+        if (studentId) {
+            const mapped = bookings.map(b => {
+                if (b.leftParticipantIDs && b.leftParticipantIDs.includes(studentId)) {
+                    return { ...b, status: 'canceled' };
+                }
+                return b;
+            });
+            return res.json(mapped);
+        }
+
+        res.json(bookings);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch bookings' });
     }
-
-    // Fetch bookings where the student is currently active OR where they previously left
-    const rawBookings = await Booking.find({
-      $or: [
-        { participantIDs: studentId },
-        { leftParticipantIDs: studentId }
-      ]
-    }).sort({ date: 1, startTime: 1 }).lean()
-
-    // Dynamically override the status to 'canceled' on the user's side if they left
-    const bookings = rawBookings.map(b => {
-      if (b.leftParticipantIDs && b.leftParticipantIDs.includes(studentId)) {
-        return { ...b, status: 'canceled' }
-      }
-      return b
-    })
-
-    res.json(bookings)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Failed to fetch bookings' })
-  }
-})
+});
 
 // DELETE: Cancel a booking (ORGANIZER ONLY)
 router.delete('/:id', async (req, res) => {
@@ -141,28 +146,30 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
-// LEAVE: Leave a booking (Joiners only)
-router.put('/leave/:id', async (req, res) => {
-  try {
-    const { email } = req.body
-    const booking = await Booking.findById(req.params.id)
+// PUT: Join a session (add student to participantIDs)
+router.put('/:id/join', async (req, res) => {
+    try {
+        const { email } = req.body;
+        const booking = await Booking.findById(req.params.id);
 
-    if (!booking) {
-      return res.status(404).json({ success: false, message: 'Booking not found' })
+        if (!booking) {
+            return res.status(404).json({ success: false, message: 'Session not found' });
+        }
+
+        if (booking.participantIDs.includes(email)) {
+            return res.status(400).json({ success: false, message: 'Already joined this session' });
+        }
+
+        await Booking.findByIdAndUpdate(req.params.id, {
+            $addToSet: { participantIDs: email }
+        });
+
+        res.json({ success: true, message: 'Successfully joined the session.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: 'Failed to join session' });
     }
-
-    // Reduces participant count by pulling from participantIDs, and records the leave
-    await Booking.findByIdAndUpdate(req.params.id, {
-      $pull: { participantIDs: email },
-      $addToSet: { leftParticipantIDs: email }
-    })
-
-    res.json({ success: true, message: 'Successfully left the session.' })
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ success: false, error: 'Failed to leave session' })
-  }
-})
+});
 
 // LEAVE: Leave a booking (Joiners only)
 router.put('/leave/:id', async (req, res) => {
