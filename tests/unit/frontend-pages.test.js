@@ -218,26 +218,46 @@ describe('Booking page browser script', () => {
     sessionStorage.setItem('sychro_current_user', JSON.stringify({
       email: 'student@wits.ac.za'
     }));
-    fetch
-      .mockResolvedValueOnce({
+    fetch.mockImplementation((url) => {
+      if (url === '/api/bookings/form-data') {
+        return Promise.resolve({
+        ok: true,
+        json: jest.fn().mockResolvedValue([
+          {
+            lecturerEmail: 'lecturer_1',
+            courses: ['ELEN4010'],
+            weeklySchedule: []
+          }
+        ])
+      })
+      }
+
+      if (url.startsWith('/api/bookings/availability')) {
+        return Promise.resolve({
+        ok: true,
         json: jest.fn().mockResolvedValue({
-          duration: 30,
-          availableBlocks: [{ start: '09:00', end: '10:00' }],
-          bookedTimes: ['09:00']
+          availableBlocks: [{ start: '09:30', end: '10:00', course: 'ELEN4010', maxStudents: 5 }],
+          bookedTimes: []
         })
       })
-      .mockResolvedValueOnce({ ok: true });
+      }
+
+      return Promise.resolve({ ok: true });
+    });
     loadFreshScript('booking-page.js');
 
     document.dispatchEvent(new Event('DOMContentLoaded'));
+    await flushPromises();
     document.getElementById('module').value = 'ELEN4010';
+    document.getElementById('module').dispatchEvent(new Event('change'));
     document.getElementById('lecturerId').value = 'lecturer_1';
     document.getElementById('bookingDate').value = '2026-06-01';
     document.getElementById('bookingDate').dispatchEvent(new Event('change'));
     await flushPromises();
+    await flushPromises();
 
     const slotButton = document.querySelector('.slot-btn');
-    expect(slotButton.innerText).toBe('09:30 - 10:00');
+    expect(slotButton.textContent.trim()).toBe('09:30 - 10:00');
 
     slotButton.click();
     expect(document.getElementById('selectedStartTime').value).toBe('09:30');
@@ -250,7 +270,7 @@ describe('Booking page browser script', () => {
     }));
     await flushPromises();
 
-    expect(fetch).toHaveBeenNthCalledWith(2, '/api/bookings', expect.objectContaining({
+    expect(fetch).toHaveBeenCalledWith('/api/bookings', expect.objectContaining({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
