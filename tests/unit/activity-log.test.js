@@ -35,6 +35,7 @@ beforeEach(() => {
         <select id="user-filter"><option value="all">All Users</option></select>
         <select id="course-filter"><option value="all">All Courses</option></select>
         <select id="date-range-filter"><option value="all">All Time</option></select>
+        <select id="course-filter"><option value="all">All Courses</option></select>
         <input id="search-input" type="text" />
         <div id="custom-date-range" class="hidden">
             <input id="start-date" type="date" />
@@ -44,6 +45,7 @@ beforeEach(() => {
         <button id="clear-filters-btn"></button>
         <button id="export-activity-btn"></button>
         <button id="clear-all-btn"></button>
+        <button id="bookmark-btn"></button>
         <button id="auto-refresh-toggle"><span></span></button>
         <button id="bookmark-btn"></button>
         <div id="activity-timeline"></div>
@@ -57,6 +59,7 @@ beforeEach(() => {
         <button id="prev-page"></button>
         <button id="next-page"></button>
     `;
+    
     Object.assign(navigator, {
         clipboard: {
             writeText: jest.fn().mockResolvedValue()
