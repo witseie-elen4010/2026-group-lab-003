@@ -8,6 +8,7 @@ class StudentScheduleManager {
     this.init()
   }
 
+  // 1. Make init async so we can wait for the database fetch
   async init () {
     this.loadCurrentStudent()
     await this.loadSessions() 
@@ -40,6 +41,7 @@ class StudentScheduleManager {
     this.dateFilter.addEventListener('change', () => this.handleFilterChange())
     this.searchInput.addEventListener('input', this.debounce(() => this.handleFilterChange(), 300))
 
+    // 2. Make the refresh button async
     document.getElementById('refresh-btn').addEventListener('click', async () => {
       await this.loadSessions()
       this.updateStats()
@@ -84,6 +86,10 @@ class StudentScheduleManager {
     this.applyFilters()
   }
 
+  closeModal () {
+    this.sessionModal.classList.add('hidden')
+  }
+
   // DATA MANAGEMENT
   loadCurrentStudent () {
     const sessionUser = sessionStorage.getItem(this.userStorageKey)
@@ -103,13 +109,16 @@ class StudentScheduleManager {
     try {
       this.scheduleList.innerHTML = '<div class="text-center p-4">Loading your bookings...</div>'
 
+      // 1. Grab the user EXACTLY like we did on the booking page
       const user = JSON.parse(sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user'))
 
+      // 2. Safety check
       if (!user || !user.email) {
         this.scheduleList.innerHTML = '<div class="text-center p-4 text-danger">Please log in to view your sessions.</div>'
         return
       }
 
+      // 3. Fetch ONLY this student's bookings using their email
       const studentEmail = user.email
       const response = await fetch(`/api/bookings?studentId=${studentEmail}`)
       const dbBookings = await response.json()
@@ -117,6 +126,7 @@ class StudentScheduleManager {
 
       const now = new Date()
 
+      // 4. Map the data to the UI
       this.sessions = dbBookings.map(b => {
         const participantCount = Array.isArray(b.participantIDs) ? b.participantIDs.length : 1
         
@@ -384,6 +394,7 @@ class StudentScheduleManager {
     const today = new Date()
     const day = today.getDay()
     const diffToMonday = day === 0 ? 6 : day - 1
+    // Set to midnight so the comparison works regardless of current time
     const startOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - diffToMonday, 0, 0, 0, 0)
     const endOfWeek = new Date(startOfWeek)
     endOfWeek.setDate(startOfWeek.getDate() + 6)

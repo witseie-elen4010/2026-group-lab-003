@@ -110,8 +110,6 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
         sessionStorage.setItem('sychro_current_user', JSON.stringify(userPackage))
       }
 
-      alert('Login Successful!')
-
       // Redirect based on the role in our package
       if (userPackage.role === 'lecturer') {
         window.location.href = '/lecturer-dashboard.html'
