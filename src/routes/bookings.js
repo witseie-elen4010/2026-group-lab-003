@@ -250,13 +250,6 @@ router.put('/:id/join', async (req, res) => {
     try {
         const { email } = req.body;
         const booking = await Booking.findById(req.params.id);
-// LEAVE: Leave a booking (Using the exact same smart logic for consistency)
-router.put('/leave/:id', async (req, res) => {
-  try {
-    const { id } = req.params
-    const { email } = req.body
-
-    const booking = await Booking.findById(id)
 
         if (!booking) {
             return res.status(404).json({ success: false, message: 'Session not found' });
@@ -379,6 +372,7 @@ router.put('/:id', async (req, res) => {
     console.error(error)
     res.status(500).json({ error: 'Failed to update booking' })
   }
-})
+});
 
-module.exports = router
+
+module.exports = router  
