@@ -10,6 +10,9 @@ class ActivityLogManager {
     }
 
     async init() {
+        this.currentUser = this.getCurrentUser();
+        this.logRole = this.getLogRole();
+        this.applyRoleLabels();
         await this.loadActivities();
         this.setupEventListeners();
         this.updateStats();
@@ -96,9 +99,11 @@ class ActivityLogManager {
     // DATA MANAGEMENT
  async loadActivities() {
         try {
-            const response = await fetch(this.apiBase);
+            const headers = this.getUserHeaders();
+            const response = headers ? await fetch(this.apiBase, { headers }) : await fetch(this.apiBase);
             if (response.ok) {
-                this.activities = await response.json();
+                const activities = await response.json();
+                this.activities = activities.map(activity => this.normalizeActivity(activity));
             } else {
                 this.activities = [];
             }
@@ -110,14 +115,51 @@ class ActivityLogManager {
     
     async logAction(type, description, metadata = {}) {
         const currentUser = this.getCurrentUser();
+        this.currentUser = currentUser;
+        const userId = currentUser.idNumber || currentUser.id || currentUser.email || null;
+        const userEmail = currentUser.email || userId || null;
+        const userRole = currentUser.role || this.logRole || '';
+        const roleMetadata = userRole === 'lecturer'
+            ? {
+                lecturerId: metadata.lecturerId || userId,
+                lecturerEmail: metadata.lecturerEmail || userEmail
+            }
+            : userRole === 'student'
+                ? {
+                    studentId: metadata.studentId || userId,
+                    studentEmail: metadata.studentEmail || userEmail
+                }
+                : {};
 
         const entry = {
             type: type,
             description: description,
-            user: currentUser.fullName || currentUser.email || 'Unknown User',
-            userId: currentUser.id || null,
+            user: this.getDisplayName(currentUser),
+            userId,
+            userEmail,
+            userRole,
             timestamp: new Date().toISOString(),
-            metadata: metadata
+            metadata: {
+                ...metadata,
+                ...roleMetadata,
+                userId: metadata.userId || userId,
+                userEmail: metadata.userEmail || userEmail,
+                actorId: metadata.actorId || userId,
+                actorEmail: metadata.actorEmail || userEmail,
+                userRole,
+                audienceIds: [...new Set([
+                    ...(Array.isArray(metadata.audienceIds) ? metadata.audienceIds : []),
+                    userId,
+                    roleMetadata.studentId,
+                    roleMetadata.lecturerId
+                ].filter(Boolean))],
+                audienceEmails: [...new Set([
+                    ...(Array.isArray(metadata.audienceEmails) ? metadata.audienceEmails : []),
+                    userEmail,
+                    roleMetadata.studentEmail,
+                    roleMetadata.lecturerEmail
+                ].filter(Boolean))]
+            }
         };
         
       try {
@@ -139,30 +181,106 @@ class ActivityLogManager {
     }
 
     getCurrentUser() {
-        // Check sessionStorage first (cleared when browser closes)
-        const sessionUser = sessionStorage.getItem('sychro_current_user');
-        if (sessionUser) {
-            return JSON.parse(sessionUser);
+        try {
+            const sessionUser = sessionStorage.getItem('sychro_current_user');
+            if (sessionUser) {
+                return JSON.parse(sessionUser);
+            }
+
+            const localUser = localStorage.getItem('sychro_current_user');
+            if (localUser) {
+                return JSON.parse(localUser);
+            }
+        } catch (error) {
+            console.error('Failed to read current user:', error);
         }
 
-        // Check localStorage (persists across sessions)
-        const localUser = localStorage.getItem('sychro_current_user');
-        if (localUser) {
-            return JSON.parse(localUser);
+        const rememberedEmail = localStorage.getItem('userEmail');
+        if (rememberedEmail) {
+            return { fullName: rememberedEmail, email: rememberedEmail, id: rememberedEmail };
         }
 
         return { fullName: 'System', email: 'system', id: null };
     }
 
+    getLogRole() {
+        const pageRole = document.body.dataset.logRole;
+        if (pageRole && pageRole !== 'auto') return pageRole;
+        const path = window.location.pathname.toLowerCase();
+        if (path.includes('lecturer')) return 'lecturer';
+        if (path.includes('student')) return 'student';
+        return (this.currentUser && this.currentUser.role) || 'activity';
+    }
+
+    applyRoleLabels() {
+        const labels = {
+            lecturer: {
+                title: 'Lecturer Activity Log',
+                subtitle: 'Your availability and consultation activity',
+                emptyTitle: 'No Lecturer Activity Recorded',
+                emptyMessage: 'Availability changes and consultation bookings involving you will appear here.'
+            },
+            student: {
+                title: 'Student Activity Log',
+                subtitle: 'Your booking and consultation activity',
+                emptyTitle: 'No Student Activity Recorded',
+                emptyMessage: 'Bookings and consultation changes involving you will appear here.'
+            },
+            activity: {
+                title: 'Activity Log',
+                subtitle: 'Your consultation activity',
+                emptyTitle: 'No Activity Recorded',
+                emptyMessage: 'Actions performed in the consultation log will appear here automatically.'
+            }
+        };
+        const label = labels[this.logRole] || labels.activity;
+        const title = document.getElementById('activity-log-title');
+        const subtitle = document.getElementById('activity-log-subtitle');
+        const emptyTitle = this.emptyState ? this.emptyState.querySelector('h3') : null;
+        const emptyMessage = document.getElementById('empty-state-message');
+
+        document.title = label.title;
+        if (title) title.textContent = label.title;
+        if (subtitle) subtitle.textContent = label.subtitle;
+        if (emptyTitle) emptyTitle.textContent = label.emptyTitle;
+        if (emptyMessage) emptyMessage.textContent = label.emptyMessage;
+    }
+
+    normalizeActivity(activity) {
+        const metadata = activity.metadata || {};
+        return {
+            ...activity,
+            id: activity.id || activity._id,
+            user: activity.user || activity.userEmail || metadata.actorEmail || metadata.studentEmail || metadata.lecturerEmail || 'Unknown User',
+            description: activity.description || 'Activity recorded',
+            metadata
+        };
+    }
+
+    getDisplayName(user) {
+        if (!user) return 'Unknown User';
+        const fullName = [user.name, user.surname].filter(Boolean).join(' ').trim();
+        return user.fullName || fullName || user.email || 'Unknown User';
+    }
+
+    getUserHeaders() {
+        const user = this.currentUser || this.getCurrentUser();
+        if (!user || user.email === 'system') return null;
+        const id = user.idNumber || user.id || user.email || '';
+        return {
+            'X-User-Email': user.email || '',
+            'X-User-Id': id,
+            'X-User-Role': user.role || this.logRole || ''
+        };
+    }
+
     async clearAll() {
-        if (confirm('Delete ALL activity logs? This cannot be undone.')) {
+        if (confirm('Delete your activity logs? This cannot be undone.')) {
             try {
-            await fetch(this.apiBase, { method: 'DELETE' });
-            this.activities = [];
-            this.updateStats();
-            this.updateFilterOptions();
-            this.applyFilters();
-                const response = await fetch(this.apiBase, { method: 'DELETE' });
+                const headers = this.getUserHeaders();
+                const response = await fetch(this.apiBase, headers
+                    ? { method: 'DELETE', headers }
+                    : { method: 'DELETE' });
                 if (!response.ok) throw new Error('Failed to clear activities');
 
                 this.activities = [];
@@ -188,7 +306,7 @@ class ActivityLogManager {
         this.filteredActivities = this.activities.filter(activity => {
             if (actionType !== 'all' && activity.type !== actionType) return false;
             if (user !== 'all' && activity.user !== user) return false;
-            if (course !== 'all' && activity.metadata.course !== course) return false;
+            if (course !== 'all' && (activity.metadata || {}).course !== course) return false;
         
             if (dateRange !== 'all') {
                 const activityDate = new Date(activity.timestamp);
@@ -220,7 +338,19 @@ class ActivityLogManager {
             }
 
             if (searchTerm) {
-                const searchStr = (activity.description + ' ' + activity.user).toLowerCase();
+                const metadata = activity.metadata || {};
+                const searchStr = [
+                    activity.description,
+                    activity.user,
+                    metadata.course,
+                    metadata.module,
+                    metadata.venue,
+                    metadata.topic,
+                    metadata.studentName,
+                    metadata.studentId,
+                    metadata.lecturerName,
+                    metadata.lecturerId
+                ].filter(Boolean).join(' ').toLowerCase();
                 if (!searchStr.includes(searchTerm)) return false;
             }
 
@@ -243,8 +373,8 @@ class ActivityLogManager {
     }
 
     updateFilterOptions() {
-        const users = [...new Set(this.activities.map(a => a.user))].sort();
-        this.userFilter.innerHTML = '<option value="all">All Users</option>';
+        const users = [...new Set(this.activities.map(a => a.user).filter(Boolean))].sort();
+        this.userFilter.innerHTML = '<option value="all">All Relevant People</option>';
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user;
@@ -252,7 +382,7 @@ class ActivityLogManager {
             this.userFilter.appendChild(option);
         });
 
-        const courses = [...new Set(this.activities.map(a => a.metadata.course))].sort();
+        const courses = [...new Set(this.activities.map(a => (a.metadata || {}).course).filter(Boolean))].sort();
         this.courseFilter.innerHTML = '<option value="all">All Courses</option>';
         courses.forEach(course => {
             const option = document.createElement('option');
@@ -348,9 +478,37 @@ class ActivityLogManager {
                 <span class="detail-label">Timestamp</span>
                 <span class="detail-value">${time}</span>
             </div>
+            ${this.renderMetadata(activity.metadata || {})}
         `;
 
         this.detailModal.classList.remove('hidden');
+    }
+
+    renderMetadata(metadata) {
+        const rows = [
+            ['Course', metadata.course || metadata.module],
+            ['Date', metadata.date],
+            ['Time', metadata.time || [metadata.startTime, metadata.endTime].filter(Boolean).join(' - ')],
+            ['Venue', metadata.venue],
+            ['Lecturer', metadata.lecturerName || metadata.lecturerId || metadata.lecturerEmail],
+            ['Student', metadata.studentName || metadata.studentId || metadata.studentEmail],
+            ['Topic', metadata.topic]
+        ].filter(([, value]) => value);
+
+        if (rows.length === 0) return '';
+
+        return `
+            <div class="detail-row">
+                <span class="detail-label">Relevant Details</span>
+                <span class="detail-value"></span>
+            </div>
+            ${rows.map(([label, value]) => `
+                <div class="detail-row">
+                    <span class="detail-label">${this.escape(label)}</span>
+                    <span class="detail-value">${this.escape(value)}</span>
+                </div>
+            `).join('')}
+        `;
     }
 
     closeModal() {
@@ -371,12 +529,16 @@ class ActivityLogManager {
     // EXPORT
 
     exportCSV() {
-        const headers = ['Timestamp', 'Type', 'User', 'Description'];
+        const headers = ['Timestamp', 'Type', 'User', 'Description', 'Course', 'Date', 'Time', 'Venue'];
         const rows = this.filteredActivities.map(a => [
             new Date(a.timestamp).toLocaleString(),
             a.type,
             a.user,
-            a.description
+            a.description,
+            (a.metadata || {}).course || '',
+            (a.metadata || {}).date || '',
+            (a.metadata || {}).time || (a.metadata || {}).startTime || '',
+            (a.metadata || {}).venue || ''
         ]);
 
         const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
@@ -384,7 +546,7 @@ class ActivityLogManager {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `activity-log-${new Date().toISOString().split('T')[0]}.csv`;
+        link.download = `${this.logRole || 'activity'}-activity-log-${new Date().toISOString().split('T')[0]}.csv`;
         link.click();
         URL.revokeObjectURL(url);
     }
@@ -431,6 +593,7 @@ class ActivityLogManager {
         const icons = {
             created: 'fa-plus-circle',
             joined: 'fa-sign-in-alt',
+            updated: 'fa-pen-to-square',
             canceled: 'fa-times-circle'
         };
         return icons[type] || 'fa-circle';
@@ -440,6 +603,7 @@ class ActivityLogManager {
         const classes = {
             created: 'icon-create',
             joined: 'icon-join',
+            updated: 'icon-filter',
             canceled: 'icon-cancel'
         };
         return classes[type] || 'icon-filter';

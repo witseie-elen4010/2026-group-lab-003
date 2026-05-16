@@ -4,6 +4,7 @@ const router = express.Router()
 const Availability = require('../models/Availability')
 const Booking = require('../models/booking')
 const User = require('../models/user')
+const Activity = require('../models/activity')
 
 // Import your awesome middleware
 const { validateLecturerHours } = require('../middleware/booking-validator')
@@ -20,6 +21,49 @@ function formatStudentDisplayName (student) {
   const idNumber = student.idNumber ? `-${student.idNumber}` : ''
   const displayName = `${initial}${resolvedSurname}${idNumber}`
   return displayName || student.email
+}
+
+async function logBookingActivity (activity) {
+  if (process.env.NODE_ENV === 'test') {
+    return
+  }
+
+  try {
+    await Activity.create({
+      ...activity,
+      timestamp: activity.timestamp || new Date()
+    })
+  } catch (error) {
+    console.error('Failed to log booking activity:', error.message)
+  }
+}
+
+function uniqueValues (values) {
+  return [...new Set(values.filter(Boolean).map(String))]
+}
+
+function bookingActivityMetadata (booking, extra = {}) {
+  const bookingObject = typeof booking.toObject === 'function' ? booking.toObject() : booking
+  const participants = Array.isArray(bookingObject.participantIDs) ? bookingObject.participantIDs : []
+
+  return {
+    course: bookingObject.module,
+    module: bookingObject.module,
+    date: bookingObject.date,
+    startTime: bookingObject.startTime,
+    endTime: bookingObject.endTime,
+    venue: bookingObject.venue,
+    topic: bookingObject.topic,
+    studentId: bookingObject.studentId,
+    studentEmail: bookingObject.studentId,
+    lecturerId: bookingObject.lecturerId,
+    lecturerEmail: bookingObject.lecturerId,
+    participantIDs: participants,
+    participantEmails: participants,
+    audienceIds: uniqueValues([bookingObject.studentId, bookingObject.lecturerId, ...participants]),
+    audienceEmails: uniqueValues([bookingObject.studentId, bookingObject.lecturerId, ...participants]),
+    ...extra
+  }
 }
 
 // GET: Fetch all available courses and lecturers for the booking form
@@ -92,6 +136,19 @@ async function createBooking (req, res) {
     })
 
     const savedBooking = await newBooking.save()
+    await logBookingActivity({
+      type: 'created',
+      description: `Booked ${savedBooking.module || 'consultation'} consultation`,
+      user: req.body.studentId,
+      userId: req.body.studentId,
+      userEmail: req.body.studentId,
+      userRole: 'student',
+      metadata: bookingActivityMetadata(savedBooking, {
+        actorId: req.body.studentId,
+        actorEmail: req.body.studentId,
+        userRole: 'student'
+      })
+    })
     res.status(201).json({ message: 'Booking successful!', booking: savedBooking })
   } catch (error) {
     console.error(error)
@@ -208,6 +265,19 @@ router.delete('/:id', async (req, res) => {
       }
 
       await Booking.findByIdAndUpdate(id, { status: 'canceled' })
+      await logBookingActivity({
+        type: 'canceled',
+        description: `Canceled ${booking.module || 'consultation'} booking`,
+        user: studentEmail,
+        userId: studentEmail,
+        userEmail: studentEmail,
+        userRole: 'student',
+        metadata: bookingActivityMetadata(booking, {
+          actorId: studentEmail,
+          actorEmail: studentEmail,
+          userRole: 'student'
+        })
+      })
       return res.status(200).json({ success: true, message: 'Booking successfully canceled' })
     }
 
@@ -226,6 +296,19 @@ router.delete('/:id', async (req, res) => {
         participantIDs: updatedParticipants,
         $addToSet: { leftParticipantIDs: studentEmail } // Optional: Keep track of who left
       })
+      await logBookingActivity({
+        type: 'canceled',
+        description: `Canceled ${booking.module || 'consultation'} booking`,
+        user: studentEmail,
+        userId: studentEmail,
+        userEmail: studentEmail,
+        userRole: 'student',
+        metadata: bookingActivityMetadata(booking, {
+          actorId: studentEmail,
+          actorEmail: studentEmail,
+          userRole: 'student'
+        })
+      })
       return res.status(200).json({ success: true, message: 'Booking successfully canceled (no students remaining).' })
     }
 
@@ -233,6 +316,19 @@ router.delete('/:id', async (req, res) => {
     await Booking.findByIdAndUpdate(id, {
       participantIDs: updatedParticipants,
       $addToSet: { leftParticipantIDs: studentEmail }
+    })
+    await logBookingActivity({
+      type: 'canceled',
+      description: `Left ${booking.module || 'consultation'} booking`,
+      user: studentEmail,
+      userId: studentEmail,
+      userEmail: studentEmail,
+      userRole: 'student',
+      metadata: bookingActivityMetadata(booking, {
+        actorId: studentEmail,
+        actorEmail: studentEmail,
+        userRole: 'student'
+      })
     })
 
     res.status(200).json({ success: true, message: 'You have left the booking. It remains active for other students.' })
@@ -263,6 +359,19 @@ router.put('/leave/:id', async (req, res) => {
         participantIDs: updatedParticipants,
         $addToSet: { leftParticipantIDs: email }
       })
+      await logBookingActivity({
+        type: 'canceled',
+        description: `Canceled ${booking.module || 'consultation'} session`,
+        user: email,
+        userId: email,
+        userEmail: email,
+        userRole: 'student',
+        metadata: bookingActivityMetadata(booking, {
+          actorId: email,
+          actorEmail: email,
+          userRole: 'student'
+        })
+      })
       return res.json({ success: true, message: 'Session canceled completely (no students remaining).' })
     }
 
@@ -270,6 +379,19 @@ router.put('/leave/:id', async (req, res) => {
     await Booking.findByIdAndUpdate(id, {
       participantIDs: updatedParticipants,
       $addToSet: { leftParticipantIDs: email }
+    })
+    await logBookingActivity({
+      type: 'canceled',
+      description: `Left ${booking.module || 'consultation'} session`,
+      user: email,
+      userId: email,
+      userEmail: email,
+      userRole: 'student',
+      metadata: bookingActivityMetadata(booking, {
+        actorId: email,
+        actorEmail: email,
+        userRole: 'student'
+      })
     })
 
     res.json({ success: true, message: 'Successfully left the session.' })

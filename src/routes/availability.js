@@ -3,6 +3,43 @@ const router = express.Router()
 const Availability = require('../models/Availability')
 const Booking = require('../models/booking')
 const User = require('../models/User')
+const Activity = require('../models/activity')
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+async function logAvailabilityActivity (activity) {
+  if (process.env.NODE_ENV === 'test') {
+    return
+  }
+
+  try {
+    await Activity.create({
+      ...activity,
+      timestamp: activity.timestamp || new Date()
+    })
+  } catch (error) {
+    console.error('Failed to log availability activity:', error.message)
+  }
+}
+
+function slotMetadata (lecturerEmail, lecturerName, dayOfWeek, slot, extra = {}) {
+  return {
+    lecturerId: lecturerEmail,
+    lecturerEmail,
+    lecturerName,
+    audienceIds: [lecturerEmail],
+    audienceEmails: [lecturerEmail],
+    dayOfWeek,
+    day: DAY_NAMES[dayOfWeek] || String(dayOfWeek),
+    course: slot.course,
+    startTime: slot.start,
+    endTime: slot.end,
+    duration: slot.duration,
+    venue: slot.venue,
+    maxStudents: slot.maxStudents,
+    ...extra
+  }
+}
 
 // GET lecturer's availability with booking status per slot
 router.get('/', async (req, res) => {
@@ -153,6 +190,20 @@ router.post('/slot', async (req, res) => {
     availability.updatedAt = new Date()
 
     await availability.save()
+    const addedSlot = daySchedule.slots[daySchedule.slots.length - 1]
+    await logAvailabilityActivity({
+      type: 'created',
+      description: `Added ${addedSlot.course} availability slot`,
+      user: availability.lecturerName || lecturerEmail,
+      userId: lecturerEmail,
+      userEmail: lecturerEmail,
+      userRole: 'lecturer',
+      metadata: slotMetadata(lecturerEmail, availability.lecturerName, dayOfWeek, addedSlot, {
+        actorId: lecturerEmail,
+        actorEmail: lecturerEmail,
+        userRole: 'lecturer'
+      })
+    })
 
     res.json({ success: true, message: 'Slot added successfully', availability })
   } catch (error) {
@@ -196,6 +247,7 @@ router.delete('/slot', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Slot not found' })
     }
 
+    const removedSlot = daySchedule.slots[slotIndex]
     daySchedule.slots.splice(slotIndex, 1)
     if (daySchedule.slots.length === 0) {
       availability.weeklySchedule = availability.weeklySchedule.filter(d => d.dayOfWeek !== dayOfWeek)
@@ -208,6 +260,19 @@ router.delete('/slot', async (req, res) => {
     availability.courses = courses
     availability.updatedAt = new Date()
     await availability.save()
+    await logAvailabilityActivity({
+      type: 'canceled',
+      description: `Removed ${removedSlot.course} availability slot`,
+      user: availability.lecturerName || lecturerEmail,
+      userId: lecturerEmail,
+      userEmail: lecturerEmail,
+      userRole: 'lecturer',
+      metadata: slotMetadata(lecturerEmail, availability.lecturerName, dayOfWeek, removedSlot, {
+        actorId: lecturerEmail,
+        actorEmail: lecturerEmail,
+        userRole: 'lecturer'
+      })
+    })
 
     res.json({ success: true, message: 'Slot cancelled successfully', availability })
   } catch (error) {
@@ -281,6 +346,19 @@ router.put('/slot/:slotId', async (req, res) => {
 
     availability.markModified('weeklySchedule')
     await availability.save()
+    await logAvailabilityActivity({
+      type: 'updated',
+      description: `Updated ${slot.course} availability slot`,
+      user: availability.lecturerName || lecturerEmail,
+      userId: lecturerEmail,
+      userEmail: lecturerEmail,
+      userRole: 'lecturer',
+      metadata: slotMetadata(lecturerEmail, availability.lecturerName, dayOfWeek, slot, {
+        actorId: lecturerEmail,
+        actorEmail: lecturerEmail,
+        userRole: 'lecturer'
+      })
+    })
 
     res.json({ success: true, message: 'Slot updated successfully', availability })
   } catch (error) {

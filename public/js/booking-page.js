@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       matchingLecturers.forEach(lecturer => {
         const option = document.createElement('option')
-        option.value = lecturer.lecturerName
+        option.value = lecturer.lecturerEmail || lecturer.lecturerName
         option.textContent = lecturer.lecturerName || lecturer.lecturerEmail
         lecturerSelect.appendChild(option)
       })
