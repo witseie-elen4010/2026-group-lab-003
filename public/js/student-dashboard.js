@@ -11,12 +11,12 @@ class StudentScheduleManager {
   // 1. Make init async so we can wait for the database fetch
   async init () {
     this.loadCurrentStudent()
-    await this.loadSessions() // Wait for database data
+    await this.loadSessions() 
     this.setupEventListeners()
     this.displayCurrentDate()
     this.updateStats()
     this.updateFilterOptions()
-    this.applyFilters() // Render immediately after applying filters
+    this.applyFilters() 
   }
 
   // DOM GETTERS
@@ -64,14 +64,12 @@ class StudentScheduleManager {
       })
 
       document.addEventListener('click', (e) => {
-        // Close menu if clicking outside of it
         if (!sideMenu.contains(e.target) && !menuBtn.contains(e.target)) {
           sideMenu.classList.add('hidden')
         }
       })
     }
 
-    // Sign Out functionality
     const signOutBtn = document.querySelector('.sign-out')
     if (signOutBtn) {
       signOutBtn.addEventListener('click', (e) => {
@@ -126,18 +124,36 @@ class StudentScheduleManager {
       const dbBookings = await response.json()
       console.log('Bookings from Database:', dbBookings)
 
+      const now = new Date()
+
       // 4. Map the data to the UI
       this.sessions = dbBookings.map(b => {
         const participantCount = Array.isArray(b.participantIDs) ? b.participantIDs.length : 1
+        
+        // Dynamic Status Logic
+        let calculatedStatus = b.status || 'upcoming'
+        const duration = 30 // assumed 30 mins
+        
+        if (b.date && b.startTime && calculatedStatus !== 'canceled') {
+            const sessionStart = new Date(`${b.date}T${b.startTime}`)
+            const sessionEnd = new Date(sessionStart.getTime() + duration * 60000)
+            
+            if (now > sessionEnd) {
+                calculatedStatus = 'completed'
+            } else if (now >= sessionStart && now <= sessionEnd) {
+                calculatedStatus = 'ongoing'
+            }
+        }
+
         return {
           id: b._id,
           date: b.date,
           time: b.startTime,
-          duration: 30,
+          duration: duration,
           courseCode: b.module,
-          lecturerName: b.lecturerId === 'lecturer_1' ? 'Dr. Smith' : 'Prof. Jones', // Update this based on how your lecturers are saved
+          lecturerName: b.lecturerId === 'lecturer_1' ? 'Dr. Smith' : 'Prof. Jones', 
           topic: b.topic || 'No topic specified',
-          status: b.status || 'upcoming',
+          status: calculatedStatus, // Uses our new dynamic status
           organizerEmail: b.studentId,
           participantsCount: participantCount
         }
@@ -179,9 +195,33 @@ class StudentScheduleManager {
       return true
     })
 
+    // NEW SORTING LOGIC: Priority by Status, then by Date
+    const statusPriority = {
+        'ongoing': 1,
+        'upcoming': 2,
+        'completed': 3,
+        'canceled': 4
+    }
+
     this.filteredSessions.sort((a, b) => {
+      const priorityA = statusPriority[a.status] || 99
+      const priorityB = statusPriority[b.status] || 99
+
+      // If statuses are different, sort by priority
+      if (priorityA !== priorityB) {
+          return priorityA - priorityB
+      }
+
+      // If statuses are the same, sort by date/time
       const dateA = new Date(`${a.date}T${a.time}`)
       const dateB = new Date(`${b.date}T${b.time}`)
+      
+      // For completed/canceled things, show the newest ones first
+      if (a.status === 'completed' || a.status === 'canceled') {
+          return dateB - dateA
+      }
+      
+      // For upcoming things, show the nearest ones first
       return dateA - dateB
     })
 
@@ -229,13 +269,6 @@ class StudentScheduleManager {
     const timeDisplay = this.formatTime(session.time)
     const statusClass = `status-${session.status}`
     const location = session.location || 'Online'
-    const statusConfig = {
-      upcoming: { border: 'border-warning', badge: 'bg-warning text-dark' },
-      ongoing: { border: 'border-info', badge: 'bg-info text-dark' },
-      completed: { border: 'border-success', badge: 'bg-success' },
-      canceled: { border: 'border-danger', badge: 'bg-danger' }
-    }
-    const config = statusConfig[session.status] || { border: 'border-secondary', badge: 'bg-secondary' }
 
     return `
             <div class="session-card">
@@ -256,13 +289,11 @@ class StudentScheduleManager {
                     <button class="btn btn-sm btn-outline" onclick="scheduleManager.showDetail('${session.id}')">
                         <i class="fas fa-info-circle"></i> Details
                     </button>
-                    ${session.status === 'upcoming'
-? `
+                    ${session.status === 'upcoming' ? `
                         <button class="btn btn-sm btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')">
                             <i class="fas fa-times"></i> Cancel
                         </button>
-                    `
-: ''}
+                    ` : ''}
                 </div>
             </div>
         `
@@ -274,7 +305,6 @@ class StudentScheduleManager {
 
     const content = document.getElementById('session-detail-content')
 
-    // Build the HTML for the modal
     content.innerHTML = `
         <div class="detail-row">
             <span class="detail-label">Module:</span>
@@ -293,48 +323,26 @@ class StudentScheduleManager {
             <span class="detail-value status-badge status-${session.status}">${session.status}</span>
         </div>
 
-        ${session.status === 'upcoming'
-? `
+        ${session.status === 'upcoming' ? `
             <div style="margin-top: 20px; text-align: center;">
                 <button class="btn btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
                     <i class="fas fa-trash-alt"></i> Cancel Consultation
                 </button>
             </div>
-        `
-: ''}
+        ` : ''}
     `
-    document.getElementById('session-modal').classList.remove('hidden')
-    // Use the Bootstrap instance to show the modal
-    this.bsModal.show()
+    this.sessionModal.classList.remove('hidden')
   }
 
   closeModal () {
-    document.getElementById('session-modal').classList.add('hidden')
-    this.bsModal.hide()
+    this.sessionModal.classList.add('hidden')
   }
 
   async cancelBooking (sessionId) {
-    if (!confirm('Are you sure you want to cancel?')) return
-
-    const currentUser = JSON.parse(sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user'))
-
-    try {
-      const response = await fetch(`/api/bookings/${sessionId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentEmail: currentUser.email })
-      })
-
-    document.getElementById('session-modal').classList.remove('hidden')
-  }
-
-  async cancelBooking (sessionId) {
-    // 1. Confirm with the user before deleting
     if (!confirm('Are you sure you want to cancel this consultation? This action cannot be undone.')) {
       return
     }
 
-    // 2. Get the current user's email to verify ownership
     const currentUser = JSON.parse(sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user'))
 
     if (!currentUser || !currentUser.email) {
@@ -343,7 +351,6 @@ class StudentScheduleManager {
     }
 
     try {
-      // 3. Call the backend DELETE route
       const response = await fetch(`/api/bookings/${sessionId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -354,8 +361,8 @@ class StudentScheduleManager {
 
       if (response.ok && result.success) {
         alert('Consultation canceled successfully.')
-        this.closeModal() // Close the popup
-        await this.init() // Re-fetch bookings and update the dashboard
+        this.closeModal() 
+        await this.init() 
       } else {
         alert('Failed to cancel: ' + (result.message || 'Unknown error'))
       }
@@ -423,7 +430,6 @@ class StudentScheduleManager {
   }
 }
 
-// INITIALIZE ONLY IF IN BROWSER
 if (typeof module === 'undefined') {
   const scheduleManager = new StudentScheduleManager()
   window.scheduleManager = scheduleManager
