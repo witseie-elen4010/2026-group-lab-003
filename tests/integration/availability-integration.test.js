@@ -18,6 +18,7 @@ class MockAvailability {
       end: slot.end,
       duration: slot.duration,
       course: slot.course,
+      venue: slot.venue,
       maxStudents: slot.maxStudents,
     };
   }
@@ -57,6 +58,12 @@ class MockAvailability {
 }
 
 jest.mock('../../src/models/Availability', () => MockAvailability);
+
+// Mock Booking so the availability route's Booking.find() call returns empty results
+// without needing a MongoDB connection
+jest.mock('../../src/models/booking', () => ({
+  find: jest.fn().mockResolvedValue([])
+}));
 
 const app = require('../../src/app');
 const Availability = require('../../src/models/Availability');
@@ -138,6 +145,7 @@ describe('Availability API Integration Tests', () => {
           end: '10:00',
           duration: 60,
           course: 'MATH101',
+          venue: 'Room 101',
           maxStudents: 5,
         });
 
@@ -157,6 +165,7 @@ describe('Availability API Integration Tests', () => {
         end: '10:00',
         duration: 60,
         course: 'MATH101',
+        venue: 'Room 101',
         maxStudents: 5,
       });
       expect(updated.courses).toEqual(['MATH101']);
@@ -174,6 +183,7 @@ describe('Availability API Integration Tests', () => {
           end: '15:30',
           duration: 90,
           course: 'PHYS101',
+          venue: 'Lab 2',
           maxStudents: 3,
         });
 
@@ -195,12 +205,12 @@ describe('Availability API Integration Tests', () => {
       await request(app)
         .post('/api/availability/slot')
         .set('X-Lecturer-Id', testLecturerEmail)
-        .send({ dayOfWeek: 1, start: '09:00', end: '10:00', duration: 60, course: 'MATH101', maxStudents: 5 });
+        .send({ dayOfWeek: 1, start: '09:00', end: '10:00', duration: 60, course: 'MATH101', venue: 'Room 101', maxStudents: 5 });
 
       await request(app)
         .post('/api/availability/slot')
         .set('X-Lecturer-Id', testLecturerEmail)
-        .send({ dayOfWeek: 1, start: '10:00', end: '11:00', duration: 60, course: 'MATH101', maxStudents: 5 });
+        .send({ dayOfWeek: 1, start: '10:00', end: '11:00', duration: 60, course: 'MATH101', venue: 'Room 101', maxStudents: 5 });
 
       const updated = await Availability.findOne({ lecturerEmail: testLecturerEmail });
       expect(updated.weeklySchedule[0].slots).toHaveLength(2);
@@ -231,7 +241,7 @@ describe('Availability API Integration Tests', () => {
       await request(app)
         .post('/api/availability/slot')
         .set('X-Lecturer-Id', testLecturerEmail)
-        .send({ dayOfWeek: 2, start: '13:00', end: '14:00', duration: 60, course: 'PHYS101', maxStudents: 4 });
+        .send({ dayOfWeek: 2, start: '13:00', end: '14:00', duration: 60, course: 'PHYS101', venue: 'Lab 2', maxStudents: 4 });
 
       const updated = await Availability.findOne({ lecturerEmail: testLecturerEmail });
       expect(updated.courses).toEqual(['MATH101', 'PHYS101']);
@@ -251,7 +261,7 @@ describe('Availability API Integration Tests', () => {
       const res = await request(app)
         .post('/api/availability/slot')
         .set('X-Lecturer-Id', testLecturerEmail)
-        .send({ dayOfWeek: 0, start: '09:00', end: '10:00', duration: 60, course: 'MATH101', maxStudents: 5 });
+        .send({ dayOfWeek: 0, start: '09:00', end: '10:00', duration: 60, course: 'MATH101', venue: 'Room 101', maxStudents: 5 });
 
       expect(res.status).toBe(400);
       expect(res.body.message).toBe('Invalid day of week (must be 1-5)');
@@ -261,7 +271,7 @@ describe('Availability API Integration Tests', () => {
       const res = await request(app)
         .post('/api/availability/slot')
         .set('X-Lecturer-Id', testLecturerEmail)
-        .send({ dayOfWeek: 6, start: '09:00', end: '10:00', duration: 60, course: 'MATH101', maxStudents: 5 });
+        .send({ dayOfWeek: 6, start: '09:00', end: '10:00', duration: 60, course: 'MATH101', venue: 'Room 101', maxStudents: 5 });
 
       expect(res.status).toBe(400);
       expect(res.body.message).toBe('Invalid day of week (must be 1-5)');

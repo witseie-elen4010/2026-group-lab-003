@@ -37,6 +37,7 @@ describe('Booking API Routes', () => {
             start: '10:00',
             end: '10:30',
             course: 'CS101',
+            venue: 'Room 101',
             maxStudents: 5
           }]
         }]
@@ -53,6 +54,7 @@ describe('Booking API Routes', () => {
         startTime: '10:00',
         endTime: '10:30',
         module: 'CS101',
+        venue: 'Room 101',
         topic: 'Test Consultation'
       }
 
@@ -81,6 +83,7 @@ describe('Booking API Routes', () => {
             start: '10:00',
             end: '10:30',
             course: 'CS101',
+            venue: 'Room 101',
             maxStudents: 5
           }]
         }]
