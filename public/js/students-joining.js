@@ -12,6 +12,7 @@ class StudentSessionJoiner {
     async init() {
         this.loadCurrentStudent();
         await this.loadSessions();
+        this.updateFilterOptions();
         this.setupEventListeners();
         this.updateFilterOptions();
         this.render();
@@ -59,6 +60,7 @@ class StudentSessionJoiner {
     }
 
     filterAndRender() {
+        if (!Array.isArray(this.sessions)) return;
         const course = this.courseFilter.value;
         const searchTerm = this.searchInput.value.toLowerCase().trim();
 
@@ -75,7 +77,8 @@ class StudentSessionJoiner {
         this.render();
     }
 
-    updateFilterOptions() {
+        updateFilterOptions() {
+        if (!Array.isArray(this.sessions)) return;   // ← Add this line
         const courses = [...new Set(this.sessions.map(s => s.module).filter(Boolean))].sort();
         this.courseFilter.innerHTML = '<option value="all">All Courses</option>';
         courses.forEach(course => {
