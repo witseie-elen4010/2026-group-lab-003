@@ -57,6 +57,10 @@ router.get('/availability', async (req, res) => {
 
 async function createBooking(req, res) {
   try {
+    if (!req.body.topic || !req.body.topic.trim()) {
+      return res.status(400).json({ success: false, message: 'Topic is required' })
+    }
+
     const newBooking = new Booking({
       studentId: req.body.studentId,
       lecturerId: req.body.lecturerId,
@@ -64,7 +68,7 @@ async function createBooking(req, res) {
       startTime: req.body.startTime,
       endTime: req.body.endTime,
       module: req.body.module,
-      topic: req.body.topic,
+      topic: req.body.topic.trim(),
       status: 'upcoming',
       participantIDs: [req.body.studentId], // CRITICAL for your "leave" feature
       leftParticipantIDs: []

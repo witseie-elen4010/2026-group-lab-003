@@ -525,14 +525,45 @@ body.session-modal-open {
     padding: 0;
 }
 
+.student-list-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 0 6px;
+    color: #333;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.student-list-heading span:last-child {
+    max-width: 45%;
+    text-align: right;
+}
+
 .student-list li {
     padding: 8px 0;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
     font-size: 14px;
     color: #555;
     border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.student-list-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.student-list-topic {
+    color: #555;
+    max-width: 45%;
+    text-align: right;
+    overflow-wrap: anywhere;
 }
 
 /* Responsive */

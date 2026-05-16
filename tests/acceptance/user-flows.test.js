@@ -51,6 +51,7 @@ describe('User Acceptance Flows', () => {
       startTime: '09:30',
       endTime: '10:00',
       module: 'PHYS1000',
+      topic: 'First student topic',
       status: 'upcoming'
     };
     const lean = jest.fn().mockResolvedValue([booking]);
@@ -99,7 +100,8 @@ describe('User Acceptance Flows', () => {
         startTime: booking.startTime,
         endTime: booking.endTime,
         module: booking.module,
-        studentId: student.email
+        studentId: student.email,
+        topic: booking.topic
       });
 
     expect(bookResponse.status).toBe(201);

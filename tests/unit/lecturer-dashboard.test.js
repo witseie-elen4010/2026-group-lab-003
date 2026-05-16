@@ -224,6 +224,10 @@ describe('Lecturer Dashboard', () => {
             expect(manager.sessions).toHaveLength(1);
             expect(manager.sessions[0].joinedStudents).toEqual(['alice@wits.ac.za', 'bob@wits.ac.za']);
             expect(manager.sessions[0].topic).toBe('First student topic');
+            expect(manager.sessions[0].studentTopics).toEqual({
+                'alice@wits.ac.za': 'First student topic',
+                'bob@wits.ac.za': 'Second student topic'
+            });
             expect(document.querySelectorAll('.session-card')).toHaveLength(1);
             expect(document.getElementById('schedule-list').textContent).toContain('2 joined');
             expect(document.getElementById('schedule-list').textContent).toContain('First student topic');
@@ -232,8 +236,9 @@ describe('Lecturer Dashboard', () => {
             document.querySelector('[data-session-action="details"]').click();
 
             expect(document.getElementById('session-detail-content').textContent).toContain('Students Joined (2)');
+            expect(document.querySelector('.student-list-heading').textContent).toContain('Topic');
             expect(document.getElementById('session-detail-content').textContent).toContain('First student topic');
-            expect(document.getElementById('session-detail-content').textContent).not.toContain('Second student topic');
+            expect(document.getElementById('session-detail-content').textContent).toContain('Second student topic');
             expect(document.getElementById('session-detail-content').textContent).toContain('alice@wits.ac.za');
             expect(document.getElementById('session-detail-content').textContent).toContain('bob@wits.ac.za');
             expect(document.getElementById('session-modal').classList.contains('hidden')).toBe(false);

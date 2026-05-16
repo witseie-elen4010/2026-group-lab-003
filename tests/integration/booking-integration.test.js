@@ -37,7 +37,8 @@ describe('Booking Integration Tests', () => {
       startTime: '10:00',
       endTime: '11:00',
       module: 'ELEN4010',
-      studentId: 'student@wits.ac.za'
+      studentId: 'student@wits.ac.za',
+      topic: 'First student topic'
     };
     const savedBooking = { _id: 'mock_id', ...bookingRequest, status: 'upcoming' };
 
@@ -67,6 +68,25 @@ describe('Booking Integration Tests', () => {
       status: 'upcoming'
     }));
     expect(Booking.prototype.save).toHaveBeenCalled();
+  });
+
+  it('requires a topic when creating a booking', async () => {
+    Booking.countDocuments.mockResolvedValue(0);
+
+    const response = await request(app)
+      .post('/api/bookings/create')
+      .send({
+        lecturerId: 'lecturer@wits.ac.za',
+        date: '2026-06-01',
+        startTime: '10:00',
+        endTime: '11:00',
+        module: 'ELEN4010',
+        studentId: 'student@wits.ac.za'
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('Topic is required');
+    expect(Booking.prototype.save).not.toHaveBeenCalled();
   });
 
   it('rejects invalid booking requests before saving', async () => {

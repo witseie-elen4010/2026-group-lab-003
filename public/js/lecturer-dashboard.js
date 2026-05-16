@@ -120,6 +120,7 @@ class LecturerScheduleManager {
             status: b.status || 'upcoming',
             topic: b.topic || '',
             joinedStudents: b.joinedStudents,
+            studentTopics: b.studentTopics || {},
             
     }));
     }
@@ -143,6 +144,7 @@ class LecturerScheduleManager {
                     date,
                     bookingIds: [],
                     joinedStudents: [],
+                    studentTopics: {},
                     firstBookingAt: booking.createdAt || ''
                 });
             }
@@ -165,6 +167,9 @@ class LecturerScheduleManager {
             students.forEach(student => {
                 if (!session.joinedStudents.includes(student)) {
                     session.joinedStudents.push(student);
+                }
+                if (!session.studentTopics[student]) {
+                    session.studentTopics[student] = booking.topic || 'No topic specified';
                 }
             });
 
@@ -264,6 +269,7 @@ class LecturerScheduleManager {
         const timeDisplay = this.formatTime(session.time);
         const statusClass = `status-${session.status}`;
         const joinedStudents = session.joinedStudents || [];
+        const studentTopics = session.studentTopics || {};
         const location = session.location || 'Not specified';
 
         return `
@@ -317,6 +323,7 @@ class LecturerScheduleManager {
         });
 
         const joinedStudents = session.joinedStudents || [];
+        const studentTopics = session.studentTopics || {};
         const location = session.location || 'Not specified';
 
         this.sessionDetailContent.innerHTML = `
@@ -347,8 +354,17 @@ class LecturerScheduleManager {
             <div class="detail-students">
                 <h4>Students Joined (${joinedStudents.length})</h4>
                 ${joinedStudents.length > 0 ? `
+                    <div class="student-list-heading">
+                        <span>Student</span>
+                        <span>Topic</span>
+                    </div>
                     <ul class="student-list">
-                        ${joinedStudents.map(s => `<li><i class="fas fa-user-circle"></i> ${this.escape(s)}</li>`).join('')}
+                        ${joinedStudents.map(s => `
+                            <li>
+                                <span class="student-list-name"><i class="fas fa-user-circle"></i> ${this.escape(s)}</span>
+                                <span class="student-list-topic">${this.escape(studentTopics[s] || 'No topic specified')}</span>
+                            </li>
+                        `).join('')}
                     </ul>
                 ` : '<p style="color: #888; font-size: 13px;">No students have joined yet.</p>'}
             </div>
