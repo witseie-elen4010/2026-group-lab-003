@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // 3. CORE FETCH LOGIC (Talking to Backend)
   // ==========================================
-  
+
   // Store the fetched data globally for the dropdowns
   let availabilityData = []
 
@@ -35,14 +35,14 @@ document.addEventListener('DOMContentLoaded', () => {
       availabilityData = await response.json()
 
       const uniqueCourses = new Set()
-      
+
       // Look for courses in the main array AND inside the weekly slots
       availabilityData.forEach(lecturer => {
         // 1. Check main courses array
         if (lecturer.courses && Array.isArray(lecturer.courses)) {
           lecturer.courses.forEach(course => uniqueCourses.add(course))
         }
-        
+
         // 2. Check inside the actual scheduled slots
         if (lecturer.weeklySchedule && Array.isArray(lecturer.weeklySchedule)) {
           lecturer.weeklySchedule.forEach(day => {
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
       })
 
       moduleSelect.innerHTML = '<option value="" selected disabled>Select a module...</option>'
-      
+
       if (uniqueCourses.size === 0) {
         moduleSelect.innerHTML = '<option value="" selected disabled>No modules available</option>'
         return
@@ -87,19 +87,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const matchingLecturers = availabilityData.filter(lecturer => {
         // Does the lecturer have this course in their root array?
         const inRoot = lecturer.courses && lecturer.courses.includes(selectedCourse)
-        
+
         // Does the lecturer have this course in any of their slots?
-        const inSlots = lecturer.weeklySchedule && lecturer.weeklySchedule.some(day => 
+        const inSlots = lecturer.weeklySchedule && lecturer.weeklySchedule.some(day =>
           day.slots && day.slots.some(slot => slot.course === selectedCourse)
         )
-        
+
         return inRoot || inSlots
       })
 
       matchingLecturers.forEach(lecturer => {
         const option = document.createElement('option')
         option.value = lecturer.lecturerEmail
-        option.textContent = lecturer.lecturerEmail 
+        option.textContent = lecturer.lecturerEmail
         lecturerSelect.appendChild(option)
       })
 
@@ -133,8 +133,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const availableSlots = data.availableBlocks.filter(slot => {
           const isCorrectModule = slot.course === selectedModule
+
+          // Calculate how many bookings currently exist for this exact start time
           const currentBookingsCount = data.bookedTimes.filter(time => time === slot.start).length
-          const hasSpace = currentBookingsCount < slot.maxStudents
+
+          const hasSpace = currentBookingsCount === 0
+
           return isCorrectModule && hasSpace
         })
 
@@ -149,35 +153,35 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // 4. RENDER UTILITIES
   // ==========================================
-  function renderSlotsToUI(slotsArray) {
-    slotsContainer.innerHTML = '';
-    selectedStartInput.value = '';
-    selectedEndInput.value = '';
+  function renderSlotsToUI (slotsArray) {
+    slotsContainer.innerHTML = ''
+    selectedStartInput.value = ''
+    selectedEndInput.value = ''
 
     if (slotsArray.length === 0) {
-      slotsContainer.innerHTML = '<div class="text-danger small">No available slots for this module on this date.</div>';
-      return;
+      slotsContainer.innerHTML = '<div class="text-danger small">No available slots for this module on this date.</div>'
+      return
     }
 
     slotsArray.forEach(slot => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn btn-outline-primary m-1 slot-btn';
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'btn btn-outline-primary m-1 slot-btn'
 
       // Safe check for duration
-      const durationText = slot.duration ? `<br><small class="text-muted">${slot.duration} min</small>` : '';
-      btn.innerHTML = `${slot.start} - ${slot.end} ${durationText}`;
+      const durationText = slot.duration ? `<br><small class="text-muted">${slot.duration} min</small>` : ''
+      btn.innerHTML = `${slot.start} - ${slot.end} ${durationText}`
 
       btn.onclick = () => {
-        document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+        document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
 
-        selectedStartInput.value = slot.start;
-        selectedEndInput.value = slot.end;
-      };
+        selectedStartInput.value = slot.start
+        selectedEndInput.value = slot.end
+      }
 
-      slotsContainer.appendChild(btn);
-    });
+      slotsContainer.appendChild(btn)
+    })
   }
 
   // ==========================================
@@ -240,5 +244,4 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     })
   }
-
-});
+})
