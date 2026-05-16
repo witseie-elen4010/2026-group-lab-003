@@ -11,12 +11,12 @@ class StudentScheduleManager {
   // 1. Make init async so we can wait for the database fetch
   async init () {
     this.loadCurrentStudent()
-    await this.loadSessions() 
+    await this.loadSessions()
     this.setupEventListeners()
     this.displayCurrentDate()
     this.updateStats()
     this.updateFilterOptions()
-    this.applyFilters() 
+    this.applyFilters()
   }
 
   // DOM GETTERS
@@ -129,29 +129,29 @@ class StudentScheduleManager {
       // 4. Map the data to the UI
       this.sessions = dbBookings.map(b => {
         const participantCount = Array.isArray(b.participantIDs) ? b.participantIDs.length : 1
-        
+
         // Dynamic Status Logic
         let calculatedStatus = b.status || 'upcoming'
         const duration = 30 // assumed 30 mins
-        
+
         if (b.date && b.startTime && calculatedStatus !== 'canceled') {
-            const sessionStart = new Date(`${b.date}T${b.startTime}`)
-            const sessionEnd = new Date(sessionStart.getTime() + duration * 60000)
-            
-            if (now > sessionEnd) {
-                calculatedStatus = 'completed'
-            } else if (now >= sessionStart && now <= sessionEnd) {
-                calculatedStatus = 'ongoing'
-            }
+          const sessionStart = new Date(`${b.date}T${b.startTime}`)
+          const sessionEnd = new Date(sessionStart.getTime() + duration * 60000)
+
+          if (now > sessionEnd) {
+            calculatedStatus = 'completed'
+          } else if (now >= sessionStart && now <= sessionEnd) {
+            calculatedStatus = 'ongoing'
+          }
         }
 
         return {
           id: b._id,
           date: b.date,
           time: b.startTime,
-          duration: duration,
+          duration,
           courseCode: b.module,
-          lecturerName: b.lecturerId === 'lecturer_1' ? 'Dr. Smith' : 'Prof. Jones', 
+          lecturerName: b.lecturerId === 'lecturer_1' ? 'Dr. Smith' : 'Prof. Jones',
           topic: b.topic || 'No topic specified',
           status: calculatedStatus, // Uses our new dynamic status
           organizerEmail: b.studentId,
@@ -197,10 +197,10 @@ class StudentScheduleManager {
 
     // NEW SORTING LOGIC: Priority by Status, then by Date
     const statusPriority = {
-        'ongoing': 1,
-        'upcoming': 2,
-        'completed': 3,
-        'canceled': 4
+      ongoing: 1,
+      upcoming: 2,
+      completed: 3,
+      canceled: 4
     }
 
     this.filteredSessions.sort((a, b) => {
@@ -209,18 +209,18 @@ class StudentScheduleManager {
 
       // If statuses are different, sort by priority
       if (priorityA !== priorityB) {
-          return priorityA - priorityB
+        return priorityA - priorityB
       }
 
       // If statuses are the same, sort by date/time
       const dateA = new Date(`${a.date}T${a.time}`)
       const dateB = new Date(`${b.date}T${b.time}`)
-      
+
       // For completed/canceled things, show the newest ones first
       if (a.status === 'completed' || a.status === 'canceled') {
-          return dateB - dateA
+        return dateB - dateA
       }
-      
+
       // For upcoming things, show the nearest ones first
       return dateA - dateB
     })
@@ -289,11 +289,13 @@ class StudentScheduleManager {
                     <button class="btn btn-sm btn-outline" onclick="scheduleManager.showDetail('${session.id}')">
                         <i class="fas fa-info-circle"></i> Details
                     </button>
-                    ${session.status === 'upcoming' ? `
+                    ${session.status === 'upcoming'
+? `
                         <button class="btn btn-sm btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')">
                             <i class="fas fa-times"></i> Cancel
                         </button>
-                    ` : ''}
+                    `
+: ''}
                 </div>
             </div>
         `
@@ -323,13 +325,15 @@ class StudentScheduleManager {
             <span class="detail-value status-badge status-${session.status}">${session.status}</span>
         </div>
 
-        ${session.status === 'upcoming' ? `
+        ${session.status === 'upcoming'
+? `
             <div style="margin-top: 20px; text-align: center;">
                 <button class="btn btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
                     <i class="fas fa-trash-alt"></i> Cancel Consultation
                 </button>
             </div>
-        ` : ''}
+        `
+: ''}
     `
     this.sessionModal.classList.remove('hidden')
   }
@@ -339,7 +343,7 @@ class StudentScheduleManager {
   }
 
   async cancelBooking (sessionId) {
-    if (!confirm('Are you sure you want to cancel this consultation? This action cannot be undone.')) {
+    if (!confirm('Are you sure you want to cancel or leave this consultation?')) {
       return
     }
 
@@ -360,15 +364,16 @@ class StudentScheduleManager {
       const result = await response.json()
 
       if (response.ok && result.success) {
-        alert('Consultation canceled successfully.')
-        this.closeModal() 
-        await this.init() 
+        // UPDATE HERE: Use the dynamic message from the backend!
+        alert(result.message)
+        this.closeModal()
+        await this.init()
       } else {
-        alert('Failed to cancel: ' + (result.message || 'Unknown error'))
+        alert('Failed: ' + (result.message || 'Unknown error'))
       }
     } catch (error) {
       console.error('Cancellation Error:', error)
-      alert('An error occurred while trying to cancel the booking.')
+      alert('An error occurred while trying to process this request.')
     }
   }
 
