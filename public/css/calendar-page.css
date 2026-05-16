@@ -75,15 +75,21 @@ body {
     padding: 0;                
 }
 
+.days-grid-layout {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background-color: #dee2e6; 
+    gap: 1px; 
+    border-bottom-left-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+    overflow: hidden;
+}
+
 .day-cell {
-    background-color: #ffffff; 
-    aspect-ratio: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    font-size: 1rem;
-    cursor: pointer;
+    background-color: #fff;
+    min-height: 100px;
+    padding: 0.75rem;
+    position: relative;
     transition: background-color 0.2s;
 }
 
@@ -93,14 +99,13 @@ body {
 }
 
 .day-cell:hover:not(.empty) {
-    background-color: #e9ecef;
+    background-color: #f8f9fa;
+    cursor: pointer;
 }
 
 .day-cell.today {
-    background-color: #e7f5ff;
-    color: #1c7ed6;
+    background-color: #e7f1ff; 
     font-weight: bold;
-    border: 2px solid #339af0;
 }
 
 .day-cell.has-booking {
@@ -134,12 +139,12 @@ body {
 }
 
 .booking-indicator {
-    width: 6px;
-    height: 6px;
-    background-color: #007bff;
+    width: 8px;
+    height: 8px;
+    background-color: #0d6efd; 
     border-radius: 50%;
     position: absolute;
-    bottom: 4px;
+    bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
 }

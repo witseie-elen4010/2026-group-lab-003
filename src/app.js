@@ -58,6 +58,10 @@ app.use('/api/courses', courseRoutes);
 const scheduleRoutes = require('./routes/schedules');
 app.use('/api/schedules', scheduleRoutes);
 
+// --- Availability Routes (for lecturer weekly schedule) ---
+const availabilityRoutes = require('./routes/availability');
+app.use('/api/availability', availabilityRoutes);
+
 // --- Registration Route ---
 app.post('/api/register', async (req, res) => {
   try {
