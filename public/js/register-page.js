@@ -1,3 +1,4 @@
+// --- PASSWORD VISIBILITY TOGGLES ---
 const togglePassword1 = document.querySelector('#togglePassword1')
 const passwordField1 = document.querySelector('#password')
 
@@ -16,38 +17,45 @@ togglePassword2.addEventListener('click', function () {
   this.textContent = type === 'password' ? 'visibility' : 'visibility_off'
 })
 
-const registerform = document.querySelector('#registrationForm')
-
-registerform.addEventListener('submit', (e) => {
-  e.preventDefault()
-
-  // Grab the segment element
-  const roleSegment = document.querySelector('#role')
-
-  // Get the currently selected value ('student' or 'lecturer')
-  const selectedRole = roleSegment.value
-
-  console.log('Registering as:', selectedRole)
-})
-
+// --- DOM ELEMENTS REGISTER ---
+const registrationForm = document.getElementById('registrationForm')
 const emailInput = document.getElementById('email')
 const emailError = document.getElementById('emailError')
 const nameInput = document.getElementById('name')
 const nameError = document.getElementById('nameError')
 const surnameInput = document.getElementById('surname')
 const surnameError = document.getElementById('surnameError')
-
-const registrationForm = document.getElementById('registrationForm')
 const passwordInput = document.getElementById('password')
 const confirmInput = document.getElementById('confirmPassword')
-const errorMessage = document.getElementById('error-message')
 const passwordError = document.getElementById('passwordError')
-
 const studentNoInput = document.getElementById('idNumber')
 const studentNoError = document.getElementById('studnoError')
+const errorMessage = document.getElementById('error-message')
 
+// New Title Elements
+const roleStudent = document.getElementById('roleStudent')
+const roleLecturer = document.getElementById('roleLecturer')
+const titleFieldContainer = document.getElementById('titleFieldContainer')
+const titleError = document.getElementById('titleError')
+
+// --- DYNAMIC LECTURER TITLE TOGGLE ---
+function toggleTitleField () {
+  if (roleLecturer.checked) {
+    titleFieldContainer.classList.remove('d-none')
+  } else {
+    titleFieldContainer.classList.add('d-none')
+    // Clear title radios if they switch back to student
+    document.querySelectorAll('input[name="titleOptions"]').forEach(radio => radio.checked = false)
+    if (titleError) titleError.textContent = ''
+  }
+}
+
+roleStudent.addEventListener('change', toggleTitleField)
+roleLecturer.addEventListener('change', toggleTitleField)
+
+// --- FORM SUBMISSION HANDLING ---
 registrationForm.addEventListener('submit', async (event) => {
-// Prevent the page from refreshing
+  // Prevent the page from refreshing
   event.preventDefault()
 
   const emailValue = emailInput.value.trim()
@@ -56,12 +64,18 @@ registrationForm.addEventListener('submit', async (event) => {
   const passwordValue = passwordInput.value.trim()
   const studentNoValue = studentNoInput.value.trim()
 
+  // Correctly extract active role from checked radio input element
+  const selectedRole = document.querySelector('input[name="roleOptions"]:checked').value
+
   // Clear any old errors from previous attempts
   emailError.textContent = ''
   nameError.textContent = ''
   surnameError.textContent = ''
   passwordError.textContent = ''
   studentNoError.textContent = ''
+  if (titleError) titleError.textContent = ''
+  errorMessage.style.display = 'none'
+  errorMessage.textContent = ''
 
   // We assume the form is valid until proven otherwise
   let isValid = true
@@ -70,10 +84,10 @@ registrationForm.addEventListener('submit', async (event) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (emailValue === '') {
     emailError.textContent = 'Please enter your email address.'
-    isValid = false // Mark the form as invalid
+    isValid = false
   } else if (!emailRegex.test(emailValue)) {
     emailError.textContent = 'Please enter a valid email (e.g., name@example.com).'
-    isValid = false // Mark the form as invalid
+    isValid = false
   }
 
   // Check the name for empty
@@ -82,47 +96,60 @@ registrationForm.addEventListener('submit', async (event) => {
     isValid = false
   }
 
+  // Check the surname for empty
   if (surnameValue === '') {
     surnameError.textContent = 'Please enter your surname.'
     isValid = false
   }
 
+  // Check the identification number for empty (Context-aware messaging)
   if (studentNoValue === '') {
-    studentNoError.textContent = 'Please enter your student number.'
+    studentNoError.textContent = selectedRole === 'lecturer'
+      ? 'Please enter your lecturer number.'
+      : 'Please enter your student number.'
+    isValid = false
   }
 
-  // Clear any previous errors
-  errorMessage.style.display = 'none'
-  errorMessage.textContent = ''
+  // Lecturer Title Group Validation
+  let selectedTitle = ''
+  if (selectedRole === 'lecturer') {
+    const activeTitleRadio = document.querySelector('input[name="titleOptions"]:checked')
+    if (!activeTitleRadio) {
+      if (titleError) titleError.textContent = 'Please select your lecturer title.'
+      isValid = false
+    } else {
+      selectedTitle = activeTitleRadio.value
+    }
+  }
 
-  // Compare the values
+  // Compare the password fields
   if (passwordInput.value !== confirmInput.value || passwordValue === '') {
-    // Show error and stop the function
     errorMessage.textContent = 'Passwords do not match.'
     errorMessage.style.display = 'block'
     isValid = false
   }
 
   if (passwordValue === '') {
-    passwordError.textContent = 'Please enter your password'
+    passwordError.textContent = 'Please enter your password.'
     isValid = false
   } else if (passwordValue.length <= 7 && passwordValue !== '') {
     passwordError.textContent = 'Weak Password. Password has to contain 8 or more characters.'
   }
 
-  // The Final Decision: If anything was wrong, stop everything right here.
+  // Stop everything right here if validation fails
   if (!isValid) {
     return
   }
 
-  // Pull values from HTML
+  // Gather clean data object for fetch request payload
   const formData = {
-    name: document.getElementById('name').value,
-    surname: document.getElementById('surname').value,
-    idNumber: document.getElementById('idNumber').value,
-    email: document.getElementById('email').value,
-    role: document.getElementById('role').value, // 'student' or 'lecturer'
-    password: document.getElementById('password').value
+    name: nameValue,
+    surname: surnameValue,
+    idNumber: studentNoValue,
+    email: emailValue,
+    role: selectedRole,
+    title: selectedTitle, // Will be string value if lecturer, or empty string if student
+    password: passwordInput.value
   }
 
   try {

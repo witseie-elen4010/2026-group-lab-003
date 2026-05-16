@@ -29,6 +29,12 @@ const UserSchema = new mongoose.Schema({
     enum: ['student', 'lecturer'], // This explicitly satisfies the dual-role requirement
     default: 'student'
   },
+  title: {
+    type:
+    String,
+    enum: ['Mr', 'Mrs', 'Miss', 'Dr', 'Prof', ''],
+    default: ''
+  },
   password: {
     type: String,
     required: [true, 'Please add a password'],

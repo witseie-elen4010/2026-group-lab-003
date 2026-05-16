@@ -53,6 +53,27 @@
                             </div>
                         </div>
 
+                        <div class="mb-3 d-none" id="titleFieldContainer">
+                            <label class="form-label text-white small ms-2 fw-semibold">Lecturer Title</label>
+                            <div class="btn-group w-100 rounded-pill p-1 bg-light shadow-sm" role="group" id="titleGroup">
+                                <input type="radio" class="btn-check" name="titleOptions" id="titleMr" value="Mr">
+                                <label class="btn btn-outline-secondary border-0 rounded-pill btn-sm fw-semibold" for="titleMr">Mr</label>
+
+                                <input type="radio" class="btn-check" name="titleOptions" id="titleMrs" value="Mrs">
+                                <label class="btn btn-outline-secondary border-0 rounded-pill btn-sm fw-semibold" for="titleMrs">Mrs</label>
+
+                                <input type="radio" class="btn-check" name="titleOptions" id="titleMiss" value="Miss">
+                                <label class="btn btn-outline-secondary border-0 rounded-pill btn-sm fw-semibold" for="titleMiss">Miss</label>
+
+                                <input type="radio" class="btn-check" name="titleOptions" id="titleDr" value="Dr">
+                                <label class="btn btn-outline-secondary border-0 rounded-pill btn-sm fw-semibold" for="titleDr">Dr</label>
+
+                                <input type="radio" class="btn-check" name="titleOptions" id="titleProf" value="Prof">
+                                <label class="btn btn-outline-secondary border-0 rounded-pill btn-sm fw-semibold" for="titleProf">Prof</label>
+                            </div>
+                            <span id="titleError" class="text-danger x-small mt-1 d-block ms-2"></span>
+                        </div>
+
                         <div class="mb-3">
                             <div class="input-group">
                                 <input type="password" class="form-control border-end-0 rounded-start-pill ps-3" id="password" placeholder="Password" required>
