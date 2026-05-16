@@ -39,6 +39,12 @@ describe('StudentScheduleManager', () => {
     window.localStorage.clear()
     window.sessionStorage.clear()
 
+    global.bootstrap = {
+      Modal: jest.fn().mockImplementation(() => ({
+        show: jest.fn(),
+        hide: jest.fn()
+      }))
+    }
     // 3. Inject the exact HTML structure your class expects
     document.body.innerHTML = `
       <div id="current-date">Loading...</div>
@@ -186,7 +192,7 @@ describe('StudentScheduleManager', () => {
       const modal = document.getElementById('session-modal')
       const content = document.getElementById('session-detail-content')
 
-      expect(modal.classList.contains('hidden')).toBe(false)
+      expect(manager.bsModal.show).toHaveBeenCalled()
       expect(content.innerHTML).toContain('CS101')
       expect(content.innerHTML).toContain('Leave Consultation')
       expect(content.innerHTML).toContain('upcoming')

@@ -193,6 +193,14 @@ class StudentScheduleManager {
   }
 
   renderSessionCard (session) {
+    const statusStyles = {
+      upcoming: { border: 'border-primary' },
+      canceled: { border: 'border-danger' },
+      past: { border: 'border-secondary' }
+    }
+
+    const config = statusStyles[session.status] || statusStyles.upcoming
+    
     const timeDisplay = this.formatTime(session.time)
     const location = session.location || 'Online'
 
