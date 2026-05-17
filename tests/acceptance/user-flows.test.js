@@ -133,8 +133,14 @@ describe('User Acceptance Flows', () => {
     expect(sort).toHaveBeenCalledWith({ date: 1, startTime: 1 });
     expect(lean).toHaveBeenCalled();
     expect(User.find).toHaveBeenCalledWith(
-      { email: { $in: [booking.lecturerId] }, role: 'lecturer' },
-      'name surname email'
+      {
+        role: 'lecturer',
+        $or: [
+          { email: { $in: [booking.lecturerId] } },
+          { idNumber: { $in: [booking.lecturerId] } }
+        ]
+      },
+      'name surname email idNumber'
     );
 
     const cancelResponse = await request(app)

@@ -104,3 +104,354 @@ Topic: topic
 
 You can view this booking from your student dashboard.
 ------------------------------------------------------------------------
+[2026-05-17T13:28:06.251Z] TO: 7778899@students.com | SUBJECT: Consultation booking canceled
+Hi Gangstar,
+
+Your consultation booking has been canceled.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: Control PID
+
+You can view your bookings from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:28:53.138Z] TO: ofenembe@gmail.com | SUBJECT: Student joined your consultation
+Hi Ofentse,
+
+Gangstar Shubile has joined your consultation.
+
+Module: ELEN4010A
+Date: 2026-05-18
+Time: 10:00 - 11:00
+Venue: Hall 29
+Topic: topic
+
+You can view this session from your lecturer dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:28:53.430Z] TO: 7778899@students.com | SUBJECT: You joined a consultation
+Hi Gangstar,
+
+You have successfully joined this consultation.
+
+Module: ELEN4010A
+Date: 2026-05-18
+Time: 10:00 - 11:00
+Venue: Hall 29
+Topic: topic
+
+You can view your bookings from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:31:26.252Z] TO: 7778899@students.com | SUBJECT: You left a consultation
+Hi Gangstar,
+
+You have left this consultation. It remains active for the other students.
+
+Module: ELEN4010A
+Date: 2026-05-18
+Time: 10:00 - 11:00
+Venue: Hall 29
+Topic: topic
+
+You can view your bookings from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:31:58.758Z] TO: ofenembe@gmail.com | SUBJECT: Student joined your consultation
+Hi Ofentse,
+
+Gangstar Shubile has joined your consultation.
+
+Module: ELEN4010A
+Date: 2026-05-18
+Time: 10:00 - 11:00
+Venue: Hall 29
+Topic: topic
+
+You can view this session from your lecturer dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:31:58.866Z] TO: 7778899@students.com | SUBJECT: You joined a consultation
+Hi Gangstar,
+
+You have successfully joined this consultation.
+
+Module: ELEN4010A
+Date: 2026-05-18
+Time: 10:00 - 11:00
+Venue: Hall 29
+Topic: topic
+
+You can view your bookings from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:41:17.365Z] TO: ngcweti.mjiyako@gmail.com | SUBJECT: Consultation booking confirmed
+Hi Mthiyane,
+
+Your consultation booking has been confirmed.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: yes
+
+You can view this booking from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:42:09.601Z] TO: ngcweti.mjiyako@gmail.com | SUBJECT: Consultation booking canceled
+Hi Mthiyane,
+
+Your consultation booking has been canceled.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: yes
+
+You can view your bookings from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:42:47.157Z] TO: ngcweti.mjiyako@gmail.com | SUBJECT: Consultation booking confirmed
+Hi Mthiyane,
+
+Your consultation booking has been confirmed.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: 22
+
+You can view this booking from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:42:50.068Z] TO: mjiyako.ngcweti@gmail.com | SUBJECT: New consultation booking
+Hi Anton,
+
+Mthiyane Mjiyako has booked one of your consultation slots.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: 22
+
+You can view this booking from your lecturer dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:44:06.874Z] TO: ngcweti.mjiyako@gmail.com | SUBJECT: Consultation booking canceled
+Hi Mthiyane,
+
+Your consultation booking has been canceled.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: 22
+
+You can view your bookings from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:47:56.365Z] TO: ngcweti.mjiyako@gmail.com | SUBJECT: Consultation booking confirmed
+Hi Mthiyane,
+
+Your consultation booking has been confirmed.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: lets go
+
+You can view this booking from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:47:59.599Z] TO: mjiyako.ngcweti@gmail.com | SUBJECT: New consultation booking
+Hi Anton,
+
+Mthiyane Mjiyako has booked one of your consultation slots.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: lets go
+
+You can view this booking from your lecturer dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:48:37.196Z] TO: ngcweti.mjiyako@gmail.com | SUBJECT: Consultation booking canceled
+Hi Mthiyane,
+
+Your consultation booking has been canceled.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: lets go
+
+You can view your bookings from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:48:40.664Z] TO: mjiyako.ngcweti@gmail.com | SUBJECT: Student canceled a consultation
+Hi Anton,
+
+Mthiyane Mjiyako has canceled this consultation.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: lets go
+
+You can view the updated session from your lecturer dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:49:31.617Z] TO: ngcweti.mjiyako@gmail.com | SUBJECT: Consultation booking confirmed
+Hi Mthiyane,
+
+Your consultation booking has been confirmed.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: ulele
+
+You can view this booking from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:49:35.666Z] TO: mjiyako.ngcweti@gmail.com | SUBJECT: New consultation booking
+Hi Anton,
+
+Mthiyane Mjiyako has booked one of your consultation slots.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: ulele
+
+You can view this booking from your lecturer dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:50:13.878Z] TO: 7778899@students.com | SUBJECT: You joined a consultation
+Hi Gangstar,
+
+You have successfully joined this consultation.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: ulele
+
+You can view your bookings from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:50:14.062Z] TO: mjiyako.ngcweti@gmail.com | SUBJECT: Student joined your consultation
+Hi Anton,
+
+Gangstar Shubile has joined your consultation.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: ulele
+
+You can view this session from your lecturer dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:50:37.562Z] TO: 7778899@students.com | SUBJECT: You left a consultation
+Hi Gangstar,
+
+You have left this consultation. It remains active for the other students.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: ulele
+
+You can view your bookings from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:50:40.486Z] TO: mjiyako.ngcweti@gmail.com | SUBJECT: Student canceled a consultation
+Hi Anton,
+
+Gangstar Shubile has left this consultation.
+
+Module: ELEN2016-ELECTRONICS
+Date: 2026-05-18
+Time: 15:00 - 15:25
+Venue: RS227
+Topic: ulele
+
+You can view the updated session from your lecturer dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:51:09.901Z] TO: 7778899@students.com | SUBJECT: You left a consultation
+Hi Gangstar,
+
+You have left this consultation. It remains active for the other students.
+
+Module: ELEN4010A
+Date: 2026-05-18
+Time: 10:00 - 11:00
+Venue: Hall 29
+Topic: topic
+
+You can view your bookings from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:51:12.875Z] TO: ofenembe@gmail.com | SUBJECT: Student canceled a consultation
+Hi Ofentse,
+
+Gangstar Shubile has left this consultation.
+
+Module: ELEN4010A
+Date: 2026-05-18
+Time: 10:00 - 11:00
+Venue: Hall 29
+Topic: topic
+
+You can view the updated session from your lecturer dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:54:12.343Z] TO: 7778899@students.com | SUBJECT: You joined a consultation
+Hi Gangstar,
+
+You have successfully joined this consultation.
+
+Module: ELEN4010
+Date: 2026-05-18
+Time: 12:15 - 12:45
+Venue: WSS
+Topic: FF
+
+You can view your bookings from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:54:12.425Z] TO: nhlakaniphomngomezulu55@gmail.com | SUBJECT: Student joined your consultation
+Hi Dr Nhlaks,
+
+Gangstar Shubile has joined your consultation.
+
+Module: ELEN4010
+Date: 2026-05-18
+Time: 12:15 - 12:45
+Venue: WSS
+Topic: FF
+
+You can view this session from your lecturer dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:54:39.328Z] TO: 7778899@students.com | SUBJECT: You left a consultation
+Hi Gangstar,
+
+You have left this consultation. It remains active for the other students.
+
+Module: ELEN4010
+Date: 2026-05-18
+Time: 12:15 - 12:45
+Venue: WSS
+Topic: FF
+
+You can view your bookings from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T13:54:42.665Z] TO: nhlakaniphomngomezulu55@gmail.com | SUBJECT: Student canceled a consultation
+Hi Dr Nhlaks,
+
+Gangstar Shubile has left this consultation.
+
+Module: ELEN4010
+Date: 2026-05-18
+Time: 12:15 - 12:45
+Venue: WSS
+Topic: FF
+
+You can view the updated session from your lecturer dashboard.
+------------------------------------------------------------------------

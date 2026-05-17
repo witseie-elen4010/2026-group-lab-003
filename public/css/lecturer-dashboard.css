@@ -187,6 +187,10 @@ body {
     color: white;
 }
 
+.session-actions .btn-danger {
+    border-radius: 25px;
+}
+
 /* Stats Grid */
 .stats-grid {
     display: grid;

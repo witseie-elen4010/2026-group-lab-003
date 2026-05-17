@@ -87,24 +87,54 @@ function activityMatchesRequester(activity, requester) {
     if (requester.values.length === 0) return false;
 
     const metadata = activity.metadata || {};
-    const searchableValues = [
+    const audienceValues = [
+        ...(Array.isArray(metadata.audienceIds) ? metadata.audienceIds : []),
+        ...(Array.isArray(metadata.audienceEmails) ? metadata.audienceEmails : [])
+    ];
+    const actorValues = [
         activity.userId,
         activity.userEmail,
         metadata.userId,
         metadata.userEmail,
         metadata.actorId,
-        metadata.actorEmail,
+        metadata.actorEmail
+    ];
+    const studentValues = [
         metadata.studentId,
         metadata.studentEmail,
-        metadata.lecturerId,
-        metadata.lecturerEmail,
         ...(Array.isArray(metadata.participantIDs) ? metadata.participantIDs : []),
-        ...(Array.isArray(metadata.participantEmails) ? metadata.participantEmails : []),
-        ...(Array.isArray(metadata.audienceIds) ? metadata.audienceIds : []),
-        ...(Array.isArray(metadata.audienceEmails) ? metadata.audienceEmails : [])
-    ].filter(Boolean).map(String);
+        ...(Array.isArray(metadata.participantEmails) ? metadata.participantEmails : [])
+    ];
+    const lecturerValues = [
+        metadata.lecturerId,
+        metadata.lecturerEmail
+    ];
+    const actorRole = activity.userRole || metadata.userRole || '';
 
-    return requester.values.some(value => searchableValues.includes(String(value)));
+    let searchableValues;
+    if (requester.role === 'student') {
+        searchableValues = [
+            ...studentValues,
+            ...audienceValues,
+            ...(actorRole === 'student' ? actorValues : [])
+        ];
+    } else if (requester.role === 'lecturer') {
+        searchableValues = [
+            ...lecturerValues,
+            ...audienceValues,
+            ...(actorRole === 'lecturer' ? actorValues : [])
+        ];
+    } else {
+        searchableValues = [
+            ...actorValues,
+            ...studentValues,
+            ...lecturerValues,
+            ...audienceValues
+        ];
+    }
+
+    const normalizedValues = searchableValues.filter(Boolean).map(String);
+    return requester.values.some(value => normalizedValues.includes(String(value)));
 }
 
 function getActivityCourse(activity) {

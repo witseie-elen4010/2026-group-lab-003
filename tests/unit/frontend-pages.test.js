@@ -128,7 +128,8 @@ describe('Registration page browser script', () => {
         <span id="studnoError"></span>
         <input id="email" />
         <span id="emailError"></span>
-        <select id="role"><option value="student">Student</option><option value="lecturer">Lecturer</option></select>
+        <input type="radio" name="roleOptions" id="roleStudent" value="student" checked />
+        <input type="radio" name="roleOptions" id="roleLecturer" value="lecturer" />
         <input id="password" type="password" />
         <span id="passwordError"></span>
         <input id="confirmPassword" type="password" />
@@ -171,7 +172,7 @@ describe('Registration page browser script', () => {
     document.getElementById('surname').value = 'Doe';
     document.getElementById('idNumber').value = '200001';
     document.getElementById('email').value = 'jane@student.wits.ac.za';
-    document.getElementById('role').value = 'student';
+    document.getElementById('roleStudent').checked = true;
     document.getElementById('password').value = 'SecurePassword123!';
     document.getElementById('confirmPassword').value = 'SecurePassword123!';
     document.getElementById('registrationForm').dispatchEvent(new Event('submit', {

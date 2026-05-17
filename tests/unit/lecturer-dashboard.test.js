@@ -47,6 +47,8 @@ beforeEach(() => {
         <input id="search-input" type="text" />
         <div id="schedule-list"></div>
         <div id="empty-state" class="hidden"></div>
+        <button id="menu-toggle"></button>
+        <div id="side-menu" class="hidden"></div>
         <div id="session-modal" class="session-modal-overlay hidden" aria-hidden="true">
             <div id="session-detail-content"></div>
         </div>

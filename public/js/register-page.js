@@ -25,7 +25,9 @@ registerform.addEventListener('submit', (e) => {
   const roleSegment = document.querySelector('#role')
 
   // Get the currently selected value ('student' or 'lecturer')
-  const selectedRole = roleSegment.value
+  const selectedRole = roleSegment
+    ? roleSegment.value
+    : document.querySelector('input[name="roleOptions"]:checked')?.value
 
   console.log('Registering as:', selectedRole)
 })
