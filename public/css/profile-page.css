@@ -69,3 +69,53 @@ body {
 }
 .message.success { background: #d4edda; color: #155724; display: block; }
 .message.error { background: #f8d7da; color: #721c24; display: block; }
+
+/* Change Password button and form styles */
+.change-pwd-btn {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 25px;
+  padding: 10px;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.change-pwd-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+.submit-pwd-btn {
+  background: #FFC107;
+  border: none;
+  border-radius: 25px;
+  padding: 10px;
+  width: 100%;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+}
+.cancel-pwd-btn {
+  background: transparent;
+  border: 1px solid #ff4d4d;
+  color: #ff4d4d;
+  border-radius: 25px;
+  padding: 10px;
+  width: 100%;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+}
+.cancel-pwd-btn:hover {
+  background: rgba(255,77,77,0.1);
+}
+#changePwdForm input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: none;
+  border-radius: 12px;
+  box-sizing: border-box;
+  font-size: 14px;
+}
