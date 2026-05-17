@@ -42,6 +42,10 @@ async function createEmailVerificationOtp (user) {
   return { otp, delivery }
 }
 
+function shouldBlockOtpWhenEmailFails (delivery) {
+  return process.env.NODE_ENV === 'production' && delivery && !delivery.sent
+}
+
 // --- Middleware ---
 app.use(express.json())
 app.use(session({
@@ -126,6 +130,12 @@ app.post('/api/register', async (req, res) => {
 
     await user.save()
     const otpResult = await createEmailVerificationOtp(user)
+    if (shouldBlockOtpWhenEmailFails(otpResult?.delivery)) {
+      return res.status(502).json({
+        success: false,
+        error: 'Account created, but the verification email could not be sent. Please contact support or try resend verification later.'
+      })
+    }
     const localOtpVisible = process.env.NODE_ENV !== 'production' && otpResult?.delivery?.simulated
     res.status(201).json({
       success: true,

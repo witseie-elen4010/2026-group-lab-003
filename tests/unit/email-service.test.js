@@ -175,6 +175,30 @@ describe('emailService', () => {
     )
   })
 
+  it('removes spaces from Gmail app passwords pasted from the Google UI', async () => {
+    const { service, createTransport } = loadService({
+      nodeEnv: 'development',
+      env: {
+        EMAIL_USER: 'sender@gmail.com',
+        EMAIL_PASS: 'abcd efgh ijkl mnop'
+      }
+    })
+
+    await service.sendNotification(
+      { email: 'lecturer@wits.ac.za', emailNotifications: true },
+      'Subject',
+      'Body'
+    )
+
+    expect(createTransport).toHaveBeenCalledWith(expect.objectContaining({
+      service: 'gmail',
+      auth: {
+        user: 'sender@gmail.com',
+        pass: 'abcdefghijklmnop'
+      }
+    }))
+  })
+
   it('returns when SMTP hangs instead of waiting forever', async () => {
     const { service, createTransport, appendFileSync } = loadService({
       nodeEnv: 'development',

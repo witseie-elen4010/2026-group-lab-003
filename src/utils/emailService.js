@@ -12,9 +12,13 @@ function getEmailTimeoutMs () {
   return Number.isFinite(value) && value > 0 ? value : DEFAULT_EMAIL_TIMEOUT_MS
 }
 
+function normalizeEmailPassword (pass) {
+  return String(pass || '').replace(/\s+/g, '')
+}
+
 function getEnvEmailConfig () {
   const user = process.env.SMTP_USER || process.env.EMAIL_USER
-  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS
+  const pass = normalizeEmailPassword(process.env.SMTP_PASS || process.env.EMAIL_PASS)
 
   if (!user || !pass) return null
 
@@ -37,6 +41,7 @@ async function getDatabaseEmailConfig () {
 
   const settings = await EmailSettings.findOne({ name: 'default', enabled: true }).lean()
   if (!settings || !settings.user || !settings.pass) return null
+  const pass = normalizeEmailPassword(settings.pass)
 
   return {
     service: settings.service || (settings.user.includes('@gmail.com') ? 'gmail' : ''),
@@ -44,7 +49,7 @@ async function getDatabaseEmailConfig () {
     port: Number(settings.port) || 587,
     secure: Boolean(settings.secure),
     user: settings.user,
-    pass: settings.pass,
+    pass,
     from: settings.from || settings.user,
     timeoutMs: getEmailTimeoutMs()
   }

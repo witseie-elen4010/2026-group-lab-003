@@ -21,6 +21,10 @@ const hashToken = raw => crypto.createHash('sha256').update(raw).digest('hex')
 const generateOtp = () => String(crypto.randomInt(100000, 1000000))
 const normalizeEmail = email => String(email || '').trim().toLowerCase()
 
+function shouldBlockOtpWhenEmailFails (delivery) {
+  return process.env.NODE_ENV === 'production' && delivery && !delivery.sent
+}
+
 async function sendVerificationOtp (user) {
   const otp = generateOtp()
   await EmailVerificationToken.deleteMany({ userId: user._id, used: false })
@@ -59,6 +63,12 @@ router.post('/forgot-password', async (req, res) => {
       })
       const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
       delivery = await sendPasswordResetEmail(email, resetOtp, `${baseUrl}/reset-password.html?email=${encodeURIComponent(email)}`)
+    }
+    if (shouldBlockOtpWhenEmailFails(delivery)) {
+      return res.status(502).json({
+        success: false,
+        error: 'Password reset email could not be sent. Please try again shortly.'
+      })
     }
     const localOtpVisible = process.env.NODE_ENV !== 'production' && delivery?.simulated
     res.json({
@@ -140,6 +150,12 @@ router.post('/resend-verification', async (req, res) => {
     let otpResult = null
     if (user && !user.emailVerified) {
       otpResult = await sendVerificationOtp(user)
+    }
+    if (shouldBlockOtpWhenEmailFails(otpResult?.delivery)) {
+      return res.status(502).json({
+        success: false,
+        error: 'Verification email could not be sent. Please try again shortly.'
+      })
     }
 
     const localOtpVisible = process.env.NODE_ENV !== 'production' && otpResult?.delivery?.simulated
