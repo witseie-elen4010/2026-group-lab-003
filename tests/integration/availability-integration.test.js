@@ -24,9 +24,11 @@ class MockAvailability {
   }
 
   static cloneDay(day) {
+    const slots = (day.slots || []).map(MockAvailability.cloneSlot);
+    slots.id = id => slots.find(slot => slot._id.toString() === id) || null;
     return {
       dayOfWeek: day.dayOfWeek,
-      slots: (day.slots || []).map(MockAvailability.cloneSlot),
+      slots,
     };
   }
 
@@ -392,6 +394,153 @@ describe('Availability API Integration Tests', () => {
 
       expect(res.status).toBe(404);
       expect(res.body.message).toBe('Slot not found');
+    });
+  });
+
+  describe('PUT /api/availability/slot/:slotId', () => {
+    let slotId;
+
+    beforeEach(async () => {
+      const schedule = await Availability.create({
+        lecturerEmail: testLecturerEmail,
+        lecturerName: 'Test Lecturer',
+        weeklySchedule: [
+          {
+            dayOfWeek: 2,
+            slots: [
+              {
+                start: '09:00',
+                end: '10:00',
+                duration: 60,
+                course: 'MATH101',
+                venue: 'Room 101',
+                maxStudents: 5,
+              },
+              {
+                start: '11:00',
+                end: '12:00',
+                duration: 60,
+                course: 'PHYS101',
+                venue: 'Lab 1',
+                maxStudents: 3,
+              },
+            ],
+          },
+        ],
+        courses: ['MATH101', 'PHYS101'],
+      });
+      slotId = schedule.weeklySchedule[0].slots[0]._id.toString();
+    });
+
+    it('updates an existing slot and refreshes the course list', async () => {
+      const res = await request(app)
+        .put(`/api/availability/slot/${slotId}`)
+        .set('X-Lecturer-Id', testLecturerEmail)
+        .send({
+          dayOfWeek: 2,
+          start: '09:30',
+          end: '10:30',
+          duration: 60,
+          course: 'chem101',
+          venue: ' Lab 7 ',
+          maxStudents: 4,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Slot updated successfully');
+
+      const updated = await Availability.findOne({ lecturerEmail: testLecturerEmail });
+      expect(updated.weeklySchedule[0].slots[0]).toMatchObject({
+        start: '09:30',
+        end: '10:30',
+        duration: 60,
+        course: 'CHEM101',
+        venue: 'Lab 7',
+        maxStudents: 4,
+      });
+      expect(updated.courses).toEqual(['CHEM101', 'PHYS101']);
+    });
+
+    it('rejects slot updates without a lecturer id', async () => {
+      const res = await request(app)
+        .put(`/api/availability/slot/${slotId}`)
+        .send({ dayOfWeek: 2 });
+
+      expect(res.status).toBe(401);
+      expect(res.body.message).toBe('Unauthorized');
+    });
+
+    it('rejects slot updates with missing fields, invalid days, and invalid time ranges', async () => {
+      const missing = await request(app)
+        .put(`/api/availability/slot/${slotId}`)
+        .set('X-Lecturer-Id', testLecturerEmail)
+        .send({ dayOfWeek: 2 });
+
+      const invalidDay = await request(app)
+        .put(`/api/availability/slot/${slotId}`)
+        .set('X-Lecturer-Id', testLecturerEmail)
+        .send({ dayOfWeek: 6, start: '09:00', end: '10:00', duration: 60, course: 'MATH101', venue: 'Room', maxStudents: 1 });
+
+      const invalidTime = await request(app)
+        .put(`/api/availability/slot/${slotId}`)
+        .set('X-Lecturer-Id', testLecturerEmail)
+        .send({ dayOfWeek: 2, start: '11:00', end: '10:00', duration: 60, course: 'MATH101', venue: 'Room', maxStudents: 1 });
+
+      expect(missing.status).toBe(400);
+      expect(missing.body.message).toBe('Missing required fields');
+      expect(invalidDay.status).toBe(400);
+      expect(invalidDay.body.message).toBe('Invalid day of week (must be 1-5)');
+      expect(invalidTime.status).toBe(400);
+      expect(invalidTime.body.message).toBe('Start time must be before end time');
+    });
+
+    it('returns 404 when updating a missing schedule, day, or slot', async () => {
+      await Availability.deleteMany({});
+
+      const missingSchedule = await request(app)
+        .put(`/api/availability/slot/${slotId}`)
+        .set('X-Lecturer-Id', testLecturerEmail)
+        .send({ dayOfWeek: 2, start: '09:00', end: '10:00', duration: 60, course: 'MATH101', venue: 'Room', maxStudents: 1 });
+
+      await Availability.create({
+        lecturerEmail: testLecturerEmail,
+        weeklySchedule: [{ dayOfWeek: 3, slots: [] }],
+      });
+
+      const missingDay = await request(app)
+        .put(`/api/availability/slot/${slotId}`)
+        .set('X-Lecturer-Id', testLecturerEmail)
+        .send({ dayOfWeek: 2, start: '09:00', end: '10:00', duration: 60, course: 'MATH101', venue: 'Room', maxStudents: 1 });
+
+      const missingSlot = await request(app)
+        .put(`/api/availability/slot/${new mongoose.Types.ObjectId()}`)
+        .set('X-Lecturer-Id', testLecturerEmail)
+        .send({ dayOfWeek: 3, start: '09:00', end: '10:00', duration: 60, course: 'MATH101', venue: 'Room', maxStudents: 1 });
+
+      expect(missingSchedule.status).toBe(404);
+      expect(missingSchedule.body.message).toBe('Schedule not found');
+      expect(missingDay.status).toBe(404);
+      expect(missingDay.body.message).toBe('Day not found');
+      expect(missingSlot.status).toBe(404);
+      expect(missingSlot.body.message).toBe('Slot not found');
+    });
+
+    it('rejects updates that overlap another slot on the same day', async () => {
+      const res = await request(app)
+        .put(`/api/availability/slot/${slotId}`)
+        .set('X-Lecturer-Id', testLecturerEmail)
+        .send({
+          dayOfWeek: 2,
+          start: '11:30',
+          end: '12:30',
+          duration: 60,
+          course: 'MATH101',
+          venue: 'Room 101',
+          maxStudents: 5,
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body.message).toContain('Time conflict');
     });
   });
 });

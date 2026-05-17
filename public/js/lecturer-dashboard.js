@@ -39,17 +39,24 @@ class LecturerScheduleManager {
   // EVENT LISTENERS
 
   setupEventListeners () {
+    if (!this.statusFilter || !this.courseFilter || !this.dateFilter || !this.searchInput || !this.scheduleList || !this.sessionModal) {
+      return
+    }
+
     this.statusFilter.addEventListener('change', () => this.handleFilterChange())
     this.courseFilter.addEventListener('change', () => this.handleFilterChange())
     this.dateFilter.addEventListener('change', () => this.handleFilterChange())
     this.searchInput.addEventListener('input', this.debounce(() => this.handleFilterChange(), 300))
 
-    document.getElementById('refresh-btn').addEventListener('click', async () => {
-      await this.loadSessions()
-      this.updateStats()
-      this.updateFilterOptions()
-      this.applyFilters()
-    })
+    const refreshBtn = document.getElementById('refresh-btn')
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', async () => {
+        await this.loadSessions()
+        this.updateStats()
+        this.updateFilterOptions()
+        this.applyFilters()
+      })
+    }
 
     this.scheduleList.addEventListener('click', (e) => {
       const button = e.target.closest('[data-session-action]')
@@ -61,7 +68,8 @@ class LecturerScheduleManager {
       if (button.dataset.sessionAction === 'complete') this.completeSession(sessionId)
     })
 
-    document.getElementById('close-session-modal').addEventListener('click', () => this.closeModal())
+    const closeModalBtn = document.getElementById('close-session-modal')
+    if (closeModalBtn) closeModalBtn.addEventListener('click', () => this.closeModal())
     this.sessionModal.addEventListener('click', (e) => {
       if (e.target === this.sessionModal) this.closeModal()
     })
@@ -224,6 +232,8 @@ class LecturerScheduleManager {
   // FILTERING
 
   applyFilters () {
+    if (!this.statusFilter || !this.courseFilter || !this.dateFilter || !this.searchInput) return
+
     const status = this.statusFilter.value
     const course = this.courseFilter.value
     const date = this.dateFilter.value
@@ -285,6 +295,8 @@ class LecturerScheduleManager {
   }
 
   updateFilterOptions () {
+    if (!this.courseFilter) return
+
     const courses = [...new Set(this.sessions.map(s => s.courseCode).filter(Boolean))].sort()
     this.courseFilter.innerHTML = '<option value="all">All Courses</option>'
     courses.forEach(course => {
@@ -298,6 +310,8 @@ class LecturerScheduleManager {
   // STATISTICS
 
   updateStats () {
+    if (!this.totalSessionsEl || !this.totalJoinedEl || !this.upcomingCountEl || !this.completedTodayEl) return
+
     const today = new Date().toISOString().split('T')[0]
     const todaySessions = this.sessions.filter(s => s.date === today)
 
@@ -311,6 +325,7 @@ class LecturerScheduleManager {
 
   displayCurrentDate () {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+    if (!this.currentDateEl) return
     this.currentDateEl.textContent = new Date().toLocaleDateString('en-US', options)
   }
 
@@ -325,6 +340,8 @@ class LecturerScheduleManager {
   }
 
   render () {
+    if (!this.scheduleList || !this.emptyState) return
+
     if (this.filteredSessions.length === 0) {
       this.scheduleList.innerHTML = ''
       this.emptyState.classList.remove('hidden')
