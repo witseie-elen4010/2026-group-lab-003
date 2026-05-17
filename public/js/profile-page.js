@@ -105,3 +105,41 @@ document.getElementById('cancelPwdChange').addEventListener('click', () => {
   pwdFormDiv.style.display = 'none';
   clearPwdFields();
 });
+
+// Submit password change
+document.getElementById('submitPwdChange').addEventListener('click', async () => {
+  const current = document.getElementById('currentPassword').value.trim();
+  const newPwd = document.getElementById('newPassword').value.trim();
+  const confirm = document.getElementById('confirmNewPassword').value.trim();
+
+  if (!current || !newPwd || !confirm) {
+    showMessage('All password fields are required', 'error');
+    return;
+  }
+  if (newPwd !== confirm) {
+    showMessage('New password and confirmation do not match', 'error');
+    return;
+  }
+  if (newPwd.length < 6) {
+    showMessage('New password must be at least 6 characters', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-User-Email': email },
+      body: JSON.stringify({ currentPassword: current, newPassword: newPwd })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showMessage('Password changed successfully', 'success');
+      pwdFormDiv.style.display = 'none';
+      clearPwdFields();
+    } else {
+      showMessage(data.message || 'Failed to change password', 'error');
+    }
+  } catch (err) {
+    showMessage('Server error', 'error');
+  }
+});
