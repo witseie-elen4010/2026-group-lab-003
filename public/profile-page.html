@@ -20,6 +20,16 @@
       <button type="submit">Save Changes</button>
       <a href="dashboard.html" class="cancel-link">Cancel</a>
     </form>
+     <hr style="margin: 20px 0; border-color: rgba(255,255,255,0.2);">
+  <button type="button" id="showChangePwdBtn" class="change-pwd-btn">Change Password</button>
+
+  <div id="changePwdForm" style="display: none; margin-top: 20px;">
+    <input type="password" id="currentPassword" placeholder="Current Password">
+    <input type="password" id="newPassword" placeholder="New Password">
+    <input type="password" id="confirmNewPassword" placeholder="Confirm New Password">
+    <button type="button" id="submitPwdChange" class="submit-pwd-btn">Update Password</button>
+    <button type="button" id="cancelPwdChange" class="cancel-pwd-btn">Cancel</button>
+  </div>
     <div id="message" class="message"></div>
   </div>
   <script>
