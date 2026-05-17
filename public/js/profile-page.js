@@ -85,3 +85,23 @@ if (userData) {
 }
 const cancelLink = document.getElementById('cancel-link');
 cancelLink.href = isLecturer ? "lecturer-dashboard.html" : "student-dashboard.html";
+
+// Toggle change password form
+const showPwdBtn = document.getElementById('showChangePwdBtn');
+const pwdFormDiv = document.getElementById('changePwdForm');
+const clearPwdFields = () => {
+  document.getElementById('currentPassword').value = '';
+  document.getElementById('newPassword').value = '';
+  document.getElementById('confirmNewPassword').value = '';
+};
+showPwdBtn.addEventListener('click', () => {
+  const isVisible = pwdFormDiv.style.display !== 'none';
+  pwdFormDiv.style.display = isVisible ? 'none' : 'block';
+  if (!isVisible) clearPwdFields();
+});
+
+// Cancel password change
+document.getElementById('cancelPwdChange').addEventListener('click', () => {
+  pwdFormDiv.style.display = 'none';
+  clearPwdFields();
+});
