@@ -240,7 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
         })
 
         if (response.ok) {
-          alert('Booking successful!')
           window.location.href = 'student-dashboard.html'
         } else {
           const errorData = await response.json()
