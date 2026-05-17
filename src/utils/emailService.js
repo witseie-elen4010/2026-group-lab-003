@@ -5,6 +5,12 @@ const nodemailer = require('nodemailer')
 const EmailSettings = require('../models/emailSettings')
 
 const LOG_PATH = path.resolve(__dirname, '../../email-log.txt')
+const DEFAULT_EMAIL_TIMEOUT_MS = 10000
+
+function getEmailTimeoutMs () {
+  const value = Number(process.env.EMAIL_TIMEOUT_MS || process.env.SMTP_TIMEOUT_MS)
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_EMAIL_TIMEOUT_MS
+}
 
 function getEnvEmailConfig () {
   const user = process.env.SMTP_USER || process.env.EMAIL_USER
@@ -19,7 +25,8 @@ function getEnvEmailConfig () {
     secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
     user,
     pass,
-    from: process.env.SMTP_FROM || process.env.EMAIL_FROM || user
+    from: process.env.SMTP_FROM || process.env.EMAIL_FROM || user,
+    timeoutMs: getEmailTimeoutMs()
   }
 }
 
@@ -38,7 +45,8 @@ async function getDatabaseEmailConfig () {
     secure: Boolean(settings.secure),
     user: settings.user,
     pass: settings.pass,
-    from: settings.from || settings.user
+    from: settings.from || settings.user,
+    timeoutMs: getEmailTimeoutMs()
   }
 }
 
@@ -47,13 +55,20 @@ async function getEmailConfig () {
 }
 
 function createTransporter (config) {
+  const timeoutOptions = {
+    connectionTimeout: config.timeoutMs,
+    greetingTimeout: config.timeoutMs,
+    socketTimeout: config.timeoutMs
+  }
+
   if (config.service && !config.host) {
     return nodemailer.createTransport({
       service: config.service,
       auth: {
         user: config.user,
         pass: config.pass
-      }
+      },
+      ...timeoutOptions
     })
   }
 
@@ -64,8 +79,18 @@ function createTransporter (config) {
     auth: {
       user: config.user,
       pass: config.pass
-    }
+    },
+    ...timeoutOptions
   })
+}
+
+function withTimeout (promise, timeoutMs, message) {
+  return Promise.race([
+    promise,
+    new Promise((resolve, reject) => {
+      setTimeout(() => reject(new Error(message)), timeoutMs)
+    })
+  ])
 }
 
 function writeLog (entry, label = 'SIMULATED EMAIL') {
@@ -88,12 +113,16 @@ async function sendEmail (entry) {
 
   try {
     const transporter = createTransporter(config)
-    await transporter.sendMail({
-      from: config.from,
-      to: entry.to,
-      subject: entry.subject,
-      text: entry.body
-    })
+    await withTimeout(
+      transporter.sendMail({
+        from: config.from,
+        to: entry.to,
+        subject: entry.subject,
+        text: entry.body
+      }),
+      config.timeoutMs,
+      `Email send timed out after ${config.timeoutMs}ms`
+    )
     const logPath = writeLog(entry, 'EMAIL SENT')
     return { sent: true, simulated: false, logPath }
   } catch (error) {
