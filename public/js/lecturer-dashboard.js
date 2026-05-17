@@ -11,6 +11,7 @@ class LecturerScheduleManager {
 
   async init () {
     this.loadCurrentLecturer()
+    this.displayDynamicTitle()
     await this.loadSessions()
     this.setupEventListeners()
     this.displayCurrentDate()
@@ -311,6 +312,16 @@ class LecturerScheduleManager {
   displayCurrentDate () {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
     this.currentDateEl.textContent = new Date().toLocaleDateString('en-US', options)
+  }
+
+  displayDynamicTitle () {
+    const titleElement = document.getElementById('booking-title')
+    if (this.currentLecturer && this.currentLecturer.name && titleElement) {
+      const name = this.currentLecturer.name
+      // Handles smart grammar formatting (e.g., Charles' Bookings vs John's Bookings)
+      const possessiveName = name.endsWith('s') ? `${name}'` : `${name}'s`
+      titleElement.textContent = `${possessiveName} Bookings`
+    }
   }
 
   render () {

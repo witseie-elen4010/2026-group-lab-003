@@ -11,6 +11,7 @@ class StudentScheduleManager {
   // 1. Make init async so we can wait for the database fetch
   async init () {
     this.loadCurrentStudent()
+    this.displayDynamicTitle()
     await this.loadSessions()
     this.setupEventListeners()
     this.displayCurrentDate()
@@ -253,6 +254,16 @@ class StudentScheduleManager {
   displayCurrentDate () {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
     this.currentDateEl.textContent = new Date().toLocaleDateString('en-US', options)
+  }
+
+  displayDynamicTitle () {
+    const titleElement = document.getElementById('booking-title')
+    if (this.currentStudent && this.currentStudent.name && titleElement) {
+      const name = this.currentStudent.name
+      // Handles smart grammar formatting (e.g., Charles' Bookings vs John's Bookings)
+      const possessiveName = name.endsWith('s') ? `${name}'` : `${name}'s`
+      titleElement.textContent = `${possessiveName} Bookings`
+    }
   }
 
   render () {
