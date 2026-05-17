@@ -1,14 +1,17 @@
 describe('emailService', () => {
   const originalEnv = { ...process.env }
+  const originalFetch = global.fetch
 
   beforeEach(() => {
     jest.resetModules()
     jest.clearAllMocks()
     process.env = { ...originalEnv }
+    global.fetch = originalFetch
   })
 
   afterAll(() => {
     process.env = originalEnv
+    global.fetch = originalFetch
   })
 
   function loadService ({ nodeEnv = 'test', env = {}, dbReadyState = 0, dbSettings = null } = {}) {
@@ -89,9 +92,9 @@ describe('emailService', () => {
         user: 'sender@example.test',
         pass: 'secret'
       },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000
+      connectionTimeout: 30000,
+      greetingTimeout: 30000,
+      socketTimeout: 30000
     })
     expect(createTransport.mock.results[0].value.sendMail).toHaveBeenCalledWith({
       from: 'no-reply@example.test',
@@ -130,9 +133,9 @@ describe('emailService', () => {
     expect(findOne).toHaveBeenCalledWith({ name: 'default', enabled: true })
     expect(createTransport).toHaveBeenCalledWith(expect.objectContaining({
       host: 'smtp.db.test',
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
+      connectionTimeout: 30000,
+      greetingTimeout: 30000,
+      socketTimeout: 30000,
       auth: {
         user: 'db@example.test',
         pass: 'db-secret'
@@ -164,13 +167,58 @@ describe('emailService', () => {
         user: 'sender@gmail.com',
         pass: 'secret'
       },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000
+      connectionTimeout: 30000,
+      greetingTimeout: 30000,
+      socketTimeout: 30000
     })
     expect(appendFileSync).toHaveBeenCalledWith(
       expect.stringContaining('email-log.txt'),
       expect.stringContaining('TO: lecturer@wits.ac.za | SUBJECT: Subject'),
+      'utf8'
+    )
+  })
+
+  it('sends real mail with Brevo API configuration outside tests', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: jest.fn().mockResolvedValue('')
+    })
+    const { service, createTransport, appendFileSync } = loadService({
+      nodeEnv: 'development',
+      env: {
+        BREVO_API_KEY: 'xkeysib-test-key',
+        EMAIL_FROM: 'Consultation Scheduler <no-reply@example.test>'
+      }
+    })
+
+    await service.sendNotification(
+      { email: 'lecturer@wits.ac.za', emailNotifications: true },
+      'New booking',
+      'A student booked your slot'
+    )
+
+    expect(createTransport).not.toHaveBeenCalled()
+    expect(global.fetch).toHaveBeenCalledWith('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'api-key': 'xkeysib-test-key',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        sender: {
+          email: 'no-reply@example.test',
+          name: 'Consultation Scheduler'
+        },
+        to: [{ email: 'lecturer@wits.ac.za' }],
+        subject: 'New booking',
+        textContent: 'A student booked your slot'
+      })
+    })
+    expect(appendFileSync).toHaveBeenCalledWith(
+      expect.stringContaining('email-log.txt'),
+      expect.stringContaining('TO: lecturer@wits.ac.za | SUBJECT: New booking'),
       'utf8'
     )
   })

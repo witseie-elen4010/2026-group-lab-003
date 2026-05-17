@@ -519,3 +519,8 @@ Topic: modals
 
 You can view this booking from your lecturer dashboard.
 ------------------------------------------------------------------------
+[2026-05-17T18:59:32.076Z] TO: mjiyako.ngcweti@gmail.com | SUBJECT: Consultation Scheduler test email
+This is a real email delivery test from Consultation Scheduler.
+
+If this reached your inbox, booking notifications can be delivered too.
+------------------------------------------------------------------------
