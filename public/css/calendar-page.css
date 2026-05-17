@@ -148,3 +148,16 @@ body {
     left: 50%;
     transform: translateX(-50%);
 }
+
+.btn-glass {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-glass:hover {
+    background-color: rgba(255, 255, 255, 0.35) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}

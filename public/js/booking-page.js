@@ -138,12 +138,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const availableSlots = data.availableBlocks.filter(slot => {
           const isCorrectModule = slot.course === selectedModule
 
-          // Calculate how many bookings currently exist for this exact start time
-          const currentBookingsCount = data.bookedTimes.filter(time => time === slot.start).length
+          // FIX: Simply check if this start time exists in the booked array at all
+          const isAlreadyBooked = data.bookedTimes.includes(slot.start)
 
-          const hasSpace = currentBookingsCount < (Number(slot.maxStudents) || 1)
-
-          return isCorrectModule && hasSpace
+          // Only show the slot if it is for this module AND completely unbooked
+          return isCorrectModule && !isAlreadyBooked
         })
 
         renderSlotsToUI(availableSlots)

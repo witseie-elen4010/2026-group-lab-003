@@ -406,27 +406,27 @@ body {
 }
 
 .status-upcoming {
-    background: rgba(88, 166, 255, 0.2);
-    color: #58A6FF;
+    background: rgba(88, 166, 255, 0.8);
+    color: #ffffff;
     border: 1px solid rgba(88, 166, 255, 0.3);
 }
 
 .status-ongoing {
-    background: rgba(16, 185, 129, 0.2);
-    color: #10b981;
+    background: rgba(16, 185, 129, 0.8);
+    color: #ffffff;
     border: 1px solid rgba(16, 185, 129, 0.3);
     animation: pulse 2s infinite;
 }
 
 .status-completed {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 255, 55, 0.8);
+    color: #ffffff;
     border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .status-canceled {
-    background: rgba(255, 77, 77, 0.2);
-    color: #ff4d4d;
+    background: rgba(255, 77, 77, 0.8);
+    color: #ffffff;
     border: 1px solid rgba(255, 77, 77, 0.3);
 }
 
