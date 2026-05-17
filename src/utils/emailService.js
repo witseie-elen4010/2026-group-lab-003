@@ -5,7 +5,7 @@ const nodemailer = require('nodemailer')
 const EmailSettings = require('../models/emailSettings')
 
 const LOG_PATH = path.resolve(__dirname, '../../email-log.txt')
-const DEFAULT_EMAIL_TIMEOUT_MS = 10000
+const DEFAULT_EMAIL_TIMEOUT_MS = 30000
 
 function getEmailTimeoutMs () {
   const value = Number(process.env.EMAIL_TIMEOUT_MS || process.env.SMTP_TIMEOUT_MS)
@@ -23,7 +23,32 @@ function normalizeEnvString (value) {
   return String(value || '').trim().replace(/^['"]|['"]$/g, '')
 }
 
+function parseEmailAddress (value) {
+  const text = normalizeEnvString(value)
+  const match = text.match(/^(.*?)\s*<([^>]+)>$/)
+
+  if (!match) return { email: text }
+
+  const name = match[1].trim().replace(/^['"]|['"]$/g, '')
+  return {
+    email: match[2].trim(),
+    ...(name ? { name } : {})
+  }
+}
+
 function getEnvEmailConfig () {
+  const brevoApiKey = normalizeEnvString(process.env.BREVO_API_KEY)
+  const brevoFrom = normalizeEnvString(process.env.BREVO_FROM || process.env.EMAIL_FROM || process.env.SMTP_FROM)
+
+  if (brevoApiKey && brevoFrom) {
+    return {
+      provider: 'brevo',
+      apiKey: brevoApiKey,
+      from: brevoFrom,
+      timeoutMs: getEmailTimeoutMs()
+    }
+  }
+
   const user = normalizeEnvString(process.env.SMTP_USER || process.env.EMAIL_USER)
   const pass = normalizeEmailPassword(process.env.SMTP_PASS || process.env.EMAIL_PASS)
 
@@ -96,6 +121,39 @@ function createTransporter (config) {
   })
 }
 
+async function sendWithBrevo (config, entry) {
+  if (typeof fetch !== 'function') {
+    throw new Error('Brevo email requires a Node.js runtime with fetch support.')
+  }
+
+  const response = await withTimeout(
+    fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'api-key': config.apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        sender: parseEmailAddress(config.from),
+        to: [{ email: entry.to }],
+        subject: entry.subject,
+        textContent: entry.body
+      })
+    }),
+    config.timeoutMs,
+    `Email send timed out after ${config.timeoutMs}ms`
+  )
+
+  if (!response.ok) {
+    let detail = ''
+    try {
+      detail = await response.text()
+    } catch (_) {}
+    throw new Error(`Brevo API returned ${response.status}${detail ? `: ${detail}` : ''}`)
+  }
+}
+
 function withTimeout (promise, timeoutMs, message) {
   return Promise.race([
     promise,
@@ -124,17 +182,21 @@ async function sendEmail (entry) {
   }
 
   try {
-    const transporter = createTransporter(config)
-    await withTimeout(
-      transporter.sendMail({
-        from: config.from,
-        to: entry.to,
-        subject: entry.subject,
-        text: entry.body
-      }),
-      config.timeoutMs,
-      `Email send timed out after ${config.timeoutMs}ms`
-    )
+    if (config.provider === 'brevo') {
+      await sendWithBrevo(config, entry)
+    } else {
+      const transporter = createTransporter(config)
+      await withTimeout(
+        transporter.sendMail({
+          from: config.from,
+          to: entry.to,
+          subject: entry.subject,
+          text: entry.body
+        }),
+        config.timeoutMs,
+        `Email send timed out after ${config.timeoutMs}ms`
+      )
+    }
     const logPath = writeLog(entry, 'EMAIL SENT')
     return { sent: true, simulated: false, logPath }
   } catch (error) {

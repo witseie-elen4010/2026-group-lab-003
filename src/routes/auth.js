@@ -25,6 +25,17 @@ function shouldBlockOtpWhenEmailFails (delivery) {
   return process.env.NODE_ENV === 'production' && delivery && !delivery.sent
 }
 
+function getPublicBaseUrl (req) {
+  const configuredUrl = process.env.FRONTEND_URL || process.env.PUBLIC_URL || process.env.APP_BASE_URL || process.env.RENDER_EXTERNAL_URL
+  if (configuredUrl) return configuredUrl.replace(/\/+$/, '')
+
+  const host = req.get('x-forwarded-host') || req.get('host')
+  if (!host) return 'http://localhost:3000'
+
+  const protocol = req.get('x-forwarded-proto') || req.protocol || 'http'
+  return `${protocol}://${host}`.replace(/\/+$/, '')
+}
+
 async function sendVerificationOtp (user) {
   const otp = generateOtp()
   await EmailVerificationToken.deleteMany({ userId: user._id, used: false })
@@ -61,7 +72,7 @@ router.post('/forgot-password', async (req, res) => {
         tokenHash: hashToken(resetOtp),
         expiresAt: new Date(Date.now() + TOKEN_EXPIRY_MS)
       })
-      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
+      const baseUrl = getPublicBaseUrl(req)
       delivery = await sendPasswordResetEmail(email, resetOtp, `${baseUrl}/reset-password.html?email=${encodeURIComponent(email)}`)
     }
     if (shouldBlockOtpWhenEmailFails(delivery)) {

@@ -16,6 +16,7 @@ jest.mock('../../src/utils/emailService', () => ({
 
 const validEmail = 'jane@student.wits.ac.za'
 const userId = 'user123'
+const originalEnv = { ...process.env }
 const makeUser = (overrides = {}) => ({
   _id: userId,
   name: 'Jane',
@@ -25,7 +26,14 @@ const makeUser = (overrides = {}) => ({
   ...overrides
 })
 
-beforeEach(() => jest.clearAllMocks())
+beforeEach(() => {
+  jest.clearAllMocks()
+  process.env = { ...originalEnv }
+})
+
+afterAll(() => {
+  process.env = originalEnv
+})
 
 // ─── FORGOT PASSWORD ──────────────────────────────────────────────────────────
 describe('POST /api/auth/forgot-password', () => {
@@ -41,7 +49,17 @@ describe('POST /api/auth/forgot-password', () => {
     PasswordResetToken.deleteMany.mockResolvedValue({})
     PasswordResetToken.create.mockResolvedValue({})
 
-    const res = await request(app).post('/api/auth/forgot-password').send({ email: user.email })
+    delete process.env.FRONTEND_URL
+    delete process.env.PUBLIC_URL
+    delete process.env.APP_BASE_URL
+    delete process.env.RENDER_EXTERNAL_URL
+
+    const res = await request(app)
+      .post('/api/auth/forgot-password')
+      .set('x-forwarded-proto', 'https')
+      .set('x-forwarded-host', 'synchro-yb1b.onrender.com')
+      .send({ email: user.email })
+
     expect(res.status).toBe(200)
     expect(PasswordResetToken.create).toHaveBeenCalledWith(expect.objectContaining({
       userId: user._id,
@@ -51,7 +69,7 @@ describe('POST /api/auth/forgot-password', () => {
     expect(sendPasswordResetEmail).toHaveBeenCalledWith(
       user.email,
       expect.stringMatching(/^\d{6}$/),
-      expect.stringContaining('/reset-password.html?email=')
+      `https://synchro-yb1b.onrender.com/reset-password.html?email=${encodeURIComponent(user.email)}`
     )
   })
 })
