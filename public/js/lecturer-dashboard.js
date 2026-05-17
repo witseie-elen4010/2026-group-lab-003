@@ -338,8 +338,10 @@ class LecturerScheduleManager {
     const timeDisplay = this.formatTime(session.time)
     const statusClass = `status-${session.status}`
     const joinedStudents = session.joinedStudents || []
-    const studentTopics = session.studentTopics || {}
     const location = session.location || 'Not specified'
+
+    // Call our new helper method
+    const friendlyDate = this.getFriendlyDate(session.date)
 
     return `
             <div class="session-card">
@@ -351,6 +353,7 @@ class LecturerScheduleManager {
                     <div class="session-course">${this.escape(session.courseCode || '')} ${session.courseName ? '- ' + this.escape(session.courseName) : ''}</div>
                     <div class="session-title">${this.escape(session.topic || 'No topic specified')}</div>
                     <div class="session-meta">
+                        <span class="meta-date"><i class="fas fa-calendar-day"></i> <strong>${friendlyDate}</strong></span>
                         <span><i class="fas fa-user"></i> ${this.escape(session.studentName || 'Unknown')}</span>
                         <span><i class="fas fa-map-marker-alt"></i> ${this.escape(location)}</span>
                     </div>
@@ -497,6 +500,35 @@ class LecturerScheduleManager {
   }
 
   // HELPERS
+
+  getFriendlyDate (dateStr) {
+    if (!dateStr) return ''
+
+    // Parse session date safely at midnight local time
+    const sessionDate = new Date(`${dateStr}T00:00:00`)
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const tomorrow = new Date(today)
+    tomorrow.setDate(today.getDate() + 1)
+
+    const compareDate = new Date(sessionDate)
+    compareDate.setHours(0, 0, 0, 0)
+
+    if (compareDate.getTime() === today.getTime()) {
+      return 'Today'
+    } else if (compareDate.getTime() === tomorrow.getTime()) {
+      return 'Tomorrow'
+    } else {
+      // Fallback format for other days (e.g., "Mon, May 18")
+      return sessionDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      })
+    }
+  }
 
   formatTime (time) {
     if (!time) return '--:--'

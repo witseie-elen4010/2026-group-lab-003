@@ -280,6 +280,9 @@ class StudentScheduleManager {
     const timeDisplay = this.formatTime(session.time)
     const statusClass = `status-${session.status}`
     const location = session.location || 'Online'
+    
+    // Call the friendly date helper
+    const friendlyDate = this.getFriendlyDate(session.date)
 
     return `
             <div class="session-card">
@@ -291,6 +294,7 @@ class StudentScheduleManager {
                     <div class="session-course">${this.escape(session.courseCode || '')}</div>
                     <div class="session-title">${this.escape(session.topic)}</div>
                     <div class="session-meta">
+                        <span class="meta-date"><i class="fas fa-calendar-day"></i> <strong>${friendlyDate}</strong></span>
                         <span><i class="fas fa-chalkboard-teacher"></i> ${this.escape(session.lecturerName || 'Unknown Lecturer')}</span>
                         <span><i class="fas fa-map-marker-alt"></i> ${this.escape(location)}</span>
                     </div>
@@ -314,6 +318,9 @@ class StudentScheduleManager {
     if (!session) return
 
     const content = document.getElementById('session-detail-content')
+    
+    // Call the friendly date helper for the modal detail view too!
+    const friendlyDate = this.getFriendlyDate(session.date)
 
     content.innerHTML = `
         <div class="detail-row">
@@ -322,7 +329,7 @@ class StudentScheduleManager {
         </div>
         <div class="detail-row">
             <span class="detail-label">Date:</span>
-            <span class="detail-value">${this.escape(session.date)}</span>
+            <span class="detail-value"><strong>${friendlyDate}</strong> (${this.escape(session.date)})</span>
         </div>
         <div class="detail-row">
             <span class="detail-label">Time:</span>
@@ -386,6 +393,35 @@ class StudentScheduleManager {
   }
 
   // HELPERS
+  getFriendlyDate (dateStr) {
+    if (!dateStr) return ''
+
+    // Parse session date safely at midnight local time
+    const sessionDate = new Date(`${dateStr}T00:00:00`)
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const tomorrow = new Date(today)
+    tomorrow.setDate(today.getDate() + 1)
+
+    const compareDate = new Date(sessionDate)
+    compareDate.setHours(0, 0, 0, 0)
+
+    if (compareDate.getTime() === today.getTime()) {
+      return 'Today'
+    } else if (compareDate.getTime() === tomorrow.getTime()) {
+      return 'Tomorrow'
+    } else {
+      // Fallback format for other days (e.g., "Mon, May 18")
+      return sessionDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      })
+    }
+  }
+
   formatTime (time) {
     if (!time) return '--:--'
     const [hours, minutes] = time.split(':')
