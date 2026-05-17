@@ -39,3 +39,38 @@ if (email) {
 } else {
   showMessage('User not logged in', 'error');
 }
+
+// Save profile changes
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!email) return showMessage('User email missing', 'error');
+  const body = {
+    name: document.getElementById('name').value.trim(),
+    surname: document.getElementById('surname').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    notificationsEnabled: document.getElementById('notificationsToggle').checked
+  };
+  try {
+    const res = await fetch('/api/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-User-Email': email },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.success) {
+      showMessage('Profile updated successfully', 'success');
+      // Update stored user name/surname
+      if (userData) {
+        let user = JSON.parse(userData);
+        user.name = body.name;
+        user.surname = body.surname;
+        sessionStorage.setItem('sychro_current_user', JSON.stringify(user));
+        localStorage.setItem('sychro_current_user', JSON.stringify(user));
+      }
+    } else {
+      showMessage(data.message || 'Error updating profile', 'error');
+    }
+  } catch (err) {
+    showMessage('Server error', 'error');
+  }
+});
