@@ -27,6 +27,7 @@ jest.mock('../../src/models/user', () => ({
 }))
 
 jest.mock('../../src/utils/emailService', () => ({
+  sendEmailVerificationOtp: jest.fn(),
   sendNotification: jest.fn()
 }))
 

@@ -72,6 +72,7 @@ function writeLog (entry, label = 'SIMULATED EMAIL') {
   const line = `[${new Date().toISOString()}] TO: ${entry.to} | SUBJECT: ${entry.subject}\n${entry.body}\n${'-'.repeat(72)}\n`
   fs.appendFileSync(LOG_PATH, line, 'utf8')
   console.log(`\n${label}\n${line}`)
+  return LOG_PATH
 }
 
 async function sendEmail (entry) {
@@ -81,8 +82,8 @@ async function sendEmail (entry) {
     if (process.env.NODE_ENV !== 'test' && !config) {
       console.warn('Real email not configured. Add sender settings to the database or set EMAIL_USER and EMAIL_PASS.')
     }
-    writeLog(entry)
-    return
+    const logPath = writeLog(entry)
+    return { sent: false, simulated: true, logPath }
   }
 
   try {
@@ -93,26 +94,44 @@ async function sendEmail (entry) {
       subject: entry.subject,
       text: entry.body
     })
-    writeLog(entry, 'EMAIL SENT')
+    const logPath = writeLog(entry, 'EMAIL SENT')
+    return { sent: true, simulated: false, logPath }
   } catch (error) {
-    writeLog(entry, 'EMAIL FAILED - LOGGED LOCALLY')
+    const logPath = writeLog(entry, 'EMAIL FAILED - LOGGED LOCALLY')
     console.error('Failed to send email:', error.message)
+    return { sent: false, simulated: false, logPath, error: error.message }
   }
 }
 
-function sendPasswordResetEmail (toEmail, resetLink) {
+function sendPasswordResetEmail (toEmail, otp, resetLink = '') {
   return sendEmail({
     to: toEmail,
     subject: 'Consultation Scheduler - Password Reset',
     body: [
       'You (or someone else) requested a password reset for your account.',
       '',
-      'Click the link below to set a new password. The link expires in 1 hour.',
+      `Your password reset OTP is: ${otp}`,
       '',
-      ` ${resetLink}`,
+      'This OTP expires in 1 hour.',
+      resetLink ? `Reset your password here: ${resetLink}` : '',
       '',
       'If you did not request this, you can safely ignore this email.',
-      'Your password will NOT change until you click the link above.'
+      'Your password will NOT change until this OTP is entered.'
+    ].filter(Boolean).join('\n')
+  })
+}
+
+function sendEmailVerificationOtp (toEmail, otp) {
+  return sendEmail({
+    to: toEmail,
+    subject: 'Consultation Scheduler - Verify your email',
+    body: [
+      'Welcome to Consultation Scheduler.',
+      '',
+      `Your email verification code is: ${otp}`,
+      '',
+      'This code expires in 10 minutes.',
+      'If you did not create an account, you can safely ignore this email.'
     ].join('\n')
   })
 }
@@ -126,4 +145,4 @@ function sendNotification (user, subject, body) {
   return sendEmail({ to: user.email, subject, body })
 }
 
-module.exports = { sendPasswordResetEmail, sendNotification }
+module.exports = { sendPasswordResetEmail, sendEmailVerificationOtp, sendNotification }

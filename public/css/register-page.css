@@ -5,12 +5,55 @@ body {
     background-repeat: no-repeat !important;
     background-attachment: fixed !important;
     font-family: 'Inter', sans-serif;
+    min-height: 100vh;
 }
 
 .register-card {
-    background-color: rgba(255, 255, 255, 0.2) !important;
+    background-color: rgba(10, 21, 38, 0.82) !important;
     backdrop-filter: blur(10px);
-    border-radius: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 16px !important;
+    color: #fff;
+}
+
+.register-card .card-body {
+    padding: 2rem !important;
+}
+
+.register-card .form-control,
+.register-card .input-group-text {
+    min-height: 48px;
+    border-color: rgba(255, 255, 255, 0.85);
+    background-color: #fff;
+    color: #20242a;
+    font-size: 1rem;
+}
+
+.register-card .form-control::placeholder {
+    color: #5f646b;
+}
+
+.register-card .form-control.rounded-pill,
+.register-card .btn-group.rounded-pill {
+    border-radius: 16px !important;
+}
+
+.register-card .btn.rounded-pill,
+.register-card .btn-warning.rounded-pill {
+    border-radius: 999px !important;
+}
+
+.register-card .btn-warning {
+    min-height: 48px;
+    color: #080808;
+}
+
+.register-card .btn-outline-light {
+    border-color: rgba(255, 255, 255, 0.72);
+}
+
+.register-card .text-danger {
+    color: #ff9b9b !important;
 }
 
 .btn-check:checked + .btn-outline-primary {
@@ -20,8 +63,20 @@ body {
 }
 
 .btn-outline-primary {
-    color: #555;
+    color: #4c535b;
     transition: all 0.3s ease;
+}
+
+#role {
+    background-color: #fff !important;
+    border-radius: 999px !important;
+}
+
+#role .btn {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .x-small {
@@ -29,11 +84,11 @@ body {
 }
 
 .rounded-start-pill {
-    border-top-left-radius: 50rem !important;
-    border-bottom-left-radius: 50rem !important;
+    border-top-left-radius: 16px !important;
+    border-bottom-left-radius: 16px !important;
 }
 
 .rounded-end-pill {
-    border-top-right-radius: 50rem !important;
-    border-bottom-right-radius: 50rem !important;
+    border-top-right-radius: 16px !important;
+    border-bottom-right-radius: 16px !important;
 }

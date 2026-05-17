@@ -39,10 +39,14 @@ body {
     top: 55px;
     left: 0;
     width: 220px;
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    background: rgba(25, 25, 35, 0.97);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 14px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.55);
     z-index: 1000; 
+    overflow: hidden;
 }
 
 .burger-dropdown.hidden {
@@ -55,23 +59,22 @@ body {
     gap: 12px;
     padding: 12px 16px;
     text-decoration: none;
-    color: #475569;
+    color: rgba(255, 255, 255, 0.88);
     font-size: 0.95rem;
 }
 
 .menu-items a:hover {
-    background: #f1f5f9;
-    border-radius: 10px;
+    background: rgba(255, 193, 7, 0.14);
 }
 
 .menu-items hr {
     margin: 5px 0;
     border: 0;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .sign-out {
-    color: #dc2626 !important;
+    color: #ff6b6b !important;
 }
 
 .date-banner {
@@ -520,31 +523,34 @@ body.session-modal-open {
 }
 
 .session-modal-panel {
-    background-color: rgba(255, 255, 255, 0.95);
-    border-radius: 25px;
+    background: rgba(25, 25, 35, 0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
     width: 90%;
     max-width: 500px;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
 }
 
 .session-modal-header {
     padding: 20px 25px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
     position: sticky;
     top: 0;
-    background: white;
-    border-radius: 25px 25px 0 0;
+    background: rgba(25, 25, 35, 0.98);
+    border-radius: 20px 20px 0 0;
 }
 
 .session-modal-header h2 {
     font-size: 20px;
     margin: 0;
-    color: #333;
+    color: white;
 }
 
 .close-btn {
@@ -552,11 +558,11 @@ body.session-modal-open {
     border: none;
     font-size: 24px;
     cursor: pointer;
-    color: #888888;
+    color: rgba(255, 255, 255, 0.55);
 }
 
 .close-btn:hover {
-    color: #333;
+    color: white;
 }
 
 .detail-body {
@@ -567,17 +573,17 @@ body.session-modal-open {
     display: flex;
     justify-content: space-between;
     padding: 12px 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .detail-label {
     font-weight: 600;
-    color: #333;
+    color: rgba(255, 255, 255, 0.72);
     font-size: 14px;
 }
 
 .detail-value {
-    color: #555;
+    color: white;
     font-size: 14px;
     text-align: right;
 }
@@ -588,7 +594,7 @@ body.session-modal-open {
 
 .detail-students h4 {
     font-size: 14px;
-    color: #333;
+    color: white;
     margin-bottom: 10px;
 }
 
@@ -602,7 +608,7 @@ body.session-modal-open {
     justify-content: space-between;
     gap: 10px;
     padding: 0 0 6px;
-    color: #333;
+    color: rgba(255, 255, 255, 0.72);
     font-size: 13px;
     font-weight: 600;
 }
@@ -619,8 +625,8 @@ body.session-modal-open {
     justify-content: space-between;
     gap: 10px;
     font-size: 14px;
-    color: #555;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .student-list-name {
@@ -632,10 +638,14 @@ body.session-modal-open {
 }
 
 .student-list-topic {
-    color: #555;
+    color: rgba(255, 255, 255, 0.72);
     max-width: 45%;
     text-align: right;
     overflow-wrap: anywhere;
+}
+
+.detail-students p {
+    color: rgba(255, 255, 255, 0.6) !important;
 }
 
 /* Responsive */

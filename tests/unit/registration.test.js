@@ -2,13 +2,27 @@ const request = require('supertest')
 const bcrypt = require('bcrypt')
 const app = require('../../src/server')
 const User = require('../../src/models/user')
+const EmailVerificationToken = require('../../src/models/emailVerificationToken')
+const { sendEmailVerificationOtp } = require('../../src/utils/emailService')
 
 // Mock the database so we don't save dummy data during tests
 jest.mock('../../src/models/user')
+jest.mock('../../src/models/emailVerificationToken', () => ({
+  deleteMany: jest.fn(),
+  create: jest.fn()
+}))
+jest.mock('../../src/utils/emailService', () => ({
+  sendEmailVerificationOtp: jest.fn(),
+  sendPasswordResetEmail: jest.fn(),
+  sendNotification: jest.fn()
+}))
 
 describe('POST /register - User Registration', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    User.mockImplementation(function UserMock (data) {
+      Object.assign(this, data)
+    })
   })
 
   // --- TEST 1: MISSING DATA VALIDATION ---
@@ -26,6 +40,7 @@ describe('POST /register - User Registration', () => {
 
     // Verify the database was NEVER called
     expect(User.findOne).not.toHaveBeenCalled()
+    expect(EmailVerificationToken.create).not.toHaveBeenCalled()
   })
 
   // --- TEST 2: DUPLICATE USER PREVENTION ---
@@ -44,6 +59,7 @@ describe('POST /register - User Registration', () => {
     // Verify we checked the DB, but didn't try to save
     expect(User.findOne).toHaveBeenCalledWith({ email: mockStudent.email })
     expect(User.prototype.save).not.toHaveBeenCalled()
+    expect(EmailVerificationToken.create).not.toHaveBeenCalled()
   })
 
   // --- TEST 3: THE HAPPY PATH & PASSWORD VERIFICATION ---
@@ -80,9 +96,16 @@ describe('POST /register - User Registration', () => {
 
     // The password passed to the DB should NOT be plain text
     expect(userConstructorArgs.password).not.toBe(newStudent.password)
+    expect(userConstructorArgs.emailVerified).toBe(false)
 
     // The password MUST be a valid bcrypt hash
     const isHashValid = bcrypt.compareSync(newStudent.password, userConstructorArgs.password)
     expect(isHashValid).toBe(true)
+    expect(EmailVerificationToken.deleteMany).toHaveBeenCalled()
+    expect(EmailVerificationToken.create).toHaveBeenCalledWith(expect.objectContaining({
+      otpHash: expect.any(String),
+      expiresAt: expect.any(Date)
+    }))
+    expect(sendEmailVerificationOtp).toHaveBeenCalledWith(newStudent.email, expect.stringMatching(/^\d{6}$/))
   })
 })

@@ -138,8 +138,9 @@ registrationForm.addEventListener('submit', async (event) => {
     const result = await response.json()
 
     if (response.ok && result.success) {
-      alert('Welcome to Synchro! Redirecting to login...')
-      window.location.href = 'login-page.html'
+      const devOtpMessage = result.devOtp ? `\n\nLocal development OTP: ${result.devOtp}` : ''
+      alert(`Welcome to Synchro! Please verify your email with the OTP we sent.${devOtpMessage}`)
+      window.location.href = `verify-email.html?email=${encodeURIComponent(formData.email)}`
     } else {
       // Show server-side error (e.g., "Email already exists")
       errorMessage.textContent = result.error || 'Registration failed.'

@@ -52,7 +52,7 @@ describe('emailService', () => {
   it('logs simulated email when SMTP is not configured', async () => {
     const { service, appendFileSync, createTransport } = loadService({ nodeEnv: 'development' })
 
-    await service.sendPasswordResetEmail('student@wits.ac.za', 'https://example.test/reset')
+    await service.sendPasswordResetEmail('student@wits.ac.za', '123456', 'https://example.test/reset')
 
     expect(createTransport).not.toHaveBeenCalled()
     expect(appendFileSync).toHaveBeenCalledWith(

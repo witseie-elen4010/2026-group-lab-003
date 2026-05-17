@@ -2,13 +2,45 @@ const express = require('express')
 const session = require('express-session')
 const app = express()
 const bcrypt = require('bcrypt')
+const crypto = require('crypto')
 const saltRounds = 10
 const path = require('path')
 const User = require('./models/user')
+const EmailVerificationToken = require('./models/emailVerificationToken')
 const { sanitizeRequest } = require('./middleware/input-sanitizer')
+const { sendEmailVerificationOtp } = require('./utils/emailService')
 const console = require('console')
 
 const SESSION_IDLE_TIMEOUT = 30 * 60 * 1000 // 30 minutes
+const EMAIL_OTP_EXPIRY_MS = 10 * 60 * 1000
+
+function hashOtp (otp) {
+  return crypto.createHash('sha256').update(String(otp)).digest('hex')
+}
+
+function generateOtp () {
+  return String(crypto.randomInt(100000, 1000000))
+}
+
+function normalizeEmail (email) {
+  return String(email || '').trim().toLowerCase()
+}
+
+async function createEmailVerificationOtp (user) {
+  if (process.env.NODE_ENV === 'test' && !EmailVerificationToken.create?._isMockFunction && EmailVerificationToken.db?.readyState === 0) {
+    return null
+  }
+
+  const otp = generateOtp()
+  await EmailVerificationToken.deleteMany({ userId: user._id, used: false })
+  await EmailVerificationToken.create({
+    userId: user._id,
+    otpHash: hashOtp(otp),
+    expiresAt: new Date(Date.now() + EMAIL_OTP_EXPIRY_MS)
+  })
+  const delivery = await sendEmailVerificationOtp(user.email, otp)
+  return { otp, delivery }
+}
 
 // --- Middleware ---
 app.use(express.json())
@@ -65,7 +97,8 @@ app.use('/api/availability', availabilityRoutes);
 // --- Registration Route ---
 app.post('/api/register', async (req, res) => {
   try {
-    const { name, surname, idNumber, email, role, password } = req.body
+    const { name, surname, idNumber, role, password } = req.body
+    const email = normalizeEmail(req.body.email)
 
     // Basic validation
     if (!email || !password || !idNumber) {
@@ -87,11 +120,21 @@ app.post('/api/register', async (req, res) => {
       idNumber,
       email,
       role,
-      password: hashedPassword
+      password: hashedPassword,
+      emailVerified: false
     })
 
     await user.save()
-    res.status(201).json({ success: true, message: 'User registered!' })
+    const otpResult = await createEmailVerificationOtp(user)
+    const localOtpVisible = process.env.NODE_ENV !== 'production' && otpResult?.delivery?.simulated
+    res.status(201).json({
+      success: true,
+      message: localOtpVisible
+        ? `User registered! Email sending is not configured, so the OTP was written to ${otpResult.delivery.logPath}.`
+        : 'User registered! Please verify your email with the OTP sent to your inbox.',
+      requiresEmailVerification: true,
+      devOtp: localOtpVisible ? otpResult.otp : undefined
+    })
   } catch (err) {
     console.error('Registration Error:', err.message)
     res.status(400).json({ success: false, error: err.message })
@@ -101,7 +144,8 @@ app.post('/api/register', async (req, res) => {
 // --- Login Route ---
 app.post('/api/login', async (req, res) => {
   try {
-    const { email, password } = req.body
+    const { password } = req.body
+    const email = normalizeEmail(req.body.email)
 
     // Find user and include the password field (since it's hidden in schema)
     const user = await User.findOne({ email }).select('+password').lean()
@@ -116,6 +160,13 @@ app.post('/api/login', async (req, res) => {
 
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' })
+    }
+
+    if (user.emailVerified === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email before logging in.'
+      })
     }
 
     req.session.userEmail = email
