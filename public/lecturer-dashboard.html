@@ -12,27 +12,49 @@
     <div class="schedule-container">
         <header class="schedule-header">
             <div class="header-left">
-                <h1>
-                    <i class="fas fa-calendar-alt"></i>
-                    My Schedule
-                </h1>
-                <p class="header-subtitle">Upcoming Consultations</p>
+                <div>
+                    <h1>
+                        <div class="menu-wrapper">
+                            <button id="menu-toggle" class="burger-btn" title="Open Menu">
+                                <i class="fas fa-bars"></i>
+                            </button>
+                            
+                            <nav id="side-menu" class="burger-dropdown hidden">
+                                <div class="menu-items">
+                                    <a href="profile-page.html"><i class="fas fa-user-cog"></i> Profile Settings</a>
+                                    <a href="lecturer-activity-log.html"><i class="fas fa-list-ul"></i> Activity Log</a>
+                                    <hr>
+                                    <a href="login-page.html" class="sign-out"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
+                                </div>
+                            </nav>
+                        </div>
+                        <div class="header-text-group">
+                            <i class="fas fa-user-graduate"></i>
+                            <span id="booking-title"> Schedule</span>
+                        </div>
+                    </h1>
+                    <p class="header-subtitle">Upcoming Consultations</p>
+                </div>
             </div>
             <div class="header-right">
-                <button id="refresh-btn" class="btn btn-outline" title="Refresh schedule">
+                <button id="availability-btn" class="btn text-white" title="Set Availability" onclick="window.location.href='/lecturer-availability.html'">
+                   <i class="fas fa-clock"></i>
+                   <span>Availability</span>
+                </button>
+                <button id="refresh-btn" class="btn text-white" title="Refresh schedule">
                     <i class="fas fa-sync-alt"></i>
-                    <span>Refresh</span>
+                    Refresh
                 </button>
             </div>
         </header>
 
-        <!-- Today's Date -->
-        <div class="date-banner">
-            <i class="fas fa-calendar-day"></i>
-            <span id="current-date">Loading...</span>
-        </div>
+        <a href="calendar-page.html" class="banner-link" style="text-decoration: none; color: inherit;">
+            <div class="date-banner">
+                <i class="fas fa-calendar-day"></i>
+                <span id="current-date">Loading...</span>
+            </div>
+        </a>
 
-        <!-- Stats Cards -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-value" id="total-sessions">0</div>
@@ -52,7 +74,6 @@
             </div>
         </div>
 
-        <!-- Filters -->
         <div class="filters-section">
             <div class="filter-row">
                 <div class="filter-group">
@@ -104,13 +125,10 @@
             </div>
         </div>
 
-        <!-- Schedule List -->
         <div class="schedule-list-container">
             <div id="schedule-list" class="schedule-list">
-                <!-- Sessions inserted here -->
-            </div>
+                </div>
 
-            <!-- Empty State -->
             <div id="empty-state" class="empty-state hidden">
                 <i class="fas fa-calendar-check"></i>
                 <h3>No Sessions Scheduled</h3>
@@ -119,16 +137,14 @@
         </div>
     </div>
 
-    <!-- Session Detail Modal -->
-    <div id="session-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
+    <div id="session-modal" class="session-modal-overlay hidden" aria-hidden="true">
+        <div class="session-modal-panel">
+            <div class="session-modal-header">
                 <h2>Session Details</h2>
                 <button class="close-btn" id="close-session-modal">&times;</button>
             </div>
             <div id="session-detail-content" class="detail-body">
-                <!-- Dynamic content -->
-            </div>
+                </div>
         </div>
     </div>
 

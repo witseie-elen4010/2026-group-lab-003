@@ -509,31 +509,34 @@ body {
 }
 
 .modal-content {
-    background-color: rgba(255, 255, 255, 0.95);
-    border-radius: 25px;
+    background: rgba(25, 25, 35, 0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
     width: 90%;
     max-width: 520px;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
 }
 
 .modal-header {
     padding: 20px 25px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
     position: sticky;
     top: 0;
-    background: white;
-    border-radius: 25px 25px 0 0;
+    background: rgba(25, 25, 35, 0.98);
+    border-radius: 20px 20px 0 0;
 }
 
 .modal-header h2 {
     font-size: 20px;
     margin: 0;
-    color: #333;
+    color: white;
     font-weight: 600;
 }
 
@@ -542,13 +545,13 @@ body {
     border: none;
     font-size: 24px;
     cursor: pointer;
-    color: #888888;
+    color: rgba(255, 255, 255, 0.55);
     padding: 5px;
     line-height: 1;
 }
 
 .close-btn:hover {
-    color: #333;
+    color: white;
 }
 
 .detail-body {
@@ -559,17 +562,17 @@ body {
     display: flex;
     justify-content: space-between;
     padding: 12px 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .detail-label {
     font-weight: 600;
-    color: #333;
+    color: rgba(255, 255, 255, 0.72);
     font-size: 14px;
 }
 
 .detail-value {
-    color: #555;
+    color: white;
     font-size: 14px;
     text-align: right;
     max-width: 60%;
@@ -579,10 +582,11 @@ body {
 .detail-value pre {
     margin: 0;
     font-size: 12px;
-    background: #f5f5f5;
+    background: rgba(255, 255, 255, 0.08);
     padding: 8px;
     border-radius: 10px;
     text-align: left;
+    color: white;
 }
 
 /* Auto-refresh active state */
@@ -652,4 +656,35 @@ body {
         text-align: left;
         max-width: 100%;
     }
+}
+
+.filter_badge {
+    background: #FFC107;
+    color: black;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.btn-glass {
+    background-color: rgba(255, 255, 255, 0.2) !important; 
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); 
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-glass:hover {
+    background-color: rgba(0, 0, 0, 0.15) !important; 
+    border-color: rgba(255, 255, 255, 0.5) !important; 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+.btn-glass i {
+    color: white !important;
 }

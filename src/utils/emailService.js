@@ -1,57 +1,148 @@
-/**
- * Simulated email service. Drop-in replacement with Nodemailer (or any in production; for now every "sent" email is printed
- * to the console and written to ./email-log.txt so the acceptance criteria of "simulated email log" is satisfied without an external SMTP server.
- */
-
 const fs = require('fs')
 const path = require('path')
+const mongoose = require('mongoose')
+const nodemailer = require('nodemailer')
+const EmailSettings = require('../models/emailSettings')
 
 const LOG_PATH = path.resolve(__dirname, '../../email-log.txt')
 
-/**
- * Append a record to the flat-file email log.
- */
-function _writeLog(entry) {
-  const line = `[${new Date().toISOString()}] TO: ${entry.to} | SUBJECT: ${entry.subject}\n${entry.body}\n${'─'.repeat(72)}\n`
-  fs.appendFileSync(LOG_PATH, line, 'utf8')
-  console.log('\n📧 SIMULATED EMAIL\n' + line)
+function getEnvEmailConfig () {
+  const user = process.env.SMTP_USER || process.env.EMAIL_USER
+  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS
+
+  if (!user || !pass) return null
+
+  return {
+    service: process.env.EMAIL_SERVICE || (user.includes('@gmail.com') ? 'gmail' : ''),
+    host: process.env.SMTP_HOST || '',
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
+    user,
+    pass,
+    from: process.env.SMTP_FROM || process.env.EMAIL_FROM || user
+  }
 }
 
-/**
- * Send a password-reset email.
- * @param {string} toEmail Recipient email address
- * @param {string} resetLink Full URL the user should visit (with token)
- */
-function sendPasswordResetEmail(toEmail, resetLink) {
-  const entry = {
+async function getDatabaseEmailConfig () {
+  if (process.env.NODE_ENV === 'test' || mongoose.connection.readyState === 0) {
+    return null
+  }
+
+  const settings = await EmailSettings.findOne({ name: 'default', enabled: true }).lean()
+  if (!settings || !settings.user || !settings.pass) return null
+
+  return {
+    service: settings.service || (settings.user.includes('@gmail.com') ? 'gmail' : ''),
+    host: settings.host || '',
+    port: Number(settings.port) || 587,
+    secure: Boolean(settings.secure),
+    user: settings.user,
+    pass: settings.pass,
+    from: settings.from || settings.user
+  }
+}
+
+async function getEmailConfig () {
+  return getEnvEmailConfig() || await getDatabaseEmailConfig()
+}
+
+function createTransporter (config) {
+  if (config.service && !config.host) {
+    return nodemailer.createTransport({
+      service: config.service,
+      auth: {
+        user: config.user,
+        pass: config.pass
+      }
+    })
+  }
+
+  return nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: {
+      user: config.user,
+      pass: config.pass
+    }
+  })
+}
+
+function writeLog (entry, label = 'SIMULATED EMAIL') {
+  const line = `[${new Date().toISOString()}] TO: ${entry.to} | SUBJECT: ${entry.subject}\n${entry.body}\n${'-'.repeat(72)}\n`
+  fs.appendFileSync(LOG_PATH, line, 'utf8')
+  console.log(`\n${label}\n${line}`)
+  return LOG_PATH
+}
+
+async function sendEmail (entry) {
+  const config = await getEmailConfig()
+
+  if (!config || process.env.NODE_ENV === 'test') {
+    if (process.env.NODE_ENV !== 'test' && !config) {
+      console.warn('Real email not configured. Add sender settings to the database or set EMAIL_USER and EMAIL_PASS.')
+    }
+    const logPath = writeLog(entry)
+    return { sent: false, simulated: true, logPath }
+  }
+
+  try {
+    const transporter = createTransporter(config)
+    await transporter.sendMail({
+      from: config.from,
+      to: entry.to,
+      subject: entry.subject,
+      text: entry.body
+    })
+    const logPath = writeLog(entry, 'EMAIL SENT')
+    return { sent: true, simulated: false, logPath }
+  } catch (error) {
+    const logPath = writeLog(entry, 'EMAIL FAILED - LOGGED LOCALLY')
+    console.error('Failed to send email:', error.message)
+    return { sent: false, simulated: false, logPath, error: error.message }
+  }
+}
+
+function sendPasswordResetEmail (toEmail, otp, resetLink = '') {
+  return sendEmail({
     to: toEmail,
-    subject: 'Consultation Scheduler – Password Reset',
+    subject: 'Consultation Scheduler - Password Reset',
     body: [
       'You (or someone else) requested a password reset for your account.',
       '',
-      'Click the link below to set a new password. The link expires in 1 hour.',
+      `Your password reset OTP is: ${otp}`,
       '',
-      ` ${resetLink}`,
+      'This OTP expires in 1 hour.',
+      resetLink ? `Reset your password here: ${resetLink}` : '',
       '',
       'If you did not request this, you can safely ignore this email.',
-      'Your password will NOT change until you click the link above.'
-    ].join('\n')
-  }
-  _writeLog(entry)
+      'Your password will NOT change until this OTP is entered.'
+    ].filter(Boolean).join('\n')
+  })
 }
 
-/**
- * Send a generic notification email (respects the user's emailNotifications flag).
- * @param {object} user Mongoose user document 
- * @param {string} subject
- * @param {string} body
- */
-function sendNotification(user, subject, body) {
+function sendEmailVerificationOtp (toEmail, otp) {
+  return sendEmail({
+    to: toEmail,
+    subject: 'Consultation Scheduler - Verify your email',
+    body: [
+      'Welcome to Consultation Scheduler.',
+      '',
+      `Your email verification code is: ${otp}`,
+      '',
+      'This code expires in 10 minutes.',
+      'If you did not create an account, you can safely ignore this email.'
+    ].join('\n')
+  })
+}
+
+function sendNotification (user, subject, body) {
   if (!user.emailNotifications) {
-    console.log(`📭 Notification suppressed for ${user.email} (notifications OFF)`)
+    console.log(`Notification suppressed for ${user.email} (notifications OFF)`)
     return
   }
-  _writeLog({ to: user.email, subject, body })
+
+  return sendEmail({ to: user.email, subject, body })
 }
 
-module.exports = { sendPasswordResetEmail, sendNotification }
+module.exports = { sendPasswordResetEmail, sendEmailVerificationOtp, sendNotification }

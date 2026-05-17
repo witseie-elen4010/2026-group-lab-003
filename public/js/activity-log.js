@@ -1,21 +1,25 @@
 class ActivityLogManager {
     constructor() {
-        this.storageKey = 'activity_logs';
+        this.apiBase = '/api/activities';
         this.pageSize = 15;
         this.currentPage = 1;
         this.activities = [];
         this.filteredActivities = [];
         this.autoRefreshInterval = null;
-
         this.init();
     }
 
-    init() {
-        this.loadActivities();
+    async init() {
+        this.currentUser = this.getCurrentUser();
+        this.logRole = this.getLogRole();
+        this.applyRoleLabels();
+        await this.loadActivities();
         this.setupEventListeners();
         this.updateStats();
         this.updateFilterOptions();
-        this.render();
+        this.loadFiltersFromURL();
+        this.applyFilters();
+
     }
 
 
@@ -41,6 +45,7 @@ class ActivityLogManager {
     get totalPagesSpan() { return document.getElementById('total-pages'); }
     get prevPageBtn() { return document.getElementById('prev-page'); }
     get nextPageBtn() { return document.getElementById('next-page'); }
+    get courseFilter() { return document.getElementById('course-filter'); } 
 
     // EVENT LISTENERS
 
@@ -49,6 +54,7 @@ class ActivityLogManager {
         this.userFilter.addEventListener('change', () => this.handleFilterChange());
         this.dateRangeFilter.addEventListener('change', () => this.handleDateRangeChange());
         this.searchInput.addEventListener('input', this.debounce(() => this.handleFilterChange(), 300));
+        this.courseFilter.addEventListener('change', () => this.handleFilterChange());
 
         document.getElementById('apply-date-range').addEventListener('click', () => this.handleFilterChange());
         document.getElementById('clear-filters-btn').addEventListener('click', () => this.clearFilters());
@@ -59,6 +65,16 @@ class ActivityLogManager {
         this.prevPageBtn.addEventListener('click', () => this.changePage(-1));
         this.nextPageBtn.addEventListener('click', () => this.changePage(1));
 
+        document.getElementById('bookmark-btn').addEventListener('click', () => {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+        const btn = document.getElementById('bookmark-btn');
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        setTimeout(() => {
+            btn.innerHTML = '<i class="fas fa-bookmark"></i> Copy Link';
+        }, 2000);
+    });
+});
+
         document.getElementById('close-detail-modal').addEventListener('click', () => this.closeModal());
         this.detailModal.addEventListener('click', (e) => {
             if (e.target === this.detailModal) this.closeModal();
@@ -67,6 +83,7 @@ class ActivityLogManager {
 
     handleFilterChange() {
         this.currentPage = 1;
+        this.updateURLParams();
         this.applyFilters();
     }
 
@@ -80,67 +97,200 @@ class ActivityLogManager {
     }
 
     // DATA MANAGEMENT
-
-    loadActivities() {
-        const stored = localStorage.getItem(this.storageKey);
-        this.activities = stored ? JSON.parse(stored) : [];
+ async loadActivities() {
+        try {
+            const headers = this.getUserHeaders();
+            const response = headers ? await fetch(this.apiBase, { headers }) : await fetch(this.apiBase);
+            if (response.ok) {
+                const activities = await response.json();
+                this.activities = activities.map(activity => this.normalizeActivity(activity));
+            } else {
+                this.activities = [];
+            }
+        } catch (error) {
+            console.error('Failed to load activities:', error);
+            this.activities = [];
+        }
     }
-
-    saveActivities() {
-        localStorage.setItem(this.storageKey, JSON.stringify(this.activities));
-    }
-
-    logAction(type, description, metadata = {}) {
+    
+    async logAction(type, description, metadata = {}) {
         const currentUser = this.getCurrentUser();
+        this.currentUser = currentUser;
+        const userId = currentUser.idNumber || currentUser.id || currentUser.email || null;
+        const userEmail = currentUser.email || userId || null;
+        const userRole = currentUser.role || this.logRole || '';
+        const roleMetadata = userRole === 'lecturer'
+            ? {
+                lecturerId: metadata.lecturerId || userId,
+                lecturerEmail: metadata.lecturerEmail || userEmail
+            }
+            : userRole === 'student'
+                ? {
+                    studentId: metadata.studentId || userId,
+                    studentEmail: metadata.studentEmail || userEmail
+                }
+                : {};
 
         const entry = {
-            id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
             type: type,
             description: description,
-            user: currentUser.fullName || currentUser.email || 'Unknown User',
-            userId: currentUser.id || null,
+            user: this.getDisplayName(currentUser),
+            userId,
+            userEmail,
+            userRole,
             timestamp: new Date().toISOString(),
-            metadata: metadata
+            metadata: {
+                ...metadata,
+                ...roleMetadata,
+                userId: metadata.userId || userId,
+                userEmail: metadata.userEmail || userEmail,
+                actorId: metadata.actorId || userId,
+                actorEmail: metadata.actorEmail || userEmail,
+                userRole,
+                audienceIds: [...new Set([
+                    ...(Array.isArray(metadata.audienceIds) ? metadata.audienceIds : []),
+                    userId,
+                    roleMetadata.studentId,
+                    roleMetadata.lecturerId
+                ].filter(Boolean))],
+                audienceEmails: [...new Set([
+                    ...(Array.isArray(metadata.audienceEmails) ? metadata.audienceEmails : []),
+                    userEmail,
+                    roleMetadata.studentEmail,
+                    roleMetadata.lecturerEmail
+                ].filter(Boolean))]
+            }
         };
+        
+      try {
+            const response = await fetch(this.apiBase, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(entry)
+            });
 
-        this.activities.unshift(entry);
-
-        if (this.activities.length > 500) {
-            this.activities = this.activities.slice(0, 500);
-        }
-
-        this.saveActivities();
-        this.updateStats();
-        this.updateFilterOptions();
-
-        if (this.currentPage === 1) {
-            this.render();
+            if (response.ok) {
+                await this.loadActivities();
+                this.updateStats();
+                this.updateFilterOptions();
+                this.applyFilters();
+            }
+        } catch (error) {
+            console.error('Failed to log action:', error);
         }
     }
 
     getCurrentUser() {
-        // Check sessionStorage first (cleared when browser closes)
-        const sessionUser = sessionStorage.getItem('sychro_current_user');
-        if (sessionUser) {
-            return JSON.parse(sessionUser);
+        try {
+            const sessionUser = sessionStorage.getItem('sychro_current_user');
+            if (sessionUser) {
+                return JSON.parse(sessionUser);
+            }
+
+            const localUser = localStorage.getItem('sychro_current_user');
+            if (localUser) {
+                return JSON.parse(localUser);
+            }
+        } catch (error) {
+            console.error('Failed to read current user:', error);
         }
 
-        // Check localStorage (persists across sessions)
-        const localUser = localStorage.getItem('sychro_current_user');
-        if (localUser) {
-            return JSON.parse(localUser);
+        const rememberedEmail = localStorage.getItem('userEmail');
+        if (rememberedEmail) {
+            return { fullName: rememberedEmail, email: rememberedEmail, id: rememberedEmail };
         }
 
         return { fullName: 'System', email: 'system', id: null };
     }
 
-    clearAll() {
-        if (confirm('Delete ALL activity logs? This cannot be undone.')) {
-            this.activities = [];
-            this.saveActivities();
-            this.updateStats();
-            this.updateFilterOptions();
-            this.render();
+    getLogRole() {
+        const pageRole = document.body.dataset.logRole;
+        if (pageRole && pageRole !== 'auto') return pageRole;
+        const path = window.location.pathname.toLowerCase();
+        if (path.includes('lecturer')) return 'lecturer';
+        if (path.includes('student')) return 'student';
+        return (this.currentUser && this.currentUser.role) || 'activity';
+    }
+
+    applyRoleLabels() {
+        const labels = {
+            lecturer: {
+                title: 'Lecturer Activity Log',
+                subtitle: 'Your availability and consultation activity',
+                emptyTitle: 'No Lecturer Activity Recorded',
+                emptyMessage: 'Availability changes and consultation bookings involving you will appear here.'
+            },
+            student: {
+                title: 'Student Activity Log',
+                subtitle: 'Your booking and consultation activity',
+                emptyTitle: 'No Student Activity Recorded',
+                emptyMessage: 'Bookings and consultation changes involving you will appear here.'
+            },
+            activity: {
+                title: 'Activity Log',
+                subtitle: 'Your consultation activity',
+                emptyTitle: 'No Activity Recorded',
+                emptyMessage: 'Actions performed in the consultation log will appear here automatically.'
+            }
+        };
+        const label = labels[this.logRole] || labels.activity;
+        const title = document.getElementById('activity-log-title');
+        const subtitle = document.getElementById('activity-log-subtitle');
+        const emptyTitle = this.emptyState ? this.emptyState.querySelector('h3') : null;
+        const emptyMessage = document.getElementById('empty-state-message');
+
+        document.title = label.title;
+        if (title) title.textContent = label.title;
+        if (subtitle) subtitle.textContent = label.subtitle;
+        if (emptyTitle) emptyTitle.textContent = label.emptyTitle;
+        if (emptyMessage) emptyMessage.textContent = label.emptyMessage;
+    }
+
+    normalizeActivity(activity) {
+        const metadata = activity.metadata || {};
+        return {
+            ...activity,
+            id: activity.id || activity._id,
+            user: activity.user || activity.userEmail || metadata.actorEmail || metadata.studentEmail || metadata.lecturerEmail || 'Unknown User',
+            description: activity.description || 'Activity recorded',
+            metadata
+        };
+    }
+
+    getDisplayName(user) {
+        if (!user) return 'Unknown User';
+        const fullName = [user.name, user.surname].filter(Boolean).join(' ').trim();
+        return user.fullName || fullName || user.email || 'Unknown User';
+    }
+
+    getUserHeaders() {
+        const user = this.currentUser || this.getCurrentUser();
+        if (!user || user.email === 'system') return null;
+        const id = user.idNumber || user.id || user.email || '';
+        return {
+            'X-User-Email': user.email || '',
+            'X-User-Id': id,
+            'X-User-Role': user.role || this.logRole || ''
+        };
+    }
+
+    async clearAll() {
+        if (confirm('Delete your activity logs? This cannot be undone.')) {
+            try {
+                const headers = this.getUserHeaders();
+                const response = await fetch(this.apiBase, headers
+                    ? { method: 'DELETE', headers }
+                    : { method: 'DELETE' });
+                if (!response.ok) throw new Error('Failed to clear activities');
+
+                this.activities = [];
+                this.updateStats();
+                this.updateFilterOptions();
+                this.applyFilters();
+            } catch (error){
+                console.error('Failed to clear activities:', error);
+            }
+           
         }
     }
 
@@ -151,11 +301,13 @@ class ActivityLogManager {
         const user = this.userFilter.value;
         const dateRange = this.dateRangeFilter.value;
         const searchTerm = this.searchInput.value.toLowerCase().trim();
+        const course = this.courseFilter.value;
 
         this.filteredActivities = this.activities.filter(activity => {
             if (actionType !== 'all' && activity.type !== actionType) return false;
             if (user !== 'all' && activity.user !== user) return false;
-
+            if (course !== 'all' && (activity.metadata || {}).course !== course) return false;
+        
             if (dateRange !== 'all') {
                 const activityDate = new Date(activity.timestamp);
                 const today = new Date();
@@ -186,7 +338,19 @@ class ActivityLogManager {
             }
 
             if (searchTerm) {
-                const searchStr = (activity.description + ' ' + activity.user).toLowerCase();
+                const metadata = activity.metadata || {};
+                const searchStr = [
+                    activity.description,
+                    activity.user,
+                    metadata.course,
+                    metadata.module,
+                    metadata.venue,
+                    metadata.topic,
+                    metadata.studentName,
+                    metadata.studentId,
+                    metadata.lecturerName,
+                    metadata.lecturerId
+                ].filter(Boolean).join(' ').toLowerCase();
                 if (!searchStr.includes(searchTerm)) return false;
             }
 
@@ -203,17 +367,28 @@ class ActivityLogManager {
         this.searchInput.value = '';
         this.customDateRange.classList.add('hidden');
         this.currentPage = 1;
+        this.courseFilter.value = 'all';
+        this.updateURLParams();
         this.applyFilters();
     }
 
     updateFilterOptions() {
-        const users = [...new Set(this.activities.map(a => a.user))].sort();
-        this.userFilter.innerHTML = '<option value="all">All Users</option>';
+        const users = [...new Set(this.activities.map(a => a.user).filter(Boolean))].sort();
+        this.userFilter.innerHTML = '<option value="all">All Relevant People</option>';
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user;
             option.textContent = user;
             this.userFilter.appendChild(option);
+        });
+
+        const courses = [...new Set(this.activities.map(a => (a.metadata || {}).course).filter(Boolean))].sort();
+        this.courseFilter.innerHTML = '<option value="all">All Courses</option>';
+        courses.forEach(course => {
+            const option = document.createElement('option');
+            option.value = course;
+            option.textContent = course;
+            this.courseFilter.appendChild(option);
         });
     }
 
@@ -303,9 +478,37 @@ class ActivityLogManager {
                 <span class="detail-label">Timestamp</span>
                 <span class="detail-value">${time}</span>
             </div>
+            ${this.renderMetadata(activity.metadata || {})}
         `;
 
         this.detailModal.classList.remove('hidden');
+    }
+
+    renderMetadata(metadata) {
+        const rows = [
+            ['Course', metadata.course || metadata.module],
+            ['Date', metadata.date],
+            ['Time', metadata.time || [metadata.startTime, metadata.endTime].filter(Boolean).join(' - ')],
+            ['Venue', metadata.venue],
+            ['Lecturer', metadata.lecturerName || metadata.lecturerId || metadata.lecturerEmail],
+            ['Student', metadata.studentName || metadata.studentId || metadata.studentEmail],
+            ['Topic', metadata.topic]
+        ].filter(([, value]) => value);
+
+        if (rows.length === 0) return '';
+
+        return `
+            <div class="detail-row">
+                <span class="detail-label">Relevant Details</span>
+                <span class="detail-value"></span>
+            </div>
+            ${rows.map(([label, value]) => `
+                <div class="detail-row">
+                    <span class="detail-label">${this.escape(label)}</span>
+                    <span class="detail-value">${this.escape(value)}</span>
+                </div>
+            `).join('')}
+        `;
     }
 
     closeModal() {
@@ -326,12 +529,16 @@ class ActivityLogManager {
     // EXPORT
 
     exportCSV() {
-        const headers = ['Timestamp', 'Type', 'User', 'Description'];
+        const headers = ['Timestamp', 'Type', 'User', 'Description', 'Course', 'Date', 'Time', 'Venue'];
         const rows = this.filteredActivities.map(a => [
             new Date(a.timestamp).toLocaleString(),
             a.type,
             a.user,
-            a.description
+            a.description,
+            (a.metadata || {}).course || '',
+            (a.metadata || {}).date || '',
+            (a.metadata || {}).time || (a.metadata || {}).startTime || '',
+            (a.metadata || {}).venue || ''
         ]);
 
         const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
@@ -339,7 +546,7 @@ class ActivityLogManager {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `activity-log-${new Date().toISOString().split('T')[0]}.csv`;
+        link.download = `${this.logRole || 'activity'}-activity-log-${new Date().toISOString().split('T')[0]}.csv`;
         link.click();
         URL.revokeObjectURL(url);
     }
@@ -386,6 +593,7 @@ class ActivityLogManager {
         const icons = {
             created: 'fa-plus-circle',
             joined: 'fa-sign-in-alt',
+            updated: 'fa-pen-to-square',
             canceled: 'fa-times-circle'
         };
         return icons[type] || 'fa-circle';
@@ -395,6 +603,7 @@ class ActivityLogManager {
         const classes = {
             created: 'icon-create',
             joined: 'icon-join',
+            updated: 'icon-filter',
             canceled: 'icon-cancel'
         };
         return classes[type] || 'icon-filter';
@@ -413,6 +622,31 @@ class ActivityLogManager {
             timer = setTimeout(() => fn.apply(this, args), delay);
         };
     }
+
+     // Call this whenever filters change
+     updateURLParams() {
+    const params = new URLSearchParams();
+    
+    if (this.actionTypeFilter.value !== 'all') params.set('type', this.actionTypeFilter.value);
+    if (this.userFilter.value !== 'all') params.set('user', this.userFilter.value);
+    if (this.courseFilter && this.courseFilter.value !== 'all') params.set('course', this.courseFilter.value);
+    if (this.dateRangeFilter.value !== 'all') params.set('date', this.dateRangeFilter.value);
+    if (this.searchInput.value.trim()) params.set('search', this.searchInput.value.trim());
+    
+    const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.history.replaceState({}, '', newUrl);
+    }
+
+     // Call this on init to read URL params
+     loadFiltersFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    
+    if (params.get('type')) this.actionTypeFilter.value = params.get('type');
+    if (params.get('user')) this.userFilter.value = params.get('user');
+    if (params.get('course') && this.courseFilter) this.courseFilter.value = params.get('course');
+    if (params.get('date')) this.dateRangeFilter.value = params.get('date');
+    if (params.get('search')) this.searchInput.value = params.get('search');
+     }
 }
 
 // INITIALIZE

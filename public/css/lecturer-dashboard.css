@@ -13,13 +13,103 @@ body {
     padding: 30px 0;
 }
 
+.burger-btn {
+    background: #2766a5;
+    border-radius: 8px;
+    border: 0;
+    cursor: pointer;
+    color: white;
+    transition: all 0.2s;
+    height: 40px;
+    width: 40px;
+}
+
+.burger-btn:hover {
+    background: #FFC107;
+    --color: #2766a5;
+}
+
+.menu-wrapper {
+    position: relative;
+    z-index: 1001;
+}
+
+.burger-dropdown {
+    position: absolute;
+    top: 55px;
+    left: 0;
+    width: 220px;
+    background: rgba(25, 25, 35, 0.97);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 14px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.55);
+    z-index: 1000; 
+    overflow: hidden;
+}
+
+.burger-dropdown.hidden {
+    display: none;
+}
+
+.menu-items a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.95rem;
+}
+
+.menu-items a:hover {
+    background: rgba(255, 193, 7, 0.14);
+}
+
+.menu-items hr {
+    margin: 5px 0;
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sign-out {
+    color: #ff6b6b !important;
+}
+
+.date-banner {
+    background-color: rgba(255, 255, 255, 0.15);
+    padding: 15px 25px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    font-size: 18px;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.date-banner i {
+    color: #FFC107;
+    font-size: 22px;
+}
+
+.date-banner:hover {
+    background-color: rgba(0, 0, 0, 0.05); 
+}
+
+/* Updated to support scroll matching your student dashboard layout */
 .schedule-container {
     width: 100%;
     max-width: 1000px;
+    height: 90vh;
     display: flex;
     flex-direction: column;
     gap: 20px;
     padding: 0 20px;
+    margin: 0 auto;
 }
 
 /* Header */
@@ -50,26 +140,6 @@ body {
     color: rgba(255, 255, 255, 0.7);
     font-size: 14px;
     margin: 5px 0 0 0;
-}
-
-/* Date Banner */
-.date-banner {
-    background-color: rgba(255, 255, 255, 0.15);
-    padding: 15px 25px;
-    border-radius: 15px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: white;
-    font-size: 18px;
-    font-weight: 500;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.date-banner i {
-    color: #FFC107;
-    font-size: 22px;
 }
 
 /* Buttons */
@@ -120,6 +190,10 @@ body {
     color: white;
 }
 
+.session-actions .btn-danger {
+    border-radius: 25px;
+}
+
 /* Stats Grid */
 .stats-grid {
     display: grid;
@@ -150,7 +224,6 @@ body {
     letter-spacing: 0.5px;
     margin-top: 5px;
 }
-
 
 /* Filters */
 .filters-section {
@@ -221,11 +294,14 @@ body {
     color: #888888;
 }
 
-/* Schedule List */
+/* Updated Scrollable Schedule List Container */
 .schedule-list-container {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 10px;
     background-color: rgba(255, 255, 255, 0.15);
     border-radius: 25px;
-    min-height: 300px;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -330,27 +406,27 @@ body {
 }
 
 .status-upcoming {
-    background: rgba(88, 166, 255, 0.2);
-    color: #58A6FF;
+    background: rgba(88, 166, 255, 0.8);
+    color: #ffffff;
     border: 1px solid rgba(88, 166, 255, 0.3);
 }
 
 .status-ongoing {
-    background: rgba(16, 185, 129, 0.2);
-    color: #10b981;
+    background: rgba(16, 185, 129, 0.8);
+    color: #ffffff;
     border: 1px solid rgba(16, 185, 129, 0.3);
     animation: pulse 2s infinite;
 }
 
 .status-completed {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 255, 55, 0.8);
+    color: #ffffff;
     border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .status-canceled {
-    background: rgba(255, 77, 77, 0.2);
-    color: #ff4d4d;
+    background: rgba(255, 77, 77, 0.8);
+    color: #fefefe;
     border: 1px solid rgba(255, 77, 77, 0.3);
 }
 
@@ -358,7 +434,6 @@ body {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }
 }
-
 
 /* Joined Students */
 .joined-students {
@@ -424,8 +499,8 @@ body {
     color: rgba(255, 255, 255, 0.6);
 }
 
-/* Modal */
-.modal {
+/* Session Detail Modal */
+.session-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -439,36 +514,43 @@ body {
     backdrop-filter: blur(4px);
 }
 
-.modal.hidden {
+.session-modal-overlay.hidden {
     display: none;
 }
 
-.modal-content {
-    background-color: rgba(255, 255, 255, 0.95);
-    border-radius: 25px;
+body.session-modal-open {
+    overflow: hidden;
+}
+
+.session-modal-panel {
+    background: rgba(25, 25, 35, 0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
     width: 90%;
     max-width: 500px;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
 }
 
-.modal-header {
+.session-modal-header {
     padding: 20px 25px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
     position: sticky;
     top: 0;
-    background: white;
-    border-radius: 25px 25px 0 0;
+    background: rgba(25, 25, 35, 0.98);
+    border-radius: 20px 20px 0 0;
 }
 
-.modal-header h2 {
+.session-modal-header h2 {
     font-size: 20px;
     margin: 0;
-    color: #333;
+    color: white;
 }
 
 .close-btn {
@@ -476,11 +558,11 @@ body {
     border: none;
     font-size: 24px;
     cursor: pointer;
-    color: #888888;
+    color: rgba(255, 255, 255, 0.55);
 }
 
 .close-btn:hover {
-    color: #333;
+    color: white;
 }
 
 .detail-body {
@@ -491,17 +573,17 @@ body {
     display: flex;
     justify-content: space-between;
     padding: 12px 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .detail-label {
     font-weight: 600;
-    color: #333;
+    color: rgba(255, 255, 255, 0.72);
     font-size: 14px;
 }
 
 .detail-value {
-    color: #555;
+    color: white;
     font-size: 14px;
     text-align: right;
 }
@@ -512,7 +594,7 @@ body {
 
 .detail-students h4 {
     font-size: 14px;
-    color: #333;
+    color: white;
     margin-bottom: 10px;
 }
 
@@ -521,14 +603,49 @@ body {
     padding: 0;
 }
 
+.student-list-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 0 6px;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.student-list-heading span:last-child {
+    max-width: 45%;
+    text-align: right;
+}
+
 .student-list li {
     padding: 8px 0;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
     font-size: 14px;
-    color: #555;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.student-list-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.student-list-topic {
+    color: rgba(255, 255, 255, 0.72);
+    max-width: 45%;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.detail-students p {
+    color: rgba(255, 255, 255, 0.6) !important;
 }
 
 /* Responsive */
@@ -563,3 +680,10 @@ body {
     }
 }
 
+/* Header Right Layout Support */
+.header-right {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}

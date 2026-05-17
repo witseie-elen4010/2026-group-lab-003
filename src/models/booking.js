@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 
 const bookingSchema = new mongoose.Schema({
-  studentId: {
+  studentId: { // Student who created the booking
     type: String,
     required: true
   },
@@ -9,6 +9,8 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  participantIDs: [{ type: String }], // List of everyone (including organizer)
+  leftParticipantIDs: [{ type: String }], // Attendees who left
   date: {
     type: String,
     required: true
@@ -25,6 +27,20 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true
+  },
+  venue: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  topic: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  maxStudents: {
+    type: Number,
+    default: 1
   },
   createdAt: {
     type: Date,

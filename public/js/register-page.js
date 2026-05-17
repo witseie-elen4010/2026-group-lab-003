@@ -25,7 +25,9 @@ registerform.addEventListener('submit', (e) => {
   const roleSegment = document.querySelector('#role')
 
   // Get the currently selected value ('student' or 'lecturer')
-  const selectedRole = roleSegment.value
+  const selectedRole = roleSegment
+    ? roleSegment.value
+    : document.querySelector('input[name="roleOptions"]:checked')?.value
 
   console.log('Registering as:', selectedRole)
 })
@@ -108,6 +110,7 @@ registrationForm.addEventListener('submit', async (event) => {
     isValid = false
   } else if (passwordValue.length <= 7 && passwordValue !== '') {
     passwordError.textContent = 'Weak Password. Password has to contain 8 or more characters.'
+    isValid = false
   }
 
   // The Final Decision: If anything was wrong, stop everything right here.
@@ -121,7 +124,7 @@ registrationForm.addEventListener('submit', async (event) => {
     surname: document.getElementById('surname').value,
     idNumber: document.getElementById('idNumber').value,
     email: document.getElementById('email').value,
-    role: document.getElementById('role').value, // 'student' or 'lecturer'
+    role: document.querySelector('input[name="roleOptions"]:checked').value,
     password: document.getElementById('password').value
   }
 
@@ -135,8 +138,9 @@ registrationForm.addEventListener('submit', async (event) => {
     const result = await response.json()
 
     if (response.ok && result.success) {
-      alert('Welcome to Synchro! Redirecting to login...')
-      window.location.href = 'login-page.html'
+      const devOtpMessage = result.devOtp ? `\n\nLocal development OTP: ${result.devOtp}` : ''
+      alert(`Welcome to Synchro! Please verify your email with the OTP we sent.${devOtpMessage}`)
+      window.location.href = `verify-email.html?email=${encodeURIComponent(formData.email)}`
     } else {
       // Show server-side error (e.g., "Email already exists")
       errorMessage.textContent = result.error || 'Registration failed.'

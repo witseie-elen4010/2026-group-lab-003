@@ -10,40 +10,124 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectedStartInput = document.getElementById('selectedStartTime')
   const selectedEndInput = document.getElementById('selectedEndTime')
   const newBookingForm = document.getElementById('newBookingForm')
+  let selectedVenue = ''
+  let selectedMaxStudents = 1
 
   // Set minimum date to today to prevent past bookings
   const today = new Date().toISOString().split('T')[0]
   if (dateInput) dateInput.min = today
 
   // ==========================================
-  // 2. EVENT LISTENERS
+  // 2. EVENT LISTENERS (Lecturer & Date)
   // ==========================================
-  if (moduleSelect) {
-    moduleSelect.addEventListener('change', () => {
-      lecturerSelect.disabled = false
-      checkAndGenerateSlots()
-    })
-  }
-
   if (lecturerSelect) lecturerSelect.addEventListener('change', checkAndGenerateSlots)
   if (dateInput) dateInput.addEventListener('change', checkAndGenerateSlots)
 
   // ==========================================
   // 3. CORE FETCH LOGIC (Talking to Backend)
   // ==========================================
+
+  // Store the fetched data globally for the dropdowns
+  let availabilityData = []
+
+  // --- A. INITIALIZE DROPDOWNS ---
+  async function loadFormData () {
+    try {
+      const response = await fetch('/api/bookings/form-data')
+      if (!response.ok) throw new Error(`Failed to load form data: ${response.status}`)
+
+      availabilityData = await response.json()
+
+      const uniqueCourses = new Set()
+
+      // Look for courses in the main array AND inside the weekly slots
+      availabilityData.forEach(lecturer => {
+        // 1. Check main courses array
+        if (lecturer.courses && Array.isArray(lecturer.courses)) {
+          lecturer.courses.forEach(course => uniqueCourses.add(course))
+        }
+
+        // 2. Check inside the actual scheduled slots
+        if (lecturer.weeklySchedule && Array.isArray(lecturer.weeklySchedule)) {
+          lecturer.weeklySchedule.forEach(day => {
+            if (day.slots && Array.isArray(day.slots)) {
+              day.slots.forEach(slot => {
+                if (slot.course) uniqueCourses.add(slot.course)
+              })
+            }
+          })
+        }
+      })
+
+      moduleSelect.innerHTML = '<option value="" selected disabled>Select a module...</option>'
+
+      if (uniqueCourses.size === 0) {
+        moduleSelect.innerHTML = '<option value="" selected disabled>No modules available</option>'
+        return
+      }
+
+      uniqueCourses.forEach(course => {
+        const option = document.createElement('option')
+        option.value = course
+        option.textContent = course
+        moduleSelect.appendChild(option)
+      })
+    } catch (error) {
+      console.error('Error loading form data:', error)
+      moduleSelect.innerHTML = '<option value="" selected disabled>Error loading modules</option>'
+    }
+  }
+
+  // Run immediately on page load
+  loadFormData()
+
+  // --- B. MODULE DROPDOWN EVENT LISTENER ---
+  if (moduleSelect) {
+    moduleSelect.addEventListener('change', () => {
+      const selectedCourse = moduleSelect.value
+
+      lecturerSelect.innerHTML = '<option value="" selected disabled>Select a lecturer...</option>'
+
+      const matchingLecturers = availabilityData.filter(lecturer => {
+        // Does the lecturer have this course in their root array?
+        const inRoot = lecturer.courses && lecturer.courses.includes(selectedCourse)
+
+        // Does the lecturer have this course in any of their slots?
+        const inSlots = lecturer.weeklySchedule && lecturer.weeklySchedule.some(day =>
+          day.slots && day.slots.some(slot => slot.course === selectedCourse)
+        )
+
+        return inRoot || inSlots
+      })
+
+      matchingLecturers.forEach(lecturer => {
+        const option = document.createElement('option')
+        option.value = lecturer.lecturerEmail || lecturer.lecturerName
+        option.textContent = lecturer.lecturerName || lecturer.lecturerEmail
+        lecturerSelect.appendChild(option)
+      })
+
+      lecturerSelect.disabled = false
+
+      if (dateInput && dateInput.value) {
+        checkAndGenerateSlots()
+      }
+    })
+  }
+
+  // --- C. FETCH SLOTS FUNCTION ---
   async function checkAndGenerateSlots () {
     const lecturerId = lecturerSelect.value
     const date = dateInput.value
+    const selectedModule = moduleSelect.value
 
-    if (lecturerId && date) {
+    if (lecturerId && date && selectedModule) {
       slotsContainer.innerHTML = '<div class="text-muted small">Loading available slots...</div>'
 
       try {
-        // Fetch data from your backend API
         const response = await fetch(`/api/bookings/availability?lecturerId=${lecturerId}&date=${date}`)
         const data = await response.json()
 
-        // Handle errors or no availability
         if (data.error || !data.availableBlocks || data.availableBlocks.length === 0) {
           slotsContainer.innerHTML = `<div class="text-danger small">${data.message || 'No availability on this date.'}</div>`
           selectedStartInput.value = ''
@@ -51,17 +135,14 @@ document.addEventListener('DOMContentLoaded', () => {
           return
         }
 
-        const allPossibleSlots = []
+        const availableSlots = data.availableBlocks.filter(slot => {
+          const isCorrectModule = slot.course === selectedModule
 
-        // Generate slots for each block the lecturer is available (e.g., Morning Block, Afternoon Block)
-        data.availableBlocks.forEach(block => {
-          const slotsForBlock = generateTimeSlots(block.start, block.end, data.duration)
-          allPossibleSlots.push(...slotsForBlock)
-        })
+          // FIX: Simply check if this start time exists in the booked array at all
+          const isAlreadyBooked = data.bookedTimes.includes(slot.start)
 
-        // Filter out slots that are already booked
-        const availableSlots = allPossibleSlots.filter(slot => {
-          return !data.bookedTimes.includes(slot.start)
+          // Only show the slot if it is for this module AND completely unbooked
+          return isCorrectModule && !isAlreadyBooked
         })
 
         renderSlotsToUI(availableSlots)
@@ -73,23 +154,58 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 4. FORM SUBMISSION
+  // 4. RENDER UTILITIES
+  // ==========================================
+  function renderSlotsToUI(slotsArray) {
+    slotsContainer.innerHTML = '';
+    selectedStartInput.value = '';
+    selectedEndInput.value = '';
+    selectedVenue = '';
+    selectedMaxStudents = 1;
+
+    if (slotsArray.length === 0) {
+      slotsContainer.innerHTML = '<div class="text-danger small">No available slots for this module on this date.</div>'
+      return
+    }
+
+    slotsArray.forEach(slot => {
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'btn btn-outline-primary m-1 slot-btn'
+
+      // Safe check for duration
+      const durationText = slot.duration ? `<br><small class="text-muted">${slot.duration} min</small>` : '';
+      const venueText = slot.venue ? `<br><small class="text-muted">${slot.venue}</small>` : '';
+      const capacityText = slot.maxStudents ? `<br><small class="text-muted">${slot.maxStudents} max students</small>` : '';
+      btn.innerHTML = `${slot.start} - ${slot.end} ${durationText}${venueText}${capacityText}`;
+
+      btn.onclick = () => {
+        document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+
+        selectedStartInput.value = slot.start;
+        selectedEndInput.value = slot.end;
+        selectedVenue = slot.venue || '';
+        selectedMaxStudents = Number(slot.maxStudents) || 1;
+      };
+
+      slotsContainer.appendChild(btn)
+    })
+  }
+
+  // ==========================================
+  // 5. FORM SUBMISSION
   // ==========================================
   if (newBookingForm) {
     newBookingForm.addEventListener('submit', async (e) => {
       e.preventDefault()
 
-      // Final validation: Did they actually click a time slot?
       if (!selectedStartInput.value) {
         alert('Please select a time slot!')
         return
       }
 
-      // Gather the data to send to your backend
       const user = JSON.parse(sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user'))
-
-      // ADD THIS CONSOLE LOG TO DEBUG
-      console.log('Here is what the browser found:', user)
 
       if (!user || !user.email) {
         alert('You must be logged in to book a session.')
@@ -104,6 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
         date: dateInput.value,
         startTime: selectedStartInput.value,
         endTime: selectedEndInput.value,
+        venue: selectedVenue,
+        maxStudents: selectedMaxStudents,
+        participantIDs: [user.email],
         topic: document.getElementById('topic') ? document.getElementById('topic').value : ''
       }
 
@@ -112,8 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
       submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Booking...'
 
       try {
-        // Send POST request to backend
-        const response = await fetch('/api/bookings', {
+        const response = await fetch('/api/bookings', { // NOTE: Change to '/api/bookings/create' if using the custom route from earlier
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -123,81 +241,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (response.ok) {
           alert('Booking successful!')
-          window.location.href = 'student-dashboard.html' // Redirect back to dashboard
+          window.location.href = 'student-dashboard.html'
         } else {
           const errorData = await response.json()
-          alert(`Booking failed: ${errorData.error}`)
+          alert(`Booking failed: ${errorData.error || errorData.message}`)
         }
       } catch (error) {
         console.error('Booking submission error:', error)
         alert('Network error. Please try again.')
       } finally {
-        // Reset button if there was an error
         submitBtn.disabled = false
         submitBtn.innerHTML = '<i class="fas fa-calendar-check me-2"></i> Confirm Booking'
       }
-    })
-  }
-
-  // ==========================================
-  // 5. UTILITY FUNCTIONS
-  // ==========================================
-
-  // Utility function to convert HH:MM to total minutes
-  function timeToMinutes (timeStr) {
-    const [hours, minutes] = timeStr.split(':').map(Number)
-    return hours * 60 + minutes
-  }
-
-  // Utility function to convert total minutes back to HH:MM
-  function minutesToTime (totalMinutes) {
-    const hours = Math.floor(totalMinutes / 60).toString().padStart(2, '0')
-    const minutes = (totalMinutes % 60).toString().padStart(2, '0')
-    return `${hours}:${minutes}`
-  }
-
-  // Generate an array of time slots
-  function generateTimeSlots (startTime, endTime, durationMins) {
-    const startMins = timeToMinutes(startTime)
-    const endMins = timeToMinutes(endTime)
-    const slots = []
-
-    for (let currentMins = startMins; currentMins + durationMins <= endMins; currentMins += durationMins) {
-      slots.push({
-        start: minutesToTime(currentMins),
-        end: minutesToTime(currentMins + durationMins)
-      })
-    }
-    return slots
-  }
-
-  // Render the slots to the HTML UI
-  function renderSlotsToUI (slotsArray) {
-    slotsContainer.innerHTML = '' // Clear old slots
-    selectedStartInput.value = '' // Reset hidden inputs
-    selectedEndInput.value = ''
-
-    if (slotsArray.length === 0) {
-      slotsContainer.innerHTML = '<div class="text-danger small">No available slots for this day.</div>'
-      return
-    }
-
-    slotsArray.forEach(slot => {
-      const btn = document.createElement('button')
-      btn.type = 'button' // Prevents form submission when clicking a slot
-      btn.className = 'btn btn-outline-primary m-1 slot-btn'
-      btn.innerText = `${slot.start} - ${slot.end}`
-
-      // When clicked, save the selected times to hidden inputs
-      btn.onclick = () => {
-        document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'))
-        btn.classList.add('active')
-
-        selectedStartInput.value = slot.start
-        selectedEndInput.value = slot.end
-      }
-
-      slotsContainer.appendChild(btn)
     })
   }
 })

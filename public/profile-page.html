@@ -10,15 +10,15 @@
   <div class="profile-card">
     <h2><span>👤</span> My Profile</h2>
     <form id="profileForm">
-      <input type="text" id="name" placeholder="Name" required>
-      <input type="text" id="surname" placeholder="Surname" required>
+      <input type="text" id="name" placeholder="Name">
+      <input type="text" id="surname" placeholder="Surname">
       <input type="tel" id="phone" placeholder="Phone (optional)">
       <label class="toggle">
         <input type="checkbox" id="notificationsToggle" checked>
         <span>Email Notifications</span>
       </label>
       <button type="submit">Save Changes</button>
-      <a href="dashboard.html" class="cancel-link">Cancel</a>
+      <a href="#" id="cancel-link" class="cancel-link">Cancel</a>
     </form>
      <hr style="margin: 20px 0; border-color: rgba(255,255,255,0.2);">
   <button type="button" id="showChangePwdBtn" class="change-pwd-btn">Change Password</button>
@@ -32,6 +32,50 @@
   </div>
     <div id="message" class="message"></div>
   </div>
-    <script src="js/profile-page.js"></script>
+  <script>
+    // Dynamic Dashboard Routing
+    const cancelLink = document.getElementById('cancel-link');
+    const userData = sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user');
+
+    if (userData) {
+        const user = JSON.parse(userData);
+        const isLecturer = user.role === 'lecturer' || user.isLecturer || user.userType === 'lecturer';
+        
+        // Set the href based on the user's role
+        cancelLink.href = isLecturer ? "lecturer-dashboard.html" : "student-dashboard.html";
+    } else {
+        // Safety fallback if no user is found
+        cancelLink.href = "login-page.html"; 
+    }
+
+    fetch('/api/profile', { headers: { 'X-User-Email': email } })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          document.getElementById('name').value = d.user.name || '';
+          document.getElementById('surname').value = d.user.surname || '';
+          document.getElementById('phone').value = d.user.phone || '';
+          document.getElementById('notificationsToggle').checked = d.user.notificationsEnabled !== false;
+        }
+      });
+
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        name: document.getElementById('name').value.trim(),
+        surname: document.getElementById('surname').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        notificationsEnabled: document.getElementById('notificationsToggle').checked
+      };
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-User-Email': email },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      msg.className = `message ${data.success ? 'success' : 'error'}`;
+      msg.textContent = data.message || 'Error updating profile.';
+    });
+  </script>
 </body>
 </html>

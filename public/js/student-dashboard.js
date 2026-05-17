@@ -11,12 +11,13 @@ class StudentScheduleManager {
   // 1. Make init async so we can wait for the database fetch
   async init () {
     this.loadCurrentStudent()
-    await this.loadSessions() // Wait for database data
+    this.displayDynamicTitle()
+    await this.loadSessions()
     this.setupEventListeners()
     this.displayCurrentDate()
     this.updateStats()
     this.updateFilterOptions()
-    this.applyFilters() // Render immediately after applying filters
+    this.applyFilters()
   }
 
   // DOM GETTERS
@@ -64,14 +65,12 @@ class StudentScheduleManager {
       })
 
       document.addEventListener('click', (e) => {
-        // Close menu if clicking outside of it
         if (!sideMenu.contains(e.target) && !menuBtn.contains(e.target)) {
           sideMenu.classList.add('hidden')
         }
       })
     }
 
-    // Sign Out functionality
     const signOutBtn = document.querySelector('.sign-out')
     if (signOutBtn) {
       signOutBtn.addEventListener('click', (e) => {
@@ -79,7 +78,7 @@ class StudentScheduleManager {
         console.log('Clearing session and redirecting...')
         sessionStorage.removeItem(this.userStorageKey)
         localStorage.removeItem(this.userStorageKey)
-        window.location.href = 'login.html'
+        window.location.href = 'login-page.html'
       })
     }
   }
@@ -126,17 +125,39 @@ class StudentScheduleManager {
       const dbBookings = await response.json()
       console.log('Bookings from Database:', dbBookings)
 
+      const now = new Date()
+
       // 4. Map the data to the UI
       this.sessions = dbBookings.map(b => {
+        const participantCount = Array.isArray(b.participantIDs) ? b.participantIDs.length : 1
+
+        // Dynamic Status Logic
+        let calculatedStatus = b.status || 'upcoming'
+        const duration = 30 // assumed 30 mins
+
+        if (b.date && b.startTime && calculatedStatus !== 'canceled') {
+          const sessionStart = new Date(`${b.date}T${b.startTime}`)
+          const sessionEnd = new Date(sessionStart.getTime() + duration * 60000)
+
+          if (now > sessionEnd) {
+            calculatedStatus = 'completed'
+          } else if (now >= sessionStart && now <= sessionEnd) {
+            calculatedStatus = 'ongoing'
+          }
+        }
+
         return {
           id: b._id,
           date: b.date,
           time: b.startTime,
-          duration: 30,
+          duration,
           courseCode: b.module,
-          lecturerName: b.lecturerId === 'lecturer_1' ? 'Dr. Smith' : 'Prof. Jones', // Update this based on how your lecturers are saved
+          lecturerName: b.lecturerName || b.lecturerId || 'Unknown Lecturer',
           topic: b.topic || 'No topic specified',
-          status: b.status || 'upcoming'
+          location: b.venue || 'Online',
+          status: calculatedStatus, // Uses our new dynamic status
+          organizerEmail: b.studentId,
+          participantsCount: participantCount
         }
       })
     } catch (error) {
@@ -176,13 +197,36 @@ class StudentScheduleManager {
       return true
     })
 
-    this.filteredSessions.sort((a, b) => {
-      const dateA = new Date(`${a.date}T${a.time}`)
-      const dateB = new Date(`${b.date}T${b.time}`)
-      return dateA - dateB
-    })
+    this.filteredSessions.sort((a, b) => this.compareDashboardSessions(a, b))
 
     this.render()
+  }
+
+  compareDashboardSessions (a, b) {
+    const statusPriority = {
+      ongoing: 1,
+      upcoming: 2,
+      completed: 3,
+      canceled: 4
+    }
+    const priorityA = statusPriority[a.status] || 99
+    const priorityB = statusPriority[b.status] || 99
+
+    if (priorityA !== priorityB) return priorityA - priorityB
+
+    const timeA = this.getSessionStartTime(a)
+    const timeB = this.getSessionStartTime(b)
+
+    if (a.status === 'completed' || a.status === 'canceled') {
+      return timeB - timeA
+    }
+
+    return timeA - timeB
+  }
+
+  getSessionStartTime (session) {
+    const timestamp = new Date(`${session.date}T${session.time}`).getTime()
+    return Number.isNaN(timestamp) ? Number.MAX_SAFE_INTEGER : timestamp
   }
 
   updateFilterOptions () {
@@ -212,6 +256,16 @@ class StudentScheduleManager {
     this.currentDateEl.textContent = new Date().toLocaleDateString('en-US', options)
   }
 
+  displayDynamicTitle () {
+    const titleElement = document.getElementById('booking-title')
+    if (this.currentStudent && this.currentStudent.name && titleElement) {
+      const name = this.currentStudent.name
+      // Handles smart grammar formatting (e.g., Charles' Bookings vs John's Bookings)
+      const possessiveName = name.endsWith('s') ? `${name}'` : `${name}'s`
+      titleElement.textContent = `${possessiveName} Bookings`
+    }
+  }
+
   render () {
     if (this.filteredSessions.length === 0) {
       this.scheduleList.innerHTML = ''
@@ -226,6 +280,9 @@ class StudentScheduleManager {
     const timeDisplay = this.formatTime(session.time)
     const statusClass = `status-${session.status}`
     const location = session.location || 'Online'
+    
+    // Call the friendly date helper
+    const friendlyDate = this.getFriendlyDate(session.date)
 
     return `
             <div class="session-card">
@@ -237,18 +294,16 @@ class StudentScheduleManager {
                     <div class="session-course">${this.escape(session.courseCode || '')}</div>
                     <div class="session-title">${this.escape(session.topic)}</div>
                     <div class="session-meta">
+                        <span class="meta-date"><i class="fas fa-calendar-day"></i> <strong>${friendlyDate}</strong></span>
                         <span><i class="fas fa-chalkboard-teacher"></i> ${this.escape(session.lecturerName || 'Unknown Lecturer')}</span>
                         <span><i class="fas fa-map-marker-alt"></i> ${this.escape(location)}</span>
                     </div>
                 </div>
                 <span class="session-status ${statusClass}">${session.status || 'unknown'}</span>
                 <div class="session-actions">
-                    <button class="btn btn-sm btn-outline" onclick="scheduleManager.showDetail('${session.id}')">
-                        <i class="fas fa-info-circle"></i> Details
-                    </button>
                     ${session.status === 'upcoming'
 ? `
-                        <button class="btn btn-sm btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')">
+                        <button class="btn btn-sm btn-danger btn-rounded-cancel" onclick="scheduleManager.cancelBooking('${session.id}')">
                             <i class="fas fa-times"></i> Cancel
                         </button>
                     `
@@ -263,8 +318,10 @@ class StudentScheduleManager {
     if (!session) return
 
     const content = document.getElementById('session-detail-content')
+    
+    // Call the friendly date helper for the modal detail view too!
+    const friendlyDate = this.getFriendlyDate(session.date)
 
-    // Build the HTML for the modal
     content.innerHTML = `
         <div class="detail-row">
             <span class="detail-label">Module:</span>
@@ -272,7 +329,7 @@ class StudentScheduleManager {
         </div>
         <div class="detail-row">
             <span class="detail-label">Date:</span>
-            <span class="detail-value">${this.escape(session.date)}</span>
+            <span class="detail-value"><strong>${friendlyDate}</strong> (${this.escape(session.date)})</span>
         </div>
         <div class="detail-row">
             <span class="detail-label">Time:</span>
@@ -286,24 +343,25 @@ class StudentScheduleManager {
         ${session.status === 'upcoming'
 ? `
             <div style="margin-top: 20px; text-align: center;">
-                <button class="btn btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
-                    <i class="fas fa-trash-alt"></i> Cancel Consultation
+                    <button class="btn btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')" style="width: 100%; border-radius: 25px;">
+                    <i class="fas fa-trash-alt"></i> Leave Consultation
                 </button>
             </div>
         `
 : ''}
     `
+    this.sessionModal.classList.remove('hidden')
+  }
 
-    document.getElementById('session-modal').classList.remove('hidden')
+  closeModal () {
+    this.sessionModal.classList.add('hidden')
   }
 
   async cancelBooking (sessionId) {
-    // 1. Confirm with the user before deleting
-    if (!confirm('Are you sure you want to cancel this consultation? This action cannot be undone.')) {
+    if (!confirm('Are you sure you want to cancel or leave this consultation?')) {
       return
     }
 
-    // 2. Get the current user's email to verify ownership
     const currentUser = JSON.parse(sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user'))
 
     if (!currentUser || !currentUser.email) {
@@ -312,7 +370,6 @@ class StudentScheduleManager {
     }
 
     try {
-      // 3. Call the backend DELETE route
       const response = await fetch(`/api/bookings/${sessionId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -322,19 +379,49 @@ class StudentScheduleManager {
       const result = await response.json()
 
       if (response.ok && result.success) {
-        alert('Consultation canceled successfully.')
-        this.closeModal() // Close the popup
-        await this.init() // Re-fetch bookings and update the dashboard
+        // UPDATE HERE: Use the dynamic message from the backend!
+        alert(result.message)
+        this.closeModal()
+        await this.init()
       } else {
-        alert('Failed to cancel: ' + (result.message || 'Unknown error'))
+        alert('Failed: ' + (result.message || 'Unknown error'))
       }
     } catch (error) {
       console.error('Cancellation Error:', error)
-      alert('An error occurred while trying to cancel the booking.')
+      alert('An error occurred while trying to process this request.')
     }
   }
 
   // HELPERS
+  getFriendlyDate (dateStr) {
+    if (!dateStr) return ''
+
+    // Parse session date safely at midnight local time
+    const sessionDate = new Date(`${dateStr}T00:00:00`)
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const tomorrow = new Date(today)
+    tomorrow.setDate(today.getDate() + 1)
+
+    const compareDate = new Date(sessionDate)
+    compareDate.setHours(0, 0, 0, 0)
+
+    if (compareDate.getTime() === today.getTime()) {
+      return 'Today'
+    } else if (compareDate.getTime() === tomorrow.getTime()) {
+      return 'Tomorrow'
+    } else {
+      // Fallback format for other days (e.g., "Mon, May 18")
+      return sessionDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      })
+    }
+  }
+
   formatTime (time) {
     if (!time) return '--:--'
     const [hours, minutes] = time.split(':')
@@ -354,8 +441,10 @@ class StudentScheduleManager {
     if (!dateStr) return false
     const date = new Date(dateStr)
     const today = new Date()
-    const startOfWeek = new Date(today)
-    startOfWeek.setDate(today.getDate() - today.getDay())
+    const day = today.getDay()
+    const diffToMonday = day === 0 ? 6 : day - 1
+    // Set to midnight so the comparison works regardless of current time
+    const startOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - diffToMonday, 0, 0, 0, 0)
     const endOfWeek = new Date(startOfWeek)
     endOfWeek.setDate(startOfWeek.getDate() + 6)
     endOfWeek.setHours(23, 59, 59, 999)
@@ -390,7 +479,6 @@ class StudentScheduleManager {
   }
 }
 
-// INITIALIZE ONLY IF IN BROWSER
 if (typeof module === 'undefined') {
   const scheduleManager = new StudentScheduleManager()
   window.scheduleManager = scheduleManager

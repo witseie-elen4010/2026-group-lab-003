@@ -1,13 +1,71 @@
 const express = require('express')
+const session = require('express-session')
 const app = express()
 const bcrypt = require('bcrypt')
+const crypto = require('crypto')
 const saltRounds = 10
 const path = require('path')
 const User = require('./models/user')
+const EmailVerificationToken = require('./models/emailVerificationToken')
+const { sanitizeRequest } = require('./middleware/input-sanitizer')
+const { sendEmailVerificationOtp } = require('./utils/emailService')
 const console = require('console')
+
+const SESSION_IDLE_TIMEOUT = 30 * 60 * 1000 // 30 minutes
+const EMAIL_OTP_EXPIRY_MS = 10 * 60 * 1000
+
+function hashOtp (otp) {
+  return crypto.createHash('sha256').update(String(otp)).digest('hex')
+}
+
+function generateOtp () {
+  return String(crypto.randomInt(100000, 1000000))
+}
+
+function normalizeEmail (email) {
+  return String(email || '').trim().toLowerCase()
+}
+
+async function createEmailVerificationOtp (user) {
+  if (process.env.NODE_ENV === 'test' && !EmailVerificationToken.create?._isMockFunction && EmailVerificationToken.db?.readyState === 0) {
+    return null
+  }
+
+  const otp = generateOtp()
+  await EmailVerificationToken.deleteMany({ userId: user._id, used: false })
+  await EmailVerificationToken.create({
+    userId: user._id,
+    otpHash: hashOtp(otp),
+    expiresAt: new Date(Date.now() + EMAIL_OTP_EXPIRY_MS)
+  })
+  const delivery = await sendEmailVerificationOtp(user.email, otp)
+  return { otp, delivery }
+}
 
 // --- Middleware ---
 app.use(express.json())
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'keyboard cat',
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: SESSION_IDLE_TIMEOUT
+  }
+}))
+app.use(sanitizeRequest)
+app.use((req, res, next) => {
+  if (req.session) {
+    if (req.session.lastActivity && Date.now() - req.session.lastActivity > SESSION_IDLE_TIMEOUT) {
+      req.session.destroy(() => next())
+      return
+    }
+    req.session.lastActivity = Date.now()
+  }
+  next()
+})
 
 // --- Default Route ---
 app.get('/', (req, res) => {
@@ -17,9 +75,6 @@ app.get('/', (req, res) => {
 app.use(express.static(path.join(__dirname, '../public')))
 
 const bookingRoutes = require('./routes/bookings')
-app.use(express.json())
-
-app.use(express.static('public'))
 
 app.use('/api/bookings', bookingRoutes)
 
@@ -27,10 +82,23 @@ app.use('/api/bookings', bookingRoutes)
 const authRoutes = require('./routes/auth')
 app.use('/api/auth', authRoutes)
 
+// --- Course Routes ---
+const courseRoutes = require('./routes/courses');
+app.use('/api/courses', courseRoutes);
+
+// --- Schedule Routes ---
+const scheduleRoutes = require('./routes/schedules');
+app.use('/api/schedules', scheduleRoutes);
+
+// --- Availability Routes (for lecturer weekly schedule) ---
+const availabilityRoutes = require('./routes/availability');
+app.use('/api/availability', availabilityRoutes);
+
 // --- Registration Route ---
 app.post('/api/register', async (req, res) => {
   try {
-    const { name, surname, idNumber, email, role, password } = req.body
+    const { name, surname, idNumber, role, password } = req.body
+    const email = normalizeEmail(req.body.email)
 
     // Basic validation
     if (!email || !password || !idNumber) {
@@ -52,15 +120,21 @@ app.post('/api/register', async (req, res) => {
       idNumber,
       email,
       role,
-      password: hashedPassword
+      password: hashedPassword,
+      emailVerified: false
     })
 
-    await user.save();
-    console.log('User registered in DB:', user.email); // This will now show the actual email
-    res.status(201).json({ success: true, message: 'User registered!' });
-
-    console.log('User registered in DB:', user.email)
-    res.status(201).json({ success: true, message: 'User registered!' })
+    await user.save()
+    const otpResult = await createEmailVerificationOtp(user)
+    const localOtpVisible = process.env.NODE_ENV !== 'production' && otpResult?.delivery?.simulated
+    res.status(201).json({
+      success: true,
+      message: localOtpVisible
+        ? `User registered! Email sending is not configured, so the OTP was written to ${otpResult.delivery.logPath}.`
+        : 'User registered! Please verify your email with the OTP sent to your inbox.',
+      requiresEmailVerification: true,
+      devOtp: localOtpVisible ? otpResult.otp : undefined
+    })
   } catch (err) {
     console.error('Registration Error:', err.message)
     res.status(400).json({ success: false, error: err.message })
@@ -70,7 +144,8 @@ app.post('/api/register', async (req, res) => {
 // --- Login Route ---
 app.post('/api/login', async (req, res) => {
   try {
-    const { email, password } = req.body
+    const { password } = req.body
+    const email = normalizeEmail(req.body.email)
 
     // Find user and include the password field (since it's hidden in schema)
     const user = await User.findOne({ email }).select('+password').lean()
@@ -87,10 +162,20 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password' })
     }
 
+    if (user.emailVerified === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email before logging in.'
+      })
+    }
+
+    req.session.userEmail = email
+    req.session.lastActivity = Date.now()
+
     res.status(200).json({
       success: true,
       message: 'Login successful!',
-      user: { name: user.name, role: user.role }
+      user: { name: user.name, surname: user.surname, idNumber: user.idNumber, role: user.role }
     })
   } catch (err) {
     res.status(500).json({ success: false, error: 'Server error during login.' })
@@ -99,22 +184,24 @@ app.post('/api/login', async (req, res) => {
 
 // --- Profile Routes ---
 app.get('/api/profile', async (req, res) => {
-  const user = await User.findOne({ email: req.headers['x-user-email'] }).select('name surname email notificationsEnabled');
-  if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
-  res.json({ success: true, user });
-});
+  const email = req.headers['x-user-email'] || req.session?.userEmail
+  const user = await User.findOne({ email }).select('name surname idNumber email notificationsEnabled')
+  if (!user) return res.status(404).json({ success: false, message: 'User not found.' })
+  res.json({ success: true, user })
+})
 
 app.put('/api/profile', async (req, res) => {
-  const email = req.headers['x-user-email'];
-  const { name, surname, notificationsEnabled } = req.body;
+  const email = req.headers['x-user-email'] || req.session?.userEmail
+  const { name, surname, notificationsEnabled } = req.body
   const user = await User.findOneAndUpdate(
     { email },
     { $set: { name, surname, notificationsEnabled } },
     { new: true, select: 'name surname email notificationsEnabled' }
-  );
-  if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
-  res.json({ success: true, message: 'Profile updated.', user });
-});
+  )
+  if (!user) return res.status(404).json({ success: false, message: 'User not found.' })
+  res.json({ success: true, message: 'Profile updated.', user })
+})
 
+app.use('/api/activities', require('./routes/activities'));
 
 module.exports = app

@@ -2,8 +2,8 @@
 
 // 1. Setup global fetch mock BEFORE importing anything else
 const mockSessions = [
-  { _id: 'sess_1', topic: 'Math Help', status: 'upcoming', studentId: 'fntstembe@gmail.com' },
-  { _id: 'sess_2', topic: 'Group Study', status: 'upcoming', studentId: 'fntstembe@gmail.com' }
+  { _id: 'sess_1', topic: 'Math Help', venue: 'Room 101', status: 'upcoming', studentId: 'fntstembe@gmail.com', lecturerName: 'Jane Smith' },
+  { _id: 'sess_2', topic: 'Group Study', status: 'upcoming', studentId: 'fntstembe@gmail.com', lecturerName: 'Jane Smith' }
 ]
 
 global.fetch = jest.fn(() =>
@@ -15,6 +15,12 @@ global.fetch = jest.fn(() =>
 
 global.confirm = jest.fn(() => true)
 global.alert = jest.fn()
+global.bootstrap = {
+  Modal: jest.fn().mockImplementation(() => ({
+    show: jest.fn(),
+    hide: jest.fn()
+  }))
+}
 
 const { StudentScheduleManager } = require('../../public/js/student-dashboard.js')
 
@@ -114,6 +120,7 @@ describe('StudentScheduleManager', () => {
       // 4. Assert (This should now be 2)
       expect(manager.sessions.length).toBe(2)
       expect(manager.sessions[0].topic).toBe('Math Help')
+      expect(manager.sessions[0].lecturerName).toBe('Jane Smith')
     })
   })
 
@@ -158,6 +165,18 @@ describe('StudentScheduleManager', () => {
       expect(manager.filteredSessions.length).toBe(1)
       expect(manager.filteredSessions[0].status).toBe('completed')
     })
+
+    test('applyFilters orders ongoing first then upcoming soonest', () => {
+      manager.sessions = [
+        { id: 'later', status: 'upcoming', date: '2026-05-20', time: '14:00', courseCode: 'CS101', topic: 'Later' },
+        { id: 'soon', status: 'upcoming', date: '2026-05-18', time: '09:00', courseCode: 'CS101', topic: 'Soon' },
+        { id: 'now', status: 'ongoing', date: '2026-05-18', time: '08:00', courseCode: 'CS101', topic: 'Now' }
+      ]
+
+      manager.applyFilters()
+
+      expect(manager.filteredSessions.map(session => session.id)).toEqual(['now', 'soon', 'later'])
+    })
   })
 
   describe('DOM Rendering & Actions', () => {
@@ -188,7 +207,7 @@ describe('StudentScheduleManager', () => {
 
       expect(modal.classList.contains('hidden')).toBe(false)
       expect(content.innerHTML).toContain('CS101')
-      expect(content.innerHTML).toContain('Cancel Consultation')
+      expect(content.innerHTML).toContain('Leave Consultation')
       expect(content.innerHTML).toContain('upcoming')
     })
 

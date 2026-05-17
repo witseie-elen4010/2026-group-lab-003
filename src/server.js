@@ -5,7 +5,7 @@ const path = require('path')
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
 
 // Import the pre-configured Express app
-const app = require('./app') 
+const app = require('./app')
 const connectDB = require('./config/db')
 
 const PORT = process.env.PORT || 3000

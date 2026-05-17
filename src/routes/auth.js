@@ -10,15 +10,31 @@ const bcrypt = require('bcrypt')
 
 const User = require('../models/user')
 const PasswordResetToken = require('../models/passwordResetToken')
-const { sendPasswordResetEmail, sendNotification } = require('../utils/emailService')
+const EmailVerificationToken = require('../models/emailVerificationToken')
+const { sendPasswordResetEmail, sendEmailVerificationOtp, sendNotification } = require('../utils/emailService')
 
 const SALT_ROUNDS = 10, TOKEN_EXPIRY_MS = 60 * 60 * 1000
+const EMAIL_OTP_EXPIRY_MS = 10 * 60 * 1000
 
 // Helpers
 const hashToken = raw => crypto.createHash('sha256').update(raw).digest('hex')
+const generateOtp = () => String(crypto.randomInt(100000, 1000000))
+const normalizeEmail = email => String(email || '').trim().toLowerCase()
+
+async function sendVerificationOtp (user) {
+  const otp = generateOtp()
+  await EmailVerificationToken.deleteMany({ userId: user._id, used: false })
+  await EmailVerificationToken.create({
+    userId: user._id,
+    otpHash: hashToken(otp),
+    expiresAt: new Date(Date.now() + EMAIL_OTP_EXPIRY_MS)
+  })
+  const delivery = await sendEmailVerificationOtp(user.email, otp)
+  return { otp, delivery }
+}
 
 async function requireAuth(req, res, next) {
-  const email = req.headers['x-user-email']
+  const email = req.session?.userEmail || req.headers['x-user-email']
   if (!email) return res.status(401).json({ success: false, error: 'Unauthorised' })
   const user = await User.findOne({ email })
   if (!user) return res.status(401).json({ success: false, error: 'Unauthorised' })
@@ -28,21 +44,30 @@ async function requireAuth(req, res, next) {
 // Forgot Password
 router.post('/forgot-password', async (req, res) => {
   try {
-    const { email } = req.body
+    const email = normalizeEmail(req.body.email)
     if (!email) return res.status(400).json({ success: false, error: 'Email required' })
     const user = await User.findOne({ email })
+    let delivery = null
+    let resetOtp = null
     if (user) {
       await PasswordResetToken.deleteMany({ userId: user._id, used: false })
-      const rawToken = crypto.randomBytes(32).toString('hex')
+      resetOtp = generateOtp()
       await PasswordResetToken.create({
         userId: user._id,
-        tokenHash: hashToken(rawToken),
+        tokenHash: hashToken(resetOtp),
         expiresAt: new Date(Date.now() + TOKEN_EXPIRY_MS)
       })
       const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
-      sendPasswordResetEmail(email, `${baseUrl}/reset-password.html?token=${rawToken}&email=${encodeURIComponent(email)}`)
+      delivery = await sendPasswordResetEmail(email, resetOtp, `${baseUrl}/reset-password.html?email=${encodeURIComponent(email)}`)
     }
-    res.json({ success: true, message: 'If registered, you will receive a reset link.' })
+    const localOtpVisible = process.env.NODE_ENV !== 'production' && delivery?.simulated
+    res.json({
+      success: true,
+      message: localOtpVisible
+        ? `If registered, a reset OTP was written to ${delivery.logPath}.`
+        : 'If registered, you will receive a password reset OTP.',
+      devOtp: localOtpVisible ? resetOtp : undefined
+    })
   } catch (err) {
     console.error('forgot-password error:', err)
     res.status(500).json({ success: false, error: 'Server error' })
@@ -52,17 +77,18 @@ router.post('/forgot-password', async (req, res) => {
 // Reset Password
 router.post('/reset-password', async (req, res) => {
   try {
-    const { email, token, newPassword } = req.body
-    if (!email || !token || !newPassword) return res.status(400).json({ success: false, error: 'Missing fields' })
+    const { otp, newPassword } = req.body
+    const email = normalizeEmail(req.body.email)
+    if (!email || !otp || !newPassword) return res.status(400).json({ success: false, error: 'Email, OTP, and new password are required' })
     if (newPassword.length < 8) return res.status(400).json({ success: false, error: 'Password too short' })
 
     const user = await User.findOne({ email })
-    if (!user) return res.status(400).json({ success: false, error: 'Invalid/expired link' })
+    if (!user) return res.status(400).json({ success: false, error: 'Invalid or expired OTP' })
 
     const record = await PasswordResetToken.findOne({
-      userId: user._id, tokenHash: hashToken(token), used: false, expiresAt: { $gt: new Date() }
+      userId: user._id, tokenHash: hashToken(otp), used: false, expiresAt: { $gt: new Date() }
     })
-    if (!record) return res.status(400).json({ success: false, error: 'Invalid/expired link' })
+    if (!record) return res.status(400).json({ success: false, error: 'Invalid or expired OTP' })
 
     record.used = true; await record.save()
     user.password = await bcrypt.hash(newPassword, SALT_ROUNDS); await user.save()
@@ -71,6 +97,61 @@ router.post('/reset-password', async (req, res) => {
     res.json({ success: true, message: 'Password updated.' })
   } catch (err) {
     console.error('reset-password error:', err)
+    res.status(500).json({ success: false, error: 'Server error' })
+  }
+})
+
+router.post('/verify-email', async (req, res) => {
+  try {
+    const { otp } = req.body
+    const email = normalizeEmail(req.body.email)
+    if (!email || !otp) return res.status(400).json({ success: false, error: 'Email and OTP required' })
+
+    const user = await User.findOne({ email })
+    if (!user) return res.status(400).json({ success: false, error: 'Invalid or expired OTP' })
+    if (user.emailVerified) return res.json({ success: true, message: 'Email already verified.' })
+
+    const record = await EmailVerificationToken.findOne({
+      userId: user._id,
+      otpHash: hashToken(otp),
+      used: false,
+      expiresAt: { $gt: new Date() }
+    })
+    if (!record) return res.status(400).json({ success: false, error: 'Invalid or expired OTP' })
+
+    record.used = true
+    await record.save()
+    user.emailVerified = true
+    await user.save()
+
+    res.json({ success: true, message: 'Email verified. You can now log in.' })
+  } catch (err) {
+    console.error('verify-email error:', err)
+    res.status(500).json({ success: false, error: 'Server error' })
+  }
+})
+
+router.post('/resend-verification', async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email)
+    if (!email) return res.status(400).json({ success: false, error: 'Email required' })
+
+    const user = await User.findOne({ email })
+    let otpResult = null
+    if (user && !user.emailVerified) {
+      otpResult = await sendVerificationOtp(user)
+    }
+
+    const localOtpVisible = process.env.NODE_ENV !== 'production' && otpResult?.delivery?.simulated
+    res.json({
+      success: true,
+      message: localOtpVisible
+        ? `Email sending is not configured, so the OTP was written to ${otpResult.delivery.logPath}.`
+        : 'If verification is needed, a new OTP has been sent.',
+      devOtp: localOtpVisible ? otpResult.otp : undefined
+    })
+  } catch (err) {
+    console.error('resend-verification error:', err)
     res.status(500).json({ success: false, error: 'Server error' })
   }
 })

@@ -13,19 +13,24 @@ body {
     padding: 30px 0;
 }
 
+.date-banner:hover {
+    background-color: rgba(0, 0, 0, 0.05); 
+}
+
 .burger-btn {
     background: #2766a5;
-    padding: 10px 14px;
     border-radius: 8px;
     border: 0;
     cursor: pointer;
     color: white;
     transition: all 0.2s;
+    height: 40px;
+    width: 40px;
 }
 
 .burger-btn:hover {
     background: #FFC107;
-    color: #1a202c;
+    --color: #2766a5;
 }
 
 .menu-wrapper {
@@ -38,10 +43,14 @@ body {
     top: 55px;
     left: 0;
     width: 220px;
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    background: rgba(25, 25, 35, 0.97);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 14px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.55);
     z-index: 1000; 
+    overflow: hidden;
 }
 
 .burger-dropdown.hidden {
@@ -54,22 +63,22 @@ body {
     gap: 12px;
     padding: 12px 16px;
     text-decoration: none;
-    color: #475569;
+    color: rgba(255, 255, 255, 0.88);
     font-size: 0.95rem;
 }
 
 .menu-items a:hover {
-    background: #f1f5f9;
+    background: rgba(255, 193, 7, 0.14);
 }
 
 .menu-items hr {
     margin: 5px 0;
     border: 0;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .sign-out {
-    color: #dc2626 !important;
+    color: #ff6b6b !important;
 }
 
 .schedule-container {
@@ -194,6 +203,10 @@ body {
 .btn-danger {
     background: #ff4d4d;
     color: white;
+}
+
+.session-actions .btn-rounded-cancel {
+    border-radius: 25px;
 }
 
 .stats-grid {
@@ -400,27 +413,27 @@ body {
 }
 
 .status-upcoming {
-    background: rgba(88, 166, 255, 0.2);
-    color: #58A6FF;
+    background: rgba(88, 166, 255, 0.8);
+    color: #ffffff;
     border: 1px solid rgba(88, 166, 255, 0.3);
 }
 
 .status-ongoing {
-    background: rgba(16, 185, 129, 0.2);
-    color: #10b981;
+    background: rgba(16, 185, 129, 0.8);
+    color: #ffffff;
     border: 1px solid rgba(16, 185, 129, 0.3);
     animation: pulse 2s infinite;
 }
 
 .status-completed {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 255, 55, 0.8);
+    color: #ffffff;
     border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .status-canceled {
-    background: rgba(255, 77, 77, 0.2);
-    color: #ff4d4d;
+    background: rgba(255, 77, 77, 0.8);
+    color: #ffffff;
     border: 1px solid rgba(255, 77, 77, 0.3);
 }
 
@@ -509,31 +522,34 @@ body {
 }
 
 .modal-content {
-    background-color: rgba(255, 255, 255, 0.95);
-    border-radius: 25px;
+    background: rgba(25, 25, 35, 0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
     width: 90%;
     max-width: 500px;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
 }
 
 .modal-header {
     padding: 20px 25px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
     position: sticky;
     top: 0;
-    background: white;
-    border-radius: 25px 25px 0 0;
+    background: rgba(25, 25, 35, 0.98);
+    border-radius: 20px 20px 0 0;
 }
 
 .modal-header h2 {
     font-size: 20px;
     margin: 0;
-    color: #333;
+    color: white;
 }
 
 .close-btn {
@@ -541,11 +557,11 @@ body {
     border: none;
     font-size: 24px;
     cursor: pointer;
-    color: #888888;
+    color: rgba(255, 255, 255, 0.55);
 }
 
 .close-btn:hover {
-    color: #333;
+    color: white;
 }
 
 .detail-body {
@@ -556,17 +572,17 @@ body {
     display: flex;
     justify-content: space-between;
     padding: 12px 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .detail-label {
     font-weight: 600;
-    color: #333;
+    color: rgba(255, 255, 255, 0.72);
     font-size: 14px;
 }
 
 .detail-value {
-    color: #555;
+    color: white;
     font-size: 14px;
     text-align: right;
 }
@@ -577,7 +593,7 @@ body {
 
 .detail-students h4 {
     font-size: 14px;
-    color: #333;
+    color: white;
     margin-bottom: 10px;
 }
 
@@ -592,8 +608,8 @@ body {
     align-items: center;
     gap: 10px;
     font-size: 14px;
-    color: #555;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .bottom-actions {

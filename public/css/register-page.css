@@ -4,111 +4,91 @@ body {
     background-position: center !important;
     background-repeat: no-repeat !important;
     background-attachment: fixed !important;
-    display: grid; 
-    place-items: center; 
-    min-height: 100vh; 
-    margin: 0; 
     font-family: 'Inter', sans-serif;
+    min-height: 100vh;
 }
 
-.registration_fields {
-    display: flex;
-    flex-direction: column;
-    gap: 15px; 
+.register-card {
+    background-color: rgba(10, 21, 38, 0.82) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 16px !important;
+    color: #fff;
 }
 
-.text_entry_field{
-    flex: 1;                 
-    border: none;            
-    background: transparent; 
-    outline: none;           
-    font-size: 14px;         
-    padding: 0;              
-    color: #333;            
-    height: 20px;
-    width: 75vw;
-    box-sizing: border-box;
-    
+.register-card .card-body {
+    padding: 2rem !important;
 }
 
-.text_entry_field:focus::placeholder {
-    color: #58A6FF;
-    opacity: 1; 
-    transition: color 0.2s ease;
+.register-card .form-control,
+.register-card .input-group-text {
+    min-height: 48px;
+    border-color: rgba(255, 255, 255, 0.85);
+    background-color: #fff;
+    color: #20242a;
+    font-size: 1rem;
 }
 
-.input_container {
-    display: flex;
-    border: 1px solid #ccc;     
-    border-radius: 15px;         
-    padding: 10px 15px;          
-    background-color: #ffffff;
-    max-width: 420px;
+.register-card .form-control::placeholder {
+    color: #5f646b;
 }
 
-ion-segment {
-    --background: rgba(255, 255, 255, 0.5);
-    border-radius: 50px;
-    --border-radius: 50px !important;
-    height: 40px;
-    margin-top: -5px;
-    max-width: 420px;
+.register-card .form-control.rounded-pill,
+.register-card .btn-group.rounded-pill {
+    border-radius: 16px !important;
 }
 
-ion-segment-button {
-    --color-checked: #007BFF;
-    --indicator-color: #FFC107;
-    --border-radius: 50px !important;
+.register-card .btn.rounded-pill,
+.register-card .btn-warning.rounded-pill {
+    border-radius: 999px !important;
 }
 
-.already_have_text {
-    color: white;
-    font-size: 11px;
+.register-card .btn-warning {
+    min-height: 48px;
+    color: #080808;
 }
 
-.login_here_text {
-    color: #FFC107;
-    font-size: 11px;
-    text-decoration: none;
+.register-card .btn-outline-light {
+    border-color: rgba(255, 255, 255, 0.72);
 }
 
-.login_here_text:hover {
-    color: #007BFF;
-    text-decoration: underline; 
-    cursor: pointer;
+.register-card .text-danger {
+    color: #ff9b9b !important;
 }
 
-.register_button {
-    background: #FFC107;
-    color: black;
-    border-width: 0px;
-    border-radius: 25px;
+.btn-check:checked + .btn-outline-primary {
+    background-color: #FFC107 !important;
+    color: black !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.btn-outline-primary {
+    color: #4c535b;
+    transition: all 0.3s ease;
+}
+
+#role {
+    background-color: #fff !important;
+    border-radius: 999px !important;
+}
+
+#role .btn {
+    min-height: 42px;
+    display: inline-flex;
     align-items: center;
-    width: 88vw;
-    height: 35px;
-    font-size: 14px;
-    font-weight: bolder;
-    max-width: 420px;
-    margin-top: 10px;
-    margin-bottom: 10px;
+    justify-content: center;
 }
 
-.register_button:active {
-    background: #FFC107;
-    opacity: 0.6;
+.x-small {
+    font-size: 0.7rem;
 }
 
-.toggle_link {
-    cursor: pointer;
-    color: black; 
-    user-select: none;
-    font-size: 18px; 
+.rounded-start-pill {
+    border-top-left-radius: 16px !important;
+    border-bottom-left-radius: 16px !important;
 }
 
-.inline_error {
-    color: red;
-    font-size: 10px; 
-    display: block;  
-    margin-left: 5px; 
-    margin-top: -10px;
+.rounded-end-pill {
+    border-top-right-radius: 16px !important;
+    border-bottom-right-radius: 16px !important;
 }
