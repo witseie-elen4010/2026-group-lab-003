@@ -666,3 +666,21 @@ body {
     font-size: 12px;
     font-weight: bold;
 }
+
+.btn-glass {
+    background-color: rgba(255, 255, 255, 0.2) !important; 
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); 
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-glass:hover {
+    background-color: rgba(0, 0, 0, 0.15) !important; 
+    border-color: rgba(255, 255, 255, 0.5) !important; 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+.btn-glass i {
+    color: white !important;
+}
