@@ -419,8 +419,8 @@ body {
 }
 
 .status-completed {
-    background: rgba(255, 255, 255, 0.8);
-    color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 255, 55, 0.8);
+    color: #ffffff;
     border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
