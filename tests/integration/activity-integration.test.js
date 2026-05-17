@@ -163,4 +163,118 @@ describe('Activity API', () => {
     expect(response.status).toBe(200);
     expect(response.body.map(activity => activity.metadata.course)).toContain('COMS3009');
   });
+
+  it('limits student activity to bookings involving that student only', async () => {
+    mockActivityFind([
+      {
+        _id: 'activity-1',
+        type: 'created',
+        description: 'Booked ELEN4010 consultation',
+        user: 'student@wits.ac.za',
+        userId: 'student@wits.ac.za',
+        userEmail: 'student@wits.ac.za',
+        userRole: 'student',
+        timestamp: '2026-05-16T08:00:00.000Z',
+        metadata: {
+          course: 'ELEN4010',
+          studentId: 'student@wits.ac.za',
+          studentEmail: 'student@wits.ac.za',
+          lecturerId: 'lecturer@wits.ac.za',
+          lecturerEmail: 'lecturer@wits.ac.za',
+          audienceIds: ['student@wits.ac.za', 'lecturer@wits.ac.za'],
+          audienceEmails: ['student@wits.ac.za', 'lecturer@wits.ac.za']
+        }
+      },
+      {
+        _id: 'activity-2',
+        type: 'created',
+        description: 'Booked ELEN4010 consultation for another student',
+        user: 'other@wits.ac.za',
+        userId: 'other@wits.ac.za',
+        userEmail: 'other@wits.ac.za',
+        userRole: 'student',
+        timestamp: '2026-05-16T09:00:00.000Z',
+        metadata: {
+          course: 'ELEN4010',
+          studentId: 'other@wits.ac.za',
+          studentEmail: 'other@wits.ac.za',
+          lecturerId: 'lecturer@wits.ac.za',
+          lecturerEmail: 'lecturer@wits.ac.za',
+          audienceIds: ['other@wits.ac.za', 'lecturer@wits.ac.za'],
+          audienceEmails: ['other@wits.ac.za', 'lecturer@wits.ac.za']
+        }
+      }
+    ]);
+    mockBookingFind([]);
+    mockAvailabilityFind([]);
+
+    const response = await request(app)
+      .get('/api/activities')
+      .set('X-User-Email', 'student@wits.ac.za')
+      .set('X-User-Id', 'student@wits.ac.za')
+      .set('X-User-Role', 'student');
+
+    expect(response.status).toBe(200);
+    expect(response.body.map(activity => activity.id)).toEqual(['activity-1']);
+    expect(response.body.map(activity => activity.id)).not.toContain('activity-2');
+  });
+
+  it('limits lecturer activity to records involving that lecturer only', async () => {
+    mockActivityFind([
+      {
+        _id: 'activity-1',
+        type: 'created',
+        description: 'Booked ELEN4010 consultation',
+        user: 'student@wits.ac.za',
+        userId: 'student@wits.ac.za',
+        userEmail: 'student@wits.ac.za',
+        userRole: 'student',
+        timestamp: '2026-05-16T08:00:00.000Z',
+        metadata: {
+          course: 'ELEN4010',
+          studentId: 'student@wits.ac.za',
+          lecturerId: 'lecturer@wits.ac.za',
+          lecturerEmail: 'lecturer@wits.ac.za',
+          audienceIds: ['student@wits.ac.za', 'lecturer@wits.ac.za'],
+          audienceEmails: ['student@wits.ac.za', 'lecturer@wits.ac.za']
+        }
+      },
+      {
+        _id: 'activity-2',
+        type: 'created',
+        description: 'Booked ELEN4010 consultation with another lecturer',
+        user: 'other@wits.ac.za',
+        userId: 'other@wits.ac.za',
+        userEmail: 'other@wits.ac.za',
+        userRole: 'student',
+        timestamp: '2026-05-16T09:00:00.000Z',
+        metadata: {
+          course: 'ELEN4010',
+          studentId: 'other@wits.ac.za',
+          lecturerId: 'other-lecturer@wits.ac.za',
+          lecturerEmail: 'other-lecturer@wits.ac.za',
+          audienceIds: ['other@wits.ac.za', 'other-lecturer@wits.ac.za'],
+          audienceEmails: ['other@wits.ac.za', 'other-lecturer@wits.ac.za']
+        }
+      }
+    ]);
+    mockBookingFind([]);
+    mockAvailabilityFind([
+      {
+        lecturerEmail: 'lecturer@wits.ac.za',
+        courses: ['ELEN4010'],
+        weeklySchedule: []
+      }
+    ]);
+
+    const response = await request(app)
+      .get('/api/activities')
+      .set('X-User-Email', 'lecturer@wits.ac.za')
+      .set('X-User-Id', 'lecturer@wits.ac.za')
+      .set('X-User-Role', 'lecturer');
+
+    expect(response.status).toBe(200);
+    expect(response.body.map(activity => activity.id)).toEqual(['activity-1']);
+    expect(response.body.map(activity => activity.id)).not.toContain('activity-2');
+  });
 });

@@ -303,7 +303,7 @@ class StudentScheduleManager {
                 <div class="session-actions">
                     ${session.status === 'upcoming'
 ? `
-                        <button class="btn btn-sm btn-danger" onclick="scheduleManager.cancelBooking('${session.id}')">
+                        <button class="btn btn-sm btn-danger btn-rounded-cancel" onclick="scheduleManager.cancelBooking('${session.id}')">
                             <i class="fas fa-times"></i> Cancel
                         </button>
                     `

@@ -30,10 +30,15 @@ jest.mock('../../src/utils/emailService', () => ({
   sendNotification: jest.fn()
 }))
 
+jest.mock('../../src/models/activity', () => ({
+  create: jest.fn()
+}))
+
 const app = require('../../src/app')
 const Booking = require('../../src/models/booking')
 const Availability = require('../../src/models/Availability')
 const User = require('../../src/models/user')
+const Activity = require('../../src/models/activity')
 const { sendNotification } = require('../../src/utils/emailService')
 
 describe('Booking Integration Tests', () => {
@@ -56,10 +61,16 @@ describe('Booking Integration Tests', () => {
 
     Booking.countDocuments.mockResolvedValue(0)
     Booking.prototype.save.mockResolvedValue(savedBooking)
-    User.findOne.mockResolvedValue({
+    User.findOne.mockResolvedValueOnce({
       name: 'Jane',
       email: 'jane.in.database@wits.ac.za',
       role: 'student',
+      emailNotifications: true
+    }).mockResolvedValueOnce({
+      name: 'Stephen',
+      surname: 'Mokoena',
+      email: 'lecturer@wits.ac.za',
+      role: 'lecturer',
       emailNotifications: true
     })
 
@@ -97,6 +108,16 @@ describe('Booking Integration Tests', () => {
       expect.objectContaining({ email: 'jane.in.database@wits.ac.za' }),
       'Consultation booking confirmed',
       expect.stringContaining('ELEN4010')
+    )
+    expect(sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'lecturer@wits.ac.za' }),
+      'New consultation booking',
+      expect.stringContaining('Jane has booked one of your consultation slots.')
+    )
+    expect(sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'lecturer@wits.ac.za' }),
+      'New consultation booking',
+      expect.stringContaining('You can view this booking from your lecturer dashboard.')
     )
   })
 
@@ -319,7 +340,8 @@ describe('Booking Integration Tests', () => {
     expect(response.status).toBe(200)
     expect(response.body.success).toBe(true)
     expect(Booking.findByIdAndUpdate).toHaveBeenCalledWith('booking-1', {
-      $addToSet: { participantIDs: 'newstudent@wits.ac.za' }
+      $addToSet: { participantIDs: 'newstudent@wits.ac.za' },
+      $pull: { leftParticipantIDs: 'newstudent@wits.ac.za' }
     })
     expect(sendNotification).toHaveBeenCalledWith(
       expect.objectContaining({ email: 'newstudent@wits.ac.za' }),
@@ -331,6 +353,83 @@ describe('Booking Integration Tests', () => {
       'Student joined your consultation',
       expect.stringContaining('New Student has joined your consultation.')
     )
+    expect(Activity.create).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'joined',
+      description: 'Joined ELEN50 consultation',
+      user: 'newstudent@wits.ac.za',
+      userId: 'newstudent@wits.ac.za',
+      userEmail: 'newstudent@wits.ac.za',
+      userRole: 'student',
+      metadata: expect.objectContaining({
+        actorId: 'newstudent@wits.ac.za',
+        actorEmail: 'newstudent@wits.ac.za',
+        studentId: undefined,
+        lecturerId: 'lecturer@wits.ac.za',
+        audienceIds: expect.arrayContaining(['lecturer@wits.ac.za', 'newstudent@wits.ac.za']),
+        audienceEmails: expect.arrayContaining(['lecturer@wits.ac.za', 'newstudent@wits.ac.za'])
+      })
+    }))
+  })
+
+  it('notifies the lecturer when a student joins a session stored under a lecturer number', async () => {
+    Booking.findById.mockResolvedValue({
+      _id: 'booking-2',
+      lecturerId: '2540701',
+      studentId: 'owner@wits.ac.za',
+      date: '2026-06-01',
+      startTime: '10:00',
+      endTime: '11:00',
+      module: 'ELEN50',
+      maxStudents: 10,
+      participantIDs: ['owner@wits.ac.za']
+    })
+    Availability.findOne.mockResolvedValue({
+      weeklySchedule: [
+        {
+          dayOfWeek: 1,
+          slots: [{ start: '10:00', end: '11:00', course: 'ELEN50', maxStudents: 10 }]
+        }
+      ]
+    })
+    Booking.findByIdAndUpdate.mockResolvedValue({})
+    User.find.mockReturnValue({
+      lean: jest.fn().mockResolvedValue([
+        {
+          email: 'newstudent@wits.ac.za',
+          name: 'New',
+          surname: 'Student',
+          role: 'student',
+          emailNotifications: true
+        }
+      ])
+    })
+    User.findOne.mockResolvedValue({
+      email: 'lecturer@wits.ac.za',
+      idNumber: '2540701',
+      name: 'Jane',
+      surname: 'Smith',
+      role: 'lecturer',
+      emailNotifications: true
+    })
+
+    const response = await request(app)
+      .put('/api/bookings/booking-2/join')
+      .send({ email: 'newstudent@wits.ac.za' })
+
+    expect(response.status).toBe(200)
+    expect(sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'lecturer@wits.ac.za' }),
+      'Student joined your consultation',
+      expect.stringContaining('New Student has joined your consultation.')
+    )
+    expect(User.findOne).toHaveBeenCalledWith({
+      role: 'lecturer',
+      $or: [
+        { email: '2540701' },
+        { idNumber: '2540701' },
+        { idNumber: 2540701 }
+      ]
+    })
   })
 
   it('returns sorted bookings for the requested student', async () => {
@@ -371,9 +470,88 @@ describe('Booking Integration Tests', () => {
     expect(sort).toHaveBeenCalledWith({ date: 1, startTime: 1 })
     expect(lean).toHaveBeenCalled()
     expect(User.find).toHaveBeenCalledWith(
-      { email: { $in: ['lecturer@wits.ac.za'] }, role: 'lecturer' },
-      'name surname email'
+      {
+        role: 'lecturer',
+        $or: [
+          { email: { $in: ['lecturer@wits.ac.za'] } },
+          { idNumber: { $in: ['lecturer@wits.ac.za'] } }
+        ]
+      },
+      'name surname email idNumber'
     )
+  })
+
+  it('returns lecturer names when student bookings store a lecturer id number', async () => {
+    const bookings = [
+      {
+        _id: 'b1',
+        studentId: 'student@wits.ac.za',
+        lecturerId: '2540701',
+        participantIDs: ['student@wits.ac.za'],
+        leftParticipantIDs: [],
+        date: '2026-06-01',
+        startTime: '10:00'
+      }
+    ]
+    const lean = jest.fn().mockResolvedValue(bookings)
+    const sort = jest.fn().mockReturnValue({ lean })
+    Booking.find.mockReturnValue({ sort })
+    User.find.mockReturnValue({
+      lean: jest.fn().mockResolvedValue([
+        { idNumber: '2540701', email: 'lecturer@wits.ac.za', name: 'Jane', surname: 'Smith' }
+      ])
+    })
+
+    const response = await request(app)
+      .get('/api/bookings')
+      .query({ studentId: 'student@wits.ac.za' })
+
+    expect(response.status).toBe(200)
+    expect(response.body).toEqual([
+      { ...bookings[0], lecturerName: 'Jane Smith' }
+    ])
+    expect(User.find).toHaveBeenCalledWith(
+      {
+        role: 'lecturer',
+        $or: [
+          { email: { $in: ['2540701'] } },
+          { idNumber: { $in: ['2540701'] } }
+        ]
+      },
+      'name surname email idNumber'
+    )
+  })
+
+  it('returns a rejoined student booking as active when the student is also in leftParticipantIDs', async () => {
+    const bookings = [
+      {
+        _id: 'b1',
+        studentId: 'owner@wits.ac.za',
+        lecturerId: 'lecturer@wits.ac.za',
+        participantIDs: ['owner@wits.ac.za', 'student@wits.ac.za'],
+        leftParticipantIDs: ['student@wits.ac.za'],
+        date: '2026-06-01',
+        startTime: '10:00',
+        status: 'upcoming'
+      }
+    ]
+    const lean = jest.fn().mockResolvedValue(bookings)
+    const sort = jest.fn().mockReturnValue({ lean })
+    Booking.find.mockReturnValue({ sort })
+    User.find.mockReturnValue({
+      lean: jest.fn().mockResolvedValue([
+        { email: 'lecturer@wits.ac.za', name: 'Jane', surname: 'Smith' }
+      ])
+    })
+
+    const response = await request(app)
+      .get('/api/bookings')
+      .query({ studentId: 'student@wits.ac.za' })
+
+    expect(response.status).toBe(200)
+    expect(response.body).toEqual([
+      { ...bookings[0], lecturerName: 'Jane Smith' }
+    ])
   })
 
   it('returns formatted student names for lecturer bookings', async () => {
@@ -431,6 +609,7 @@ describe('Booking Integration Tests', () => {
     Booking.findById.mockResolvedValue({
       _id: 'session_123',
       studentId: 'student@wits.ac.za',
+      lecturerId: 'lecturer@wits.ac.za',
       module: 'ELEN4010',
       date: '2026-06-01',
       startTime: '10:00',
@@ -448,6 +627,12 @@ describe('Booking Integration Tests', () => {
         }
       ])
     })
+    User.findOne.mockResolvedValue({
+      email: 'lecturer@wits.ac.za',
+      name: 'Jane',
+      role: 'lecturer',
+      emailNotifications: true
+    })
 
     const response = await request(app)
       .delete('/api/bookings/session_123')
@@ -460,6 +645,16 @@ describe('Booking Integration Tests', () => {
       expect.objectContaining({ email: 'student@wits.ac.za' }),
       'Consultation booking canceled',
       expect.stringContaining('Your consultation booking has been canceled.')
+    )
+    expect(sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'lecturer@wits.ac.za' }),
+      'Student canceled a consultation',
+      expect.stringContaining('Jane has canceled this consultation.')
+    )
+    expect(sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'lecturer@wits.ac.za' }),
+      'Student canceled a consultation',
+      expect.stringContaining('You can view the updated session from your lecturer dashboard.')
     )
   })
 

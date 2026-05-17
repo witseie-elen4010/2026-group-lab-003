@@ -25,7 +25,7 @@ function formatStudentDisplayName (student) {
 }
 
 async function logBookingActivity (activity) {
-  if (process.env.NODE_ENV === 'test') {
+  if (process.env.NODE_ENV === 'test' && !Activity.create?._isMockFunction && Activity.db?.readyState === 0) {
     return
   }
 
@@ -41,7 +41,7 @@ async function logBookingActivity (activity) {
 
 async function sendStudentBookingConfirmation (studentIdentifier, booking) {
   if (process.env.NODE_ENV === 'test' && !User.findOne?._isMockFunction && User.db?.readyState === 0) {
-    return
+    return null
   }
 
   try {
@@ -55,7 +55,7 @@ async function sendStudentBookingConfirmation (studentIdentifier, booking) {
 
     if (!student) {
       console.warn(`Booking confirmation skipped: student not found for ${studentIdentifier}`)
-      return
+      return null
     }
 
     await sendNotification(
@@ -75,8 +75,10 @@ async function sendStudentBookingConfirmation (studentIdentifier, booking) {
         'You can view this booking from your student dashboard.'
       ].join('\n')
     )
+    return student
   } catch (error) {
     console.error('Failed to send booking confirmation email:', error.message)
+    return null
   }
 }
 
@@ -126,17 +128,63 @@ async function findLecturerUserByIdentifier (identifier) {
   }
 
   try {
+    const queryConditions = [
+      { email: identifier },
+      { idNumber: identifier }
+    ]
+
+    if (!isNaN(identifier)) {
+      queryConditions.push({ idNumber: Number(identifier) })
+    }
+
     return await User.findOne({
       role: 'lecturer',
-      $or: [
-        { email: identifier },
-        { idNumber: identifier }
-      ]
+      $or: queryConditions
     })
   } catch (error) {
     console.error('Failed to find lecturer for email notification:', error.message)
     return null
   }
+}
+
+async function notifyLecturerBookingCreated (studentIdentifier, booking, student = null) {
+  const lecturer = await findLecturerUserByIdentifier(booking.lecturerId)
+  if (!lecturer) return
+
+  const studentName = student
+    ? [student.name, student.surname].filter(Boolean).join(' ') || student.email
+    : studentIdentifier
+
+  await sendNotification(
+    lecturer,
+    'New consultation booking',
+    bookingEmailBody(
+      `Hi ${lecturer.name || 'there'},\n\n${studentName} has booked one of your consultation slots.`,
+      booking,
+      'You can view this booking from your lecturer dashboard.'
+    )
+  )
+}
+
+async function notifyLecturerStudentCanceled (studentIdentifier, booking, actionText = 'canceled') {
+  const lecturer = await findLecturerUserByIdentifier(booking.lecturerId)
+  if (!lecturer) return
+
+  const students = await findStudentUsersByIdentifiers([studentIdentifier])
+  const student = students[0]
+  const studentName = student
+    ? [student.name, student.surname].filter(Boolean).join(' ') || student.email
+    : studentIdentifier
+
+  await sendNotification(
+    lecturer,
+    'Student canceled a consultation',
+    bookingEmailBody(
+      `Hi ${lecturer.name || 'there'},\n\n${studentName} has ${actionText} this consultation.`,
+      booking,
+      'You can view the updated session from your lecturer dashboard.'
+    )
+  )
 }
 
 async function notifyStudentsOfCancellation (studentIdentifiers, booking, subject, intro) {
@@ -345,7 +393,8 @@ async function createBooking (req, res) {
     })
 
     const savedBooking = await newBooking.save()
-    await sendStudentBookingConfirmation(req.body.studentId, savedBooking)
+    const student = await sendStudentBookingConfirmation(req.body.studentId, savedBooking)
+    await notifyLecturerBookingCreated(req.body.studentId, savedBooking, student)
     await logBookingActivity({
       type: 'created',
       description: `Booked ${savedBooking.module || 'consultation'} consultation`,
@@ -440,9 +489,12 @@ router.get('/', async (req, res) => {
     // FIX: Search by both email AND idNumber since lecturerId contains the staff numeric ID
     const lecturers = lecturerIdentifiers.length
       ? await User.find({
-        email: { $in: lecturerIdentifiers },
-        role: 'lecturer'
-      }, 'name surname email').lean()
+        role: 'lecturer',
+        $or: [
+          { email: { $in: lecturerIdentifiers } },
+          { idNumber: { $in: lecturerIdentifiers } }
+        ]
+      }, 'name surname email idNumber').lean()
       : []
 
     // Map names to both their email and idNumber for a bulletproof fallback lookup
@@ -450,6 +502,7 @@ router.get('/', async (req, res) => {
     lecturers.forEach(lecturer => {
       const fullName = [lecturer.name, lecturer.surname].filter(Boolean).join(' ')
       if (lecturer.email) lecturersByIdentifier.set(lecturer.email, fullName)
+      if (lecturer.idNumber) lecturersByIdentifier.set(lecturer.idNumber, fullName)
     })
 
     // Dynamically override the status to 'canceled' on the user's side if they left
@@ -460,7 +513,9 @@ router.get('/', async (req, res) => {
         lecturerName: lecturersByIdentifier.get(b.lecturerId) || b.lecturerId || 'Unknown Lecturer'
       }
 
-      if (b.leftParticipantIDs && b.leftParticipantIDs.includes(studentId)) {
+      const isParticipant = Array.isArray(b.participantIDs) && b.participantIDs.includes(studentId)
+      const hasLeft = Array.isArray(b.leftParticipantIDs) && b.leftParticipantIDs.includes(studentId)
+      if (hasLeft && !isParticipant) {
         return { ...booking, status: 'canceled' }
       }
       return booking
@@ -499,6 +554,7 @@ router.delete('/:id', async (req, res) => {
         'Consultation booking canceled',
         'Your consultation booking has been canceled.'
       )
+      await notifyLecturerStudentCanceled(studentEmail, booking)
       await logBookingActivity({
         type: 'canceled',
         description: `Canceled ${booking.module || 'consultation'} booking`,
@@ -536,6 +592,7 @@ router.delete('/:id', async (req, res) => {
         'Consultation booking canceled',
         'Your consultation booking has been canceled.'
       )
+      await notifyLecturerStudentCanceled(studentEmail, booking)
       await logBookingActivity({
         type: 'canceled',
         description: `Canceled ${booking.module || 'consultation'} booking`,
@@ -563,6 +620,7 @@ router.delete('/:id', async (req, res) => {
       'You left a consultation',
       'You have left this consultation. It remains active for the other students.'
     )
+    await notifyLecturerStudentCanceled(studentEmail, booking, 'left')
     await logBookingActivity({
       type: 'canceled',
       description: `Left ${booking.module || 'consultation'} booking`,
@@ -604,13 +662,34 @@ router.put('/:id/join', async (req, res) => {
       return res.status(400).json({ success: false, message: 'This session is already full' })
     }
 
-    await Booking.findByIdAndUpdate(req.params.id, {
-      $addToSet: { participantIDs: email }
-    })
+    const joinUpdate = {
+      $addToSet: { participantIDs: email },
+      $pull: { leftParticipantIDs: email }
+    }
+    if (booking.status === 'canceled') {
+      joinUpdate.$set = { status: 'upcoming' }
+    }
+
+    await Booking.findByIdAndUpdate(req.params.id, joinUpdate)
     await Promise.all([
       notifyStudentJoinedConsultation(email, booking),
       notifyLecturerStudentJoined(email, booking)
     ])
+    await logBookingActivity({
+      type: 'joined',
+      description: `Joined ${booking.module || 'consultation'} consultation`,
+      user: email,
+      userId: email,
+      userEmail: email,
+      userRole: 'student',
+      metadata: bookingActivityMetadata(booking, {
+        actorId: email,
+        actorEmail: email,
+        userRole: 'student',
+        audienceIds: uniqueValues([booking.studentId, booking.lecturerId, email, ...participants]),
+        audienceEmails: uniqueValues([booking.studentId, booking.lecturerId, email, ...participants])
+      })
+    })
 
     res.json({ success: true, message: 'Successfully joined the session.' })
   } catch (error) {
@@ -646,6 +725,7 @@ router.put('/leave/:id', async (req, res) => {
         'Consultation booking canceled',
         'Your consultation booking has been canceled.'
       )
+      await notifyLecturerStudentCanceled(email, booking)
       await logBookingActivity({
         type: 'canceled',
         description: `Canceled ${booking.module || 'consultation'} session`,
@@ -673,6 +753,7 @@ router.put('/leave/:id', async (req, res) => {
       'You left a consultation',
       'You have left this consultation. It remains active for the other students.'
     )
+    await notifyLecturerStudentCanceled(email, booking, 'left')
     await logBookingActivity({
       type: 'canceled',
       description: `Left ${booking.module || 'consultation'} session`,
