@@ -88,7 +88,10 @@ describe('emailService', () => {
       auth: {
         user: 'sender@example.test',
         pass: 'secret'
-      }
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000
     })
     expect(createTransport.mock.results[0].value.sendMail).toHaveBeenCalledWith({
       from: 'no-reply@example.test',
@@ -127,6 +130,9 @@ describe('emailService', () => {
     expect(findOne).toHaveBeenCalledWith({ name: 'default', enabled: true })
     expect(createTransport).toHaveBeenCalledWith(expect.objectContaining({
       host: 'smtp.db.test',
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
       auth: {
         user: 'db@example.test',
         pass: 'db-secret'
@@ -157,8 +163,44 @@ describe('emailService', () => {
       auth: {
         user: 'sender@gmail.com',
         pass: 'secret'
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000
+    })
+    expect(appendFileSync).toHaveBeenCalledWith(
+      expect.stringContaining('email-log.txt'),
+      expect.stringContaining('TO: lecturer@wits.ac.za | SUBJECT: Subject'),
+      'utf8'
+    )
+  })
+
+  it('returns when SMTP hangs instead of waiting forever', async () => {
+    const { service, createTransport, appendFileSync } = loadService({
+      nodeEnv: 'development',
+      env: {
+        EMAIL_USER: 'sender@gmail.com',
+        EMAIL_PASS: 'secret',
+        EMAIL_TIMEOUT_MS: '5'
       }
     })
+    createTransport.mockReturnValueOnce({
+      sendMail: jest.fn(() => new Promise(() => {}))
+    })
+
+    const result = await service.sendNotification(
+      { email: 'lecturer@wits.ac.za', emailNotifications: true },
+      'Subject',
+      'Body'
+    )
+
+    expect(result.sent).toBe(false)
+    expect(result.error).toContain('timed out')
+    expect(createTransport).toHaveBeenCalledWith(expect.objectContaining({
+      connectionTimeout: 5,
+      greetingTimeout: 5,
+      socketTimeout: 5
+    }))
     expect(appendFileSync).toHaveBeenCalledWith(
       expect.stringContaining('email-log.txt'),
       expect.stringContaining('TO: lecturer@wits.ac.za | SUBJECT: Subject'),
