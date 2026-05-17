@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const Availability = require('../models/Availability')
 const Booking = require('../models/booking')
-const User = require('../models/User')
+const User = require('../models/user')
 const Activity = require('../models/activity')
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']

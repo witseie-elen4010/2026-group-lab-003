@@ -53,7 +53,7 @@ jest.mock('../../src/models/booking', () => ({
 jest.mock('../../src/models/activity', () => ({
   create: jest.fn().mockResolvedValue({})
 }))
-jest.mock('../../src/models/User', () => ({
+jest.mock('../../src/models/user', () => ({
   create: jest.fn(async user => {
     mockUsers.push(user)
     return user
@@ -70,7 +70,7 @@ jest.mock('../../src/models/User', () => ({
 }))
 
 const availabilityRouter = require('../../src/routes/availability')
-const User = require('../../src/models/User')
+const User = require('../../src/models/user')
 const Availability = require('../../src/models/Availability')
 
 const app = express()
