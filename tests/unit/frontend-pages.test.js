@@ -193,7 +193,7 @@ describe('Registration page browser script', () => {
         password: 'SecurePassword123!'
       })
     }));
-    expect(alert).toHaveBeenCalledWith('Welcome to Synchro! Redirecting to login...');
+    expect(alert).toHaveBeenCalledWith('Welcome to Synchro! Please verify your email with the OTP we sent.');
   });
 });
 

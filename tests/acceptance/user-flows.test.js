@@ -17,6 +17,7 @@ jest.mock('../../src/models/Availability');
 jest.mock('../../src/models/passwordResetToken');
 jest.mock('../../src/utils/emailService', () => ({
   sendPasswordResetEmail: jest.fn(),
+  sendEmailVerificationOtp: jest.fn(),
   sendNotification: jest.fn()
 }));
 
@@ -246,7 +247,7 @@ describe('User Acceptance Flows', () => {
 
   it('allows a user to reset their password and then log in with the new password', async () => {
     const email = 'jane@student.wits.ac.za';
-    const resetToken = 'raw-reset-token';
+    const resetOtp = '123456';
     const newPassword = 'BrandNew123!';
     const resetRecord = { used: false, save: jest.fn().mockResolvedValue(true) };
     const user = {
@@ -273,13 +274,17 @@ describe('User Acceptance Flows', () => {
       .send({ email });
 
     expect(forgotResponse.status).toBe(200);
-    expect(sendPasswordResetEmail).toHaveBeenCalledWith(email, expect.stringContaining('/reset-password.html?token='));
+    expect(sendPasswordResetEmail).toHaveBeenCalledWith(
+      email,
+      expect.stringMatching(/^\d{6}$/),
+      expect.stringContaining('/reset-password.html?email=')
+    );
 
     const resetResponse = await request(app)
       .post('/api/auth/reset-password')
-      .send({ email, token: resetToken, newPassword });
+      .send({ email, otp: resetOtp, newPassword });
 
-    const expectedHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const expectedHash = crypto.createHash('sha256').update(resetOtp).digest('hex');
     expect(resetResponse.status).toBe(200);
     expect(PasswordResetToken.findOne).toHaveBeenCalledWith(expect.objectContaining({
       userId: user._id,

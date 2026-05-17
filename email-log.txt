@@ -455,3 +455,67 @@ Topic: FF
 
 You can view the updated session from your lecturer dashboard.
 ------------------------------------------------------------------------
+[2026-05-17T15:03:39.008Z] TO: 2357649@students.wits.ac.za | SUBJECT: Consultation Scheduler - Verify your email
+Welcome to Consultation Scheduler.
+
+Your email verification code is: 553095
+
+This code expires in 10 minutes.
+If you did not create an account, you can safely ignore this email.
+------------------------------------------------------------------------
+[2026-05-17T15:03:41.560Z] TO: 2357649@students.wits.ac.za | SUBJECT: Consultation Scheduler - Verify your email
+Welcome to Consultation Scheduler.
+
+Your email verification code is: 518922
+
+This code expires in 10 minutes.
+If you did not create an account, you can safely ignore this email.
+------------------------------------------------------------------------
+[2026-05-17T15:15:16.803Z] TO: 2357649@students.wits.ac.za | SUBJECT: Consultation Scheduler - Password Reset
+You (or someone else) requested a password reset for your account.
+Your password reset OTP is: 588274
+This OTP expires in 1 hour.
+Reset your password here: http://localhost:3000/reset-password.html?email=2357649%40students.wits.ac.za
+If you did not request this, you can safely ignore this email.
+Your password will NOT change until this OTP is entered.
+------------------------------------------------------------------------
+[2026-05-17T15:16:36.028Z] TO: 2357649@students.wits.ac.za | SUBJECT: Your password was changed
+Hi Ngcweti,
+
+Your password was just changed.
+If this wasn’t you, contact support.
+------------------------------------------------------------------------
+[2026-05-17T15:40:14.795Z] TO: mjiyako.ngcweti@gmail.com | SUBJECT: Consultation Scheduler - Verify your email
+Welcome to Consultation Scheduler.
+
+Your email verification code is: 600682
+
+This code expires in 10 minutes.
+If you did not create an account, you can safely ignore this email.
+------------------------------------------------------------------------
+[2026-05-17T15:43:02.466Z] TO: 2357649@students.wits.ac.za | SUBJECT: Consultation booking confirmed
+Hi Ngcweti,
+
+Your consultation booking has been confirmed.
+
+Module: ELEN4010A-SOFTWARE DEVELOPMENT III
+Date: 2026-05-18
+Time: 12:20 - 12:55
+Venue: CM3
+Topic: modals
+
+You can view this booking from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T15:43:05.502Z] TO: mjiyako.ngcweti@gmail.com | SUBJECT: New consultation booking
+Hi Babu,
+
+Ngcweti Mjiyako has booked one of your consultation slots.
+
+Module: ELEN4010A-SOFTWARE DEVELOPMENT III
+Date: 2026-05-18
+Time: 12:20 - 12:55
+Venue: CM3
+Topic: modals
+
+You can view this booking from your lecturer dashboard.
+------------------------------------------------------------------------

@@ -1,6 +1,5 @@
 const request = require('supertest')
 const bcrypt = require('bcrypt')
-const crypto = require('crypto')
 
 const app = require('../../src/server')
 const User = require('../../src/models/user')
@@ -11,6 +10,7 @@ jest.mock('../../src/models/user')
 jest.mock('../../src/models/passwordResetToken')
 jest.mock('../../src/utils/emailService', () => ({
   sendPasswordResetEmail: jest.fn(),
+  sendEmailVerificationOtp: jest.fn(),
   sendNotification: jest.fn()
 }))
 
@@ -35,7 +35,7 @@ describe('POST /api/auth/forgot-password', () => {
     expect(User.findOne).not.toHaveBeenCalled()
   })
 
-  test('creates hashed token and sends reset email', async () => {
+  test('creates hashed OTP and sends reset email', async () => {
     const user = makeUser()
     User.findOne.mockResolvedValue(user)
     PasswordResetToken.deleteMany.mockResolvedValue({})
@@ -43,28 +43,36 @@ describe('POST /api/auth/forgot-password', () => {
 
     const res = await request(app).post('/api/auth/forgot-password').send({ email: user.email })
     expect(res.status).toBe(200)
-    expect(PasswordResetToken.create).toHaveBeenCalled()
-    expect(sendPasswordResetEmail).toHaveBeenCalledWith(user.email, expect.any(String))
+    expect(PasswordResetToken.create).toHaveBeenCalledWith(expect.objectContaining({
+      userId: user._id,
+      tokenHash: expect.any(String),
+      expiresAt: expect.any(Date)
+    }))
+    expect(sendPasswordResetEmail).toHaveBeenCalledWith(
+      user.email,
+      expect.stringMatching(/^\d{6}$/),
+      expect.stringContaining('/reset-password.html?email=')
+    )
   })
 })
 
 // ─── RESET PASSWORD ───────────────────────────────────────────────────────────
 describe('POST /api/auth/reset-password', () => {
-  test('returns 400 for invalid or expired token', async () => {
+  test('returns 400 for invalid or expired OTP', async () => {
     const user = makeUser()
     User.findOne.mockResolvedValue(user)
     PasswordResetToken.findOne.mockResolvedValue(null)
 
     const res = await request(app)
       .post('/api/auth/reset-password')
-      .send({ email: user.email, token: 'badtoken', newPassword: 'NewPassword1!' })
+      .send({ email: user.email, otp: '000000', newPassword: 'NewPassword1!' })
 
     expect(res.status).toBe(400)
     expect(sendNotification).not.toHaveBeenCalled()
   })
 
   test('hashes password, consumes token, and notifies user', async () => {
-    const rawToken = crypto.randomBytes(32).toString('hex')
+    const otp = '123456'
     const user = makeUser()
     const record = { used: false, save: jest.fn().mockResolvedValue(true) }
 
@@ -73,7 +81,7 @@ describe('POST /api/auth/reset-password', () => {
 
     const res = await request(app)
       .post('/api/auth/reset-password')
-      .send({ email: user.email, token: rawToken, newPassword: 'BrandNew123!' })
+      .send({ email: user.email, otp, newPassword: 'BrandNew123!' })
 
     expect(res.status).toBe(200)
     expect(record.used).toBe(true)

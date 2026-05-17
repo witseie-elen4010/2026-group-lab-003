@@ -19,6 +19,8 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add an email'],
     unique: true, // Prevents two users from signing up with the same email
+    lowercase: true,
+    trim: true,
     match: [
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
       'Please add a valid email'
@@ -44,6 +46,10 @@ const UserSchema = new mongoose.Schema({
   emailNotifications: {
     type: Boolean,
     default: true
+  },
+  emailVerified: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true // Automatically adds 'createdAt' and 'updatedAt'
