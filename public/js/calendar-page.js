@@ -38,9 +38,19 @@ function renderCalendar (date, bookings = []) {
     // FILTER LOGIC
     const dayBookings = bookings.filter(b => {
       if (!b || !b.date || b.status === 'canceled') return false
-      const bDate = b.date.split('T')[0]
-      return bDate === dateString
-    }) // Make sure this closing }); is here!
+
+      // Robust normalized date extraction (handles both ISO strings and standard date strings)
+      let sessionDateString = ''
+      if (b.date.includes('T')) {
+        sessionDateString = b.date.split('T')[0]
+      } else {
+        const parsedDate = new Date(b.date)
+        if (isNaN(parsedDate)) return false
+        sessionDateString = parsedDate.toISOString().split('T')[0]
+      }
+
+      return sessionDateString === dateString
+    })
 
     if (dayBookings.length > 0) {
       dayCell.classList.add('has-booking')
@@ -61,22 +71,31 @@ function renderCalendar (date, bookings = []) {
 
 // 3. API FETCH LOGIC
 async function loadUserBookings () {
-  const userData = sessionStorage.getItem('sychro_current_user')
+  const userData = sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user')
   if (!userData) {
     renderCalendar(currentDate, [])
     return
   }
 
   const user = JSON.parse(userData)
-  // Matches your partner's backend routes
-  const endpoint = user.role === 'lecturer'
-    ? `/api/bookings/lecturer/bookings?email=${encodeURIComponent(user.email)}`
-    : `/api/bookings?studentId=${encodeURIComponent(user.email)}`
+  const isLecturer = user.role === 'lecturer' || user.isLecturer || user.userType === 'lecturer'
+
+  // URL routing strategy matching the dashboard EXACTLY
+  let endpoint = ''
+  if (isLecturer) {
+    // Dashboard logic: Use idNumber first, fallback to email
+    const lecturerId = user.idNumber || user.email || ''
+    endpoint = `/api/bookings/lecturer/bookings?email=${encodeURIComponent(lecturerId)}`
+  } else {
+    endpoint = `/api/bookings?studentId=${encodeURIComponent(user.email)}`
+  }
 
   try {
     const response = await fetch(endpoint)
     if (response.ok) {
-      sessions = await response.json()
+      const data = await response.json()
+      // Safely extract the array just like the dashboard does
+      sessions = Array.isArray(data) ? data : (data.bookings || data.data || [])
     }
     renderCalendar(currentDate, sessions)
   } catch (error) {
