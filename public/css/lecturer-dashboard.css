@@ -294,16 +294,31 @@ body {
     color: #888888;
 }
 
-/* Updated Scrollable Schedule List Container */
 .schedule-list-container {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     padding-right: 10px;
+    padding-bottom: 80px; 
     background-color: rgba(255, 255, 255, 0.15);
     border-radius: 25px;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Custom Scrollbar for better UI */
+.schedule-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.schedule-list-container::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 4px;
+}
+
+.schedule-list-container::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 .schedule-list {
