@@ -668,6 +668,13 @@ body.session-modal-open {
     .schedule-container {
         padding: 0 10px;
         gap: 15px;
+        height: auto; /* 🌟 FIX: Removes the 90vh limit on mobile */
+        min-height: 100vh; /* Ensures it at least covers the screen */
+    }
+
+    .schedule-list-container {
+        overflow-y: visible; /* 🌟 FIX: Lets the bookings list grow naturally instead of hiding inside a squished box */
+        padding-bottom: 30px;
     }
 
     .session-card {
@@ -693,12 +700,4 @@ body.session-modal-open {
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-}
-
-/* Header Right Layout Support */
-.header-right {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 10px;
 }
