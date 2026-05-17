@@ -18,13 +18,25 @@
         <span>Email Notifications</span>
       </label>
       <button type="submit">Save Changes</button>
-      <a href="dashboard.html" class="cancel-link">Cancel</a>
+      <a href="#" id="cancel-link" class="cancel-link">Cancel</a>
     </form>
     <div id="message" class="message"></div>
   </div>
   <script>
-    const email = localStorage.getItem('userEmail') || 'test@lecturer.com';
-    const msg = document.getElementById('message');
+    // Dynamic Dashboard Routing
+    const cancelLink = document.getElementById('cancel-link');
+    const userData = sessionStorage.getItem('sychro_current_user') || localStorage.getItem('sychro_current_user');
+
+    if (userData) {
+        const user = JSON.parse(userData);
+        const isLecturer = user.role === 'lecturer' || user.isLecturer || user.userType === 'lecturer';
+        
+        // Set the href based on the user's role
+        cancelLink.href = isLecturer ? "lecturer-dashboard.html" : "student-dashboard.html";
+    } else {
+        // Safety fallback if no user is found
+        cancelLink.href = "login-page.html"; 
+    }
 
     fetch('/api/profile', { headers: { 'X-User-Email': email } })
       .then(r => r.json())
