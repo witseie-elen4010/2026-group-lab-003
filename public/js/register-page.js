@@ -122,7 +122,7 @@ registrationForm.addEventListener('submit', async (event) => {
     surname: document.getElementById('surname').value,
     idNumber: document.getElementById('idNumber').value,
     email: document.getElementById('email').value,
-    role: document.getElementById('role').value, // 'student' or 'lecturer'
+    role: document.querySelector('input[name="roleOptions"]:checked').value,
     password: document.getElementById('password').value
   }
 
