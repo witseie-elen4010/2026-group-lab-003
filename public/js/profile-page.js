@@ -74,3 +74,14 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
     showMessage('Server error', 'error');
   }
 });
+
+// Determine user role and set cancel link
+let isLecturer = false;
+if (userData) {
+  try {
+    const user = JSON.parse(userData);
+    isLecturer = (user.role === 'lecturer' || user.isLecturer || user.userType === 'lecturer');
+  } catch(e) {}
+}
+const cancelLink = document.getElementById('cancel-link');
+cancelLink.href = isLecturer ? "lecturer-dashboard.html" : "student-dashboard.html";
