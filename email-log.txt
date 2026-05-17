@@ -1,0 +1,106 @@
+[2026-05-17T08:52:17.157Z] TO: ngcweti.mjiyako@gmail.com | SUBJECT: Consultation booking confirmed
+Hi Mthiyane,
+
+Your consultation booking has been confirmed.
+
+Module: ELEN50
+Date: 2026-05-18
+Time: 13:00 - 13:46
+Venue: RS36
+Topic: EmailNotification
+
+You can view this booking from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T08:58:03.285Z] TO: ngcweti.mjiyako@gmail.com | SUBJECT: Consultation booking confirmed
+Hi Mthiyane,
+
+Your consultation booking has been confirmed.
+
+Module: ELEN50
+Date: 2026-05-18
+Time: 13:00 - 13:46
+Venue: RS36
+Topic: email
+
+You can view this booking from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T08:59:00.148Z] TO: ngcweti.mjiyako@gmail.com | SUBJECT: Consultation Scheduler test email
+This is a real email delivery test from Consultation Scheduler.
+
+If this reached your inbox, booking notifications can be delivered too.
+------------------------------------------------------------------------
+[2026-05-17T09:24:42.971Z] TO: synchromongodb@gmail.com | SUBJECT: Consultation Scheduler test email
+This is a real email delivery test from Consultation Scheduler.
+
+If this reached your inbox, booking notifications can be delivered too.
+------------------------------------------------------------------------
+[2026-05-17T09:25:12.186Z] TO: synchromongodb@gmail.com | SUBJECT: Consultation Scheduler test email
+This is a real email delivery test from Consultation Scheduler.
+
+If this reached your inbox, booking notifications can be delivered too.
+------------------------------------------------------------------------
+[2026-05-17T09:55:28.970Z] TO: ngcweti.mjiyako@gmail.com | SUBJECT: Consultation booking confirmed
+Hi Mthiyane,
+
+Your consultation booking has been confirmed.
+
+Module: ELEN50
+Date: 2026-05-18
+Time: 13:00 - 13:46
+Venue: RS36
+Topic: email2
+
+You can view this booking from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T11:46:30.444Z] TO: fntstembe@gmail.com | SUBJECT: Consultation booking canceled
+Hi Ofentse,
+
+Your consultation booking has been canceled.
+
+Module: ELEN4010A
+Date: 2026-05-18
+Time: 10:00 - 11:00
+Venue: Hall 29
+Topic: topic
+
+You can view your bookings from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T11:46:48.439Z] TO: fntstembe@gmail.com | SUBJECT: Consultation booking confirmed
+Hi Ofentse,
+
+Your consultation booking has been confirmed.
+
+Module: ELEN4010A
+Date: 2026-05-18
+Time: 10:00 - 11:00
+Venue: Hall 29
+Topic: topic
+
+You can view this booking from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T11:46:57.608Z] TO: fntstembe@gmail.com | SUBJECT: Consultation booking canceled
+Hi Ofentse,
+
+Your consultation booking has been canceled.
+
+Module: ELEN4010A
+Date: 2026-05-18
+Time: 10:00 - 11:00
+Venue: Hall 29
+Topic: topic
+
+You can view your bookings from your student dashboard.
+------------------------------------------------------------------------
+[2026-05-17T11:47:21.822Z] TO: fntstembe@gmail.com | SUBJECT: Consultation booking confirmed
+Hi Ofentse,
+
+Your consultation booking has been confirmed.
+
+Module: ELEN4010A
+Date: 2026-05-18
+Time: 10:00 - 11:00
+Venue: Hall 29
+Topic: topic
+
+You can view this booking from your student dashboard.
+------------------------------------------------------------------------
