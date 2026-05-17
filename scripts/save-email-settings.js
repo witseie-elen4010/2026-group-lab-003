@@ -8,10 +8,17 @@ function getArg (name) {
   return index === -1 ? '' : process.argv[index + 1] || ''
 }
 
+function normalizeEmailPassword (pass) {
+  return String(pass || '')
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/\s+/g, '')
+}
+
 async function main () {
   const mongoUri = getArg('mongo') || process.env.MONGODB_URI
   const user = getArg('user')
-  const pass = getArg('pass')
+  const pass = normalizeEmailPassword(getArg('pass'))
   const from = getArg('from') || user
   const service = getArg('service') || (user.includes('@gmail.com') ? 'gmail' : '')
   const host = getArg('host')

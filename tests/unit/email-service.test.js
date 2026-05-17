@@ -179,8 +179,9 @@ describe('emailService', () => {
     const { service, createTransport } = loadService({
       nodeEnv: 'development',
       env: {
-        EMAIL_USER: 'sender@gmail.com',
-        EMAIL_PASS: 'abcd efgh ijkl mnop'
+        EMAIL_USER: ' "sender@gmail.com" ',
+        EMAIL_PASS: ' "abcd efgh ijkl mnop" ',
+        EMAIL_SERVICE: ' "gmail" '
       }
     })
 

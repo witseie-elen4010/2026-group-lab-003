@@ -13,23 +13,30 @@ function getEmailTimeoutMs () {
 }
 
 function normalizeEmailPassword (pass) {
-  return String(pass || '').replace(/\s+/g, '')
+  return String(pass || '')
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/\s+/g, '')
+}
+
+function normalizeEnvString (value) {
+  return String(value || '').trim().replace(/^['"]|['"]$/g, '')
 }
 
 function getEnvEmailConfig () {
-  const user = process.env.SMTP_USER || process.env.EMAIL_USER
+  const user = normalizeEnvString(process.env.SMTP_USER || process.env.EMAIL_USER)
   const pass = normalizeEmailPassword(process.env.SMTP_PASS || process.env.EMAIL_PASS)
 
   if (!user || !pass) return null
 
   return {
-    service: process.env.EMAIL_SERVICE || (user.includes('@gmail.com') ? 'gmail' : ''),
-    host: process.env.SMTP_HOST || '',
+    service: normalizeEnvString(process.env.EMAIL_SERVICE) || (user.includes('@gmail.com') ? 'gmail' : ''),
+    host: normalizeEnvString(process.env.SMTP_HOST),
     port: Number(process.env.SMTP_PORT) || 587,
     secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
     user,
     pass,
-    from: process.env.SMTP_FROM || process.env.EMAIL_FROM || user,
+    from: normalizeEnvString(process.env.SMTP_FROM || process.env.EMAIL_FROM || user),
     timeoutMs: getEmailTimeoutMs()
   }
 }
