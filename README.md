@@ -81,9 +81,7 @@ cd 2026-group-lab-003
 Create a .env file in the root directory of the project and supply the following variables:
 ```env
 PORT=3000
-MONGO_URI=your_mongodb_connection_string
-BREVO_API_KEY=your_brevo_api_key
-NODE_ENV=development
+MONGO_URI=ymongodb+srv://mjiyakongcweti_db_user:ProjectPass2026@cluster0.rr6mogr.mongodb.net/?appName=Cluster0
 ```
 
 **3. Install dependencies**
