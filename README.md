@@ -77,19 +77,12 @@ git clone [https://github.com/witseie-elen4010/2026-group-lab-003.git](https://g
 cd 2026-group-lab-003
 ```
 
-**2. Provision the local environment file**
-Create a .env file in the root directory of the project and supply the following variables:
-```env
-PORT=3000
-MONGO_URI=ymongodb+srv://mjiyakongcweti_db_user:ProjectPass2026@cluster0.rr6mogr.mongodb.net/?appName=Cluster0
-```
-
-**3. Install dependencies**
+**2. Install dependencies**
 ```bash
 npm install
 ```
 
-**4. Fire up the development engine**
+**3. Fire up the development engine**
 ```bash
 npm start
 ```
